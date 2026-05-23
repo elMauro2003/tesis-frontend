@@ -1,10 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Button } from "@/components/ui/button";
+import { useStudents } from "@/features/students/hooks/useStudents";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const { data, isLoading, isError, error } = useStudents({ 
+    page, 
+    search: debouncedSearch 
+  });
+
+  const students = data?.results || [];
+  const totalPages = data ? Math.ceil(data.count / 10) : 1; // Assuming page_size is 10
+
+  // For handling input with simple debounce
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+  
+  const handleSearchBlur = () => {
+    setDebouncedSearch(search);
+    setPage(1); // Reset page on new search
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setDebouncedSearch(search);
+      setPage(1);
+    }
+  };
 
   return (
     <>
@@ -22,11 +51,9 @@ export default function DashboardPage() {
             <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
           </button>
           
-          <img 
-            alt="Admin" 
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-surface-container-lowest shadow-sm" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTV-KSX0HQzECPdUkTeEDWm1dYGQSkLsTzZY9g1TquBxpb-V7-S60sAqrsf0j8e78crfAB-O06XsS9PykFAYE5oC8lpnYiDB8aBKQqEzoJGgNhwzz-x8zzBmq8eoedor33_DxhnoMW3Rpeu_6v9nJwg2953ELS1RPZtsl7Fe2FpuUS9K89-GSWzkrACOQ4V9qBGEG73IgBthp9-zgq1bWF5h9AlpsOMV0XcK47oNYS2c-c9Gtx0geNsnuojfNV8AsjS1fsMWtQqg" 
-          />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high ring-2 ring-surface-container-lowest shadow-sm overflow-hidden text-primary font-bold">
+            {user ? `${user.username?.[0] || 'U'}`.toUpperCase() : 'U'}
+          </div>
         </div>
       </header>
 
@@ -41,6 +68,10 @@ export default function DashboardPage() {
             className="w-full bg-surface-container-low border-none rounded-xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline text-on-surface outline-none" 
             placeholder="Buscar estudiante por nombre o Carné de Identidad..." 
             type="text" 
+            value={search}
+            onChange={handleSearch}
+            onBlur={handleSearchBlur}
+            onKeyDown={handleKeyDown}
           />
         </div>
 
@@ -83,102 +114,83 @@ export default function DashboardPage() {
             <thead>
               <tr className="bg-surface-container-low/50">
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Estudiante</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">CI</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Carrera</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Año</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Estado</th>
                 <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/20">
               
-              {/* Student Row 1 */}
-              <tr className="hover:bg-surface-container-low transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">AM</div>
-                    <div>
-                      <div className="font-semibold text-on-surface">Alejandro Martínez</div>
-                      <div className="text-xs text-on-surface-variant">CI: 01020344556</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="text-sm text-on-surface font-medium">Ingeniería Informática</div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="text-sm text-on-surface-variant">3ro</div>
-                </td>
-                <td className="px-6 py-5">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-tertiary-fixed)] text-tertiary border border-[var(--color-tertiary-fixed-dim)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-2"></span>
-                    Pendiente
-                  </span>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center justify-end gap-1">
-                    <button className="p-2 text-outline hover:text-primary transition-colors" title="Consultar">
-                      <span className="material-symbols-outlined text-xl">visibility</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-primary transition-colors" title="Editar">
-                      <span className="material-symbols-outlined text-xl">edit</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-[--color-tertiary] transition-colors" title="Evaluar">
-                      <span className="material-symbols-outlined text-xl">star</span>
-                    </button>
-                    <button className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Asignar Cuarto">
-                      <span className="material-symbols-outlined text-xl">bed</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-error transition-colors" title="Dar de Baja">
-                      <span className="material-symbols-outlined text-xl">person_remove</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              
-              {/* Student Row 2 */}
-              <tr className="hover:bg-surface-container-low transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">BR</div>
-                    <div>
-                      <div className="font-semibold text-on-surface">Beatriz Rodríguez</div>
-                      <div className="text-xs text-on-surface-variant">CI: 02051288991</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="text-sm text-on-surface font-medium">Licenciatura en Letras</div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="text-sm text-on-surface-variant">1ro</div>
-                </td>
-                <td className="px-6 py-5">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-tertiary-fixed)] text-tertiary border border-[var(--color-tertiary-fixed-dim)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-2"></span>
-                    Pendiente
-                  </span>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center justify-end gap-1">
-                    <button className="p-2 text-outline hover:text-primary transition-colors" title="Consultar">
-                      <span className="material-symbols-outlined text-xl">visibility</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-primary transition-colors" title="Editar">
-                      <span className="material-symbols-outlined text-xl">edit</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-[--color-tertiary] transition-colors" title="Evaluar">
-                      <span className="material-symbols-outlined text-xl">star</span>
-                    </button>
-                    <button className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Asignar Cuarto">
-                      <span className="material-symbols-outlined text-xl">bed</span>
-                    </button>
-                    <button className="p-2 text-outline hover:text-error transition-colors" title="Dar de Baja">
-                      <span className="material-symbols-outlined text-xl">person_remove</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">
+                    Cargando estudiantes...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-error">
+                    Error al cargar los datos: {(error as Error)?.message || "Intente nuevamente"}
+                  </td>
+                </tr>
+              ) : students.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">
+                    No se encontraron estudiantes
+                  </td>
+                </tr>
+              ) : (
+                students.map((student) => {
+                  const firstName = student.first_name || "Desconocido";
+                  const lastName = student.last_name || "";
+                  const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
+                  const ci = (student as any).ci || (student as any).student_id || "-";
+
+                  // Extraemos carrera y año soportando que vengan aplanados o nestaos en 'group'
+                  const careerName = (student as any).career_name || 
+                                      (typeof (student as any).group !== 'number' ? (student as any).group?.career_year?.career?.name : null) || 
+                                      "No especificada";
+                  const yearNumber = (student as any).academic_year || (student as any).year_number ||
+                                      (typeof (student as any).group !== 'number' ? (student as any).group?.career_year?.year_number : null) || 
+                                      "-";
+                  
+                  return (
+                    <tr key={student.id} className="hover:bg-surface-container-low transition-colors group">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">
+                            {initials}
+                          </div>
+                          <div className="font-semibold text-on-surface">{firstName} {lastName}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-on-surface-variant font-medium">{ci}</div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-on-surface font-medium">{careerName}</div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm text-on-surface-variant">{yearNumber || "No especificado"}</div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-end gap-1">
+                          <button className="p-2 text-outline hover:text-primary transition-colors" title="Consultar">
+                            <span className="material-symbols-outlined text-xl">visibility</span>
+                          </button>
+                          <button className="p-2 text-outline hover:text-primary transition-colors" title="Editar">
+                            <span className="material-symbols-outlined text-xl">edit</span>
+                          </button>
+                          <button className="p-2 text-outline hover:text-error transition-colors" title="Dar de Baja">
+                            <span className="material-symbols-outlined text-xl">person_remove</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -186,13 +198,21 @@ export default function DashboardPage() {
         {/* Pagination */}
         <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
           <div className="text-sm font-medium text-on-surface-variant">
-            Página 1 de 10
+            Página {page} de {totalPages}
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50" disabled>
+            <button 
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+              disabled={page <= 1}
+              onClick={() => setPage(old => Math.max(1, old - 1))}
+            >
               <span className="material-symbols-outlined text-lg">chevron_left</span>
             </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm">
+            <button 
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={page >= totalPages}
+              onClick={() => setPage(old => (data && data.next ? old + 1 : old))}
+            >
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
           </div>
