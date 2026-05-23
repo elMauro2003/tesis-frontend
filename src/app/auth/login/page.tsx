@@ -1,8 +1,48 @@
+"use client";
+
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormField } from "@/components/shared/FormField";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { authService } from "@/core/services/auth.service";
+import { useAuthStore } from "@/store/useAuthStore";
+import { DEFAULT_LOGIN_REDIRECT } from "@/configs/routes";
 
-export default function Login() {
+function LoginFormContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const setCredentials = useAuthStore((state) => state.setCredentials);
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await authService.login({ username, password });
+      
+      // Guardar el estado de autenticación en nuestra store global
+      setCredentials(response.user, response.access, response.refresh);
+
+      // Redirigir al URL de retorno o al dashboard por defecto
+      const callbackUrl = searchParams.get("callbackUrl");
+      router.replace(callbackUrl || DEFAULT_LOGIN_REDIRECT);
+    } catch (err: any) {
+      setError(
+        err.message || "Credenciales incorrectas. Verifique e intente nuevamente."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen w-full flex-col md:flex-row overflow-hidden bg-surface text-on-surface">
       {/* Left Column: Brand Section */}
@@ -56,7 +96,13 @@ export default function Login() {
             </p>
           </div>
           {/* Login Form */}
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="p-4 bg-error-container text-on-error-container rounded-lg text-sm font-medium">
+                {error}
+              </div>
+            )}
+
             {/* Username Field */}
             <FormField
               id="username"
@@ -65,6 +111,10 @@ export default function Login() {
               icon="person"
               placeholder="ej. admin@uclv.cu"
               type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={isLoading}
+              required
             />
 
             {/* Password Field */}
@@ -74,14 +124,20 @@ export default function Login() {
               label="Contraseña"
               icon="lock"
               placeholder="••••••••"
-              type="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              required
               rightElement={
                 <button
-                  className="h-full px-2 flex items-center justify-center text-outline hover:text-on-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded"
+                  className="h-full px-2 flex items-center justify-center text-outline hover:text-on-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded cursor-pointer"
                   type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
                   <span className="material-symbols-outlined text-[22px]">
-                    visibility
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               }
@@ -111,11 +167,14 @@ export default function Login() {
 
             {/* Submit Button */}
             <Button
-              type="button"
+              type="submit"
+              disabled={isLoading}
               className="w-full py-4 h-auto bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary-container shadow-none hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98] transition-all duration-300"
             >
-              <span>Acceder al Sistema</span>
-              <span className="material-symbols-outlined">login</span>
+              <span>{isLoading ? "Autenticando..." : "Acceder al Sistema"}</span>
+              <span className="material-symbols-outlined">
+                {isLoading ? "hourglass_empty" : "login"}
+              </span>
             </Button>
           </form>
           {/* Access Notice */}
@@ -140,5 +199,17 @@ export default function Login() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-surface">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <LoginFormContent />
+    </Suspense>
   );
 }
