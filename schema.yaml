@@ -1,0 +1,6648 @@
+openapi: 3.0.3
+info:
+  title: API Sistema de Gestión de Residencias Estudiantiles — UCLV
+  version: 1.0.0
+  description: Backend del sistema de gestión de residencias estudiantiles de la Universidad
+    Central 'Marta Abreu' de Las Villas (UCLV). Implementado con Django REST Framework
+    como parte del Trabajo de Diploma de Mauricio Jesús Avalo Tamayo.
+paths:
+  /api/v1/alas/:
+    get:
+      operationId: alas_list
+      summary: Listar alas (RF-36)
+      parameters:
+      - in: query
+        name: building
+        schema:
+          type: integer
+      - in: query
+        name: building__site
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWingList'
+          description: ''
+    post:
+      operationId: alas_create
+      summary: Crear ala (RF-35)
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wing'
+          description: ''
+  /api/v1/alas/{id}/:
+    get:
+      operationId: alas_retrieve
+      summary: Detalle de ala (RF-37)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ala.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wing'
+          description: ''
+    patch:
+      operationId: alas_partial_update
+      summary: Actualizar ala (RF-38)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ala.
+        required: true
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWingRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wing'
+          description: ''
+    delete:
+      operationId: alas_destroy
+      summary: Eliminar ala (RF-39)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Ala.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/anios-academicos/:
+    get:
+      operationId: anios_academicos_list
+      summary: Listar años académicos
+      parameters:
+      - in: query
+        name: career
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: year
+        schema:
+          type: integer
+          title: Año
+          enum:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+        description: |-
+          * `1` - 1° Año
+          * `2` - 2° Año
+          * `3` - 3° Año
+          * `4` - 4° Año
+          * `5` - 5° Año
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCareerYearList'
+          description: ''
+    post:
+      operationId: anios_academicos_create
+      summary: Crear año académico
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerYear'
+          description: ''
+  /api/v1/anios-academicos/{id}/:
+    get:
+      operationId: anios_academicos_retrieve
+      summary: Detalle de año académico
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Año Académico.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerYear'
+          description: ''
+    put:
+      operationId: anios_academicos_update
+      summary: Actualizar año académico
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Año Académico.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CareerYearRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerYear'
+          description: ''
+    patch:
+      operationId: anios_academicos_partial_update
+      summary: Actualizar año académico (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Año Académico.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerYearRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerYearRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerYearRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareerYear'
+          description: ''
+    delete:
+      operationId: anios_academicos_destroy
+      summary: Eliminar año académico
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Año Académico.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/asignaciones/:
+    get:
+      operationId: asignaciones_list
+      summary: Histórico de asignaciones (RF-47)
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: room
+        schema:
+          type: integer
+      - in: query
+        name: room__wing
+        schema:
+          type: integer
+      - in: query
+        name: room__wing__building
+        schema:
+          type: integer
+      - in: query
+        name: student
+        schema:
+          type: integer
+      tags:
+      - assignments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssignmentList'
+          description: ''
+    post:
+      operationId: asignaciones_create
+      summary: Asignar cuarto (RF-45)
+      tags:
+      - assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssignmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssignmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+          description: ''
+  /api/v1/asignaciones/{id}/:
+    get:
+      operationId: asignaciones_retrieve
+      summary: Consultar asignación (RF-48)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Asignación de Cuarto.
+        required: true
+      tags:
+      - assignments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+          description: ''
+  /api/v1/asignaciones/{id}/liberar/:
+    post:
+      operationId: asignaciones_liberar_create
+      summary: Liberar cuarto (RF-49)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Asignación de Cuarto.
+        required: true
+      tags:
+      - assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignmentReleaseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssignmentReleaseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssignmentReleaseRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+          description: ''
+  /api/v1/asignaciones/activas/:
+    get:
+      operationId: asignaciones_activas_retrieve
+      summary: Asignaciones activas (RF-46)
+      tags:
+      - assignments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+          description: ''
+  /api/v1/auth/cambiar-contrasena/:
+    post:
+      operationId: auth_cambiar_contrasena_create
+      summary: Cambiar contraseña
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Contraseña actualizada
+        '400':
+          description: Datos inválidos
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Autentica al usuario y devuelve un par de tokens JWT. El access
+        token expira en 15 minutos; el refresh token en 7 días. El payload del access
+        token incluye los roles del usuario.
+      summary: Login — Obtener tokens JWT
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: El backend no invalida tokens (arquitectura stateless). El cliente
+        debe descartar el access y refresh token localmente. Devuelve 200 OK como
+        confirmación.
+      summary: Logout (client-side)
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Logout exitoso
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      summary: Perfil del usuario autenticado
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      summary: Refrescar access token
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/roles/:
+    get:
+      operationId: auth_roles_list
+      summary: Listar roles del sistema
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoleList'
+          description: ''
+  /api/v1/auth/usuarios/:
+    get:
+      operationId: auth_usuarios_list
+      summary: Listar usuarios
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: auth_usuarios_create
+      summary: Crear usuario
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreate'
+          description: ''
+  /api/v1/auth/usuarios/{id}/:
+    get:
+      operationId: auth_usuarios_retrieve
+      summary: Detalle de usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: auth_usuarios_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_usuarios_partial_update
+      summary: Actualizar usuario (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: auth_usuarios_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/usuarios/{id}/permisos/:
+    get:
+      operationId: auth_usuarios_permisos_retrieve
+      summary: Listar permisos de usuario (RF-66)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/usuarios/{id}/roles/:
+    post:
+      operationId: auth_usuarios_roles_create
+      summary: Asignar rol a usuario (RF-64)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Rol asignado
+        '400':
+          description: Rol inválido
+        '404':
+          description: Usuario no encontrado
+  /api/v1/auth/usuarios/{id}/roles/{rol_id}/:
+    delete:
+      operationId: auth_usuarios_roles_destroy
+      summary: Remover rol de usuario (RF-65)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: rol_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Rol removido
+        '404':
+          description: Usuario o rol no encontrado
+  /api/v1/cambiar-contrasena/:
+    post:
+      operationId: cambiar_contrasena_create
+      summary: Cambiar contraseña
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Contraseña actualizada
+        '400':
+          description: Datos inválidos
+  /api/v1/carreras/:
+    get:
+      operationId: carreras_list
+      summary: Listar carreras
+      parameters:
+      - in: query
+        name: faculty
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCareerList'
+          description: ''
+    post:
+      operationId: carreras_create
+      summary: Crear carrera
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Career'
+          description: ''
+  /api/v1/carreras/{id}/:
+    get:
+      operationId: carreras_retrieve
+      summary: Detalle de carrera
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrera.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Career'
+          description: ''
+    put:
+      operationId: carreras_update
+      summary: Actualizar carrera
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrera.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CareerRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Career'
+          description: ''
+    patch:
+      operationId: carreras_partial_update
+      summary: Actualizar carrera (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrera.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCareerRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Career'
+          description: ''
+    delete:
+      operationId: carreras_destroy
+      summary: Eliminar carrera
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrera.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/cuartelerias/:
+    get:
+      operationId: cuartelerias_list
+      summary: Listar cuartelerías (RF-68)
+      parameters:
+      - in: query
+        name: assigned_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: completed
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: room
+        schema:
+          type: integer
+      - in: query
+        name: room__wing
+        schema:
+          type: integer
+      - in: query
+        name: student
+        schema:
+          type: integer
+      tags:
+      - cleaning
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCleaningScheduleList'
+          description: ''
+    post:
+      operationId: cuartelerias_create
+      summary: Crear cuartelería (RF-67)
+      tags:
+      - cleaning
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CleaningScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CleaningScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CleaningScheduleRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleaningSchedule'
+          description: ''
+  /api/v1/cuartelerias/{id}/:
+    get:
+      operationId: cuartelerias_retrieve
+      summary: Detalle de cuartelería
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuartelería.
+        required: true
+      tags:
+      - cleaning
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleaningSchedule'
+          description: ''
+    patch:
+      operationId: cuartelerias_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuartelería.
+        required: true
+      tags:
+      - cuartelerias
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningScheduleRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleaningSchedule'
+          description: ''
+    delete:
+      operationId: cuartelerias_destroy
+      summary: Eliminar cuartelería
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuartelería.
+        required: true
+      tags:
+      - cleaning
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/cuartelerias/{id}/completar/:
+    patch:
+      operationId: cuartelerias_completar_partial_update
+      summary: Marcar cuartelería completada (RF-70)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuartelería.
+        required: true
+      tags:
+      - cleaning
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningCompleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningCompleteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCleaningCompleteRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleaningSchedule'
+          description: ''
+  /api/v1/cuartelerias/mis-cuartelerias/:
+    get:
+      operationId: cuartelerias_mis_cuartelerias_retrieve
+      summary: Mis cuartelerías (RF-69)
+      tags:
+      - cleaning
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleaningSchedule'
+          description: ''
+  /api/v1/cuartos/:
+    get:
+      operationId: cuartos_list
+      summary: Listar cuartos (RF-41)
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: wing
+        schema:
+          type: integer
+      - in: query
+        name: wing__building
+        schema:
+          type: integer
+      - in: query
+        name: wing__building__site
+        schema:
+          type: integer
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoomListList'
+          description: ''
+    post:
+      operationId: cuartos_create
+      summary: Crear cuarto (RF-40)
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoomRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+  /api/v1/cuartos/{id}/:
+    get:
+      operationId: cuartos_retrieve
+      summary: Detalle de cuarto (RF-42)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuarto.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+    patch:
+      operationId: cuartos_partial_update
+      summary: Actualizar cuarto (RF-43)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuarto.
+        required: true
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRoomRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+          description: ''
+    delete:
+      operationId: cuartos_destroy
+      summary: Eliminar cuarto (RF-44)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Cuarto.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/edificios/:
+    get:
+      operationId: edificios_list
+      summary: Listar edificios (RF-31)
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: site
+        schema:
+          type: integer
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBuildingList'
+          description: ''
+    post:
+      operationId: edificios_create
+      summary: Crear edificio (RF-30)
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BuildingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BuildingRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Building'
+          description: ''
+  /api/v1/edificios/{id}/:
+    get:
+      operationId: edificios_retrieve
+      summary: Detalle de edificio (RF-32)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Edificio.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Building'
+          description: ''
+    patch:
+      operationId: edificios_partial_update
+      summary: Actualizar edificio (RF-33)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Edificio.
+        required: true
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBuildingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBuildingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBuildingRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Building'
+          description: ''
+    delete:
+      operationId: edificios_destroy
+      summary: Eliminar edificio (RF-34)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Edificio.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/estudiantes/:
+    get:
+      operationId: estudiantes_list
+      summary: Listar estudiantes (RF-2, RF-7)
+      parameters:
+      - in: query
+        name: gender
+        schema:
+          type: string
+          title: Sexo
+          enum:
+          - F
+          - M
+        description: |-
+          * `M` - Masculino
+          * `F` - Femenino
+      - in: query
+        name: group
+        schema:
+          type: integer
+      - in: query
+        name: group__career_year
+        schema:
+          type: integer
+      - in: query
+        name: group__career_year__career
+        schema:
+          type: integer
+      - in: query
+        name: group__career_year__career__faculty
+        schema:
+          type: integer
+      - in: query
+        name: group__career_year__year
+        schema:
+          type: integer
+          title: Año
+          enum:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+        description: |-
+          * `1` - 1° Año
+          * `2` - 2° Año
+          * `3` - 3° Año
+          * `4` - 4° Año
+          * `5` - 5° Año
+      - in: query
+        name: is_militant
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStudentListList'
+          description: ''
+    post:
+      operationId: estudiantes_create
+      summary: Insertar estudiante (RF-1)
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StudentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StudentCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentCreate'
+          description: ''
+  /api/v1/estudiantes/{id}/:
+    get:
+      operationId: estudiantes_retrieve
+      summary: Consultar estudiante por ID (RF-3)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Estudiante.
+        required: true
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+    put:
+      operationId: estudiantes_update
+      summary: Actualizar estudiante completo (RF-4)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Estudiante.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StudentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StudentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+    patch:
+      operationId: estudiantes_partial_update
+      summary: Actualizar estudiante parcial (RF-5)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Estudiante.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+    delete:
+      operationId: estudiantes_destroy
+      summary: Eliminar estudiante (RF-6)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Estudiante.
+        required: true
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/evaluaciones/:
+    get:
+      operationId: evaluaciones_list
+      summary: Listar evaluaciones (RF-9)
+      parameters:
+      - in: query
+        name: grade
+        schema:
+          type: string
+          title: Calificación
+          enum:
+          - B
+          - M
+          - R
+        description: |-
+          * `B` - Bien
+          * `R` - Regular
+          * `M` - Mal
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: student
+        schema:
+          type: integer
+      - in: query
+        name: student__group
+        schema:
+          type: integer
+      tags:
+      - evaluations
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvaluationList'
+          description: ''
+    post:
+      operationId: evaluaciones_create
+      summary: Añadir evaluación (RF-8)
+      tags:
+      - evaluations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+          description: ''
+  /api/v1/evaluaciones/{id}/:
+    get:
+      operationId: evaluaciones_retrieve
+      summary: Consultar evaluación (RF-10)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Evaluación.
+        required: true
+      tags:
+      - evaluations
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+          description: ''
+    patch:
+      operationId: evaluaciones_partial_update
+      summary: Actualizar evaluación (RF-11)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Evaluación.
+        required: true
+      tags:
+      - evaluations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEvaluationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEvaluationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEvaluationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+          description: ''
+    delete:
+      operationId: evaluaciones_destroy
+      summary: Eliminar evaluación (RF-12)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Evaluación.
+        required: true
+      tags:
+      - evaluations
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/evaluaciones/mis-evaluaciones/:
+    get:
+      operationId: evaluaciones_mis_evaluaciones_retrieve
+      summary: Mis evaluaciones (RF-13)
+      tags:
+      - evaluations
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluation'
+          description: ''
+  /api/v1/facultades/:
+    get:
+      operationId: facultades_list
+      summary: Listar facultades
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFacultyList'
+          description: ''
+    post:
+      operationId: facultades_create
+      summary: Crear facultad
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faculty'
+          description: ''
+  /api/v1/facultades/{id}/:
+    get:
+      operationId: facultades_retrieve
+      summary: Detalle de facultad
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Facultad.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faculty'
+          description: ''
+    put:
+      operationId: facultades_update
+      summary: Actualizar facultad
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Facultad.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FacultyRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faculty'
+          description: ''
+    patch:
+      operationId: facultades_partial_update
+      summary: Actualizar facultad (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Facultad.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFacultyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFacultyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFacultyRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faculty'
+          description: ''
+    delete:
+      operationId: facultades_destroy
+      summary: Eliminar facultad
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Facultad.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/grupos/:
+    get:
+      operationId: grupos_list
+      summary: Listar grupos
+      parameters:
+      - in: query
+        name: career_year
+        schema:
+          type: integer
+      - in: query
+        name: career_year__career
+        schema:
+          type: integer
+      - in: query
+        name: career_year__year
+        schema:
+          type: integer
+          title: Año
+          enum:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+        description: |-
+          * `1` - 1° Año
+          * `2` - 2° Año
+          * `3` - 3° Año
+          * `4` - 4° Año
+          * `5` - 5° Año
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGroupList'
+          description: ''
+    post:
+      operationId: grupos_create
+      summary: Crear grupo
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/v1/grupos/{id}/:
+    get:
+      operationId: grupos_retrieve
+      summary: Detalle de grupo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grupo.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+    put:
+      operationId: grupos_update
+      summary: Actualizar grupo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grupo.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+    patch:
+      operationId: grupos_partial_update
+      summary: Actualizar grupo (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grupo.
+        required: true
+      tags:
+      - academic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+    delete:
+      operationId: grupos_destroy
+      summary: Eliminar grupo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grupo.
+        required: true
+      tags:
+      - academic
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/informaciones/:
+    get:
+      operationId: informaciones_list
+      summary: Listar informaciones (RF-51)
+      parameters:
+      - in: query
+        name: is_public
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - information
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInformationList'
+          description: ''
+    post:
+      operationId: informaciones_create
+      summary: Crear información (RF-50)
+      tags:
+      - information
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InformationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InformationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InformationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Information'
+          description: ''
+  /api/v1/informaciones/{id}/:
+    get:
+      operationId: informaciones_retrieve
+      summary: Consultar información (RF-52)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Información.
+        required: true
+      tags:
+      - information
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Information'
+          description: ''
+    patch:
+      operationId: informaciones_partial_update
+      summary: Actualizar información (RF-53)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Información.
+        required: true
+      tags:
+      - information
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedInformationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedInformationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedInformationRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Information'
+          description: ''
+    delete:
+      operationId: informaciones_destroy
+      summary: Eliminar información (RF-54)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Información.
+        required: true
+      tags:
+      - information
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/informaciones/publicas/:
+    get:
+      operationId: informaciones_publicas_retrieve
+      summary: Informaciones públicas (RF-55)
+      tags:
+      - information
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Information'
+          description: ''
+  /api/v1/login/:
+    post:
+      operationId: login_create
+      description: Autentica al usuario y devuelve un par de tokens JWT. El access
+        token expira en 15 minutos; el refresh token en 7 días. El payload del access
+        token incluye los roles del usuario.
+      summary: Login — Obtener tokens JWT
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPairRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/logout/:
+    post:
+      operationId: logout_create
+      description: El backend no invalida tokens (arquitectura stateless). El cliente
+        debe descartar el access y refresh token localmente. Devuelve 200 OK como
+        confirmación.
+      summary: Logout (client-side)
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Logout exitoso
+  /api/v1/me/:
+    get:
+      operationId: me_retrieve
+      summary: Perfil del usuario autenticado
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/profesores/:
+    get:
+      operationId: profesores_list
+      summary: Listar profesores
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProfessorList'
+          description: ''
+    post:
+      operationId: profesores_create
+      summary: Crear profesor
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfessorCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProfessorCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfessorCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfessorCreate'
+          description: ''
+  /api/v1/profesores/{id}/:
+    get:
+      operationId: profesores_retrieve
+      summary: Detalle de profesor
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Professor'
+          description: ''
+    patch:
+      operationId: profesores_partial_update
+      summary: Actualizar profesor
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfessorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfessorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfessorRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Professor'
+          description: ''
+    delete:
+      operationId: profesores_destroy
+      summary: Eliminar profesor
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/profesores/{id}/decano/:
+    get:
+      operationId: profesores_decano_retrieve
+      summary: Asignar/consultar sub-rol Decano
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dean'
+          description: ''
+    post:
+      operationId: profesores_decano_create
+      summary: Asignar/consultar sub-rol Decano
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeanRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dean'
+          description: ''
+    delete:
+      operationId: profesores_decano_destroy
+      summary: Asignar/consultar sub-rol Decano
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dean'
+          description: ''
+  /api/v1/profesores/{id}/ppa/:
+    get:
+      operationId: profesores_ppa_retrieve
+      summary: Asignar/consultar sub-rol PPA
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YearLeadProfessor'
+          description: ''
+    post:
+      operationId: profesores_ppa_create
+      summary: Asignar/consultar sub-rol PPA
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YearLeadProfessorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/YearLeadProfessorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/YearLeadProfessorRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YearLeadProfessor'
+          description: ''
+    delete:
+      operationId: profesores_ppa_destroy
+      summary: Asignar/consultar sub-rol PPA
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YearLeadProfessor'
+          description: ''
+  /api/v1/profesores/{id}/profesor-guia/:
+    get:
+      operationId: profesores_profesor_guia_retrieve
+      summary: Asignar/consultar sub-rol Profesor Guía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupAdvisor'
+          description: ''
+    post:
+      operationId: profesores_profesor_guia_create
+      summary: Asignar/consultar sub-rol Profesor Guía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupAdvisorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupAdvisorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupAdvisorRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupAdvisor'
+          description: ''
+    delete:
+      operationId: profesores_profesor_guia_destroy
+      summary: Asignar/consultar sub-rol Profesor Guía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupAdvisor'
+          description: ''
+  /api/v1/profesores/{id}/responsable-ala/:
+    get:
+      operationId: profesores_responsable_ala_retrieve
+      summary: Asignar/consultar sub-rol Responsable de Ala
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WingSupervisor'
+          description: ''
+    post:
+      operationId: profesores_responsable_ala_create
+      summary: Asignar/consultar sub-rol Responsable de Ala
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WingSupervisorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WingSupervisorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WingSupervisorRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WingSupervisor'
+          description: ''
+    delete:
+      operationId: profesores_responsable_ala_destroy
+      summary: Asignar/consultar sub-rol Responsable de Ala
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Profesor.
+        required: true
+      tags:
+      - professors
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WingSupervisor'
+          description: ''
+  /api/v1/quejas/:
+    get:
+      operationId: quejas_list
+      summary: Listar quejas
+      parameters:
+      - in: query
+        name: building
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: Estado
+          enum:
+          - en_proceso
+          - pendiente
+          - rechazada
+          - resuelta
+        description: |-
+          * `pendiente` - Pendiente
+          * `en_proceso` - En proceso
+          * `resuelta` - Resuelta
+          * `rechazada` - Rechazada
+      - in: query
+        name: type
+        schema:
+          type: string
+          title: Tipo
+          enum:
+          - administrativa
+          - educativa
+        description: |-
+          * `administrativa` - Administrativa
+          * `educativa` - Educativa
+      - in: query
+        name: visibility
+        schema:
+          type: boolean
+      tags:
+      - complaints
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComplaintList'
+          description: ''
+    post:
+      operationId: quejas_create
+      summary: Añadir queja (RF-14)
+      tags:
+      - complaints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ComplaintCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplaintCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintCreate'
+          description: ''
+  /api/v1/quejas/{id}/:
+    get:
+      operationId: quejas_retrieve
+      summary: Consultar queja por ID
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+    patch:
+      operationId: quejas_partial_update
+      summary: Actualizar queja propia (RF-17)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+    delete:
+      operationId: quejas_destroy
+      summary: Eliminar queja propia (RF-18)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/quejas/{id}/estado/:
+    patch:
+      operationId: quejas_estado_partial_update
+      summary: Cambiar estado de queja (RF-22)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintStatusRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintStatusRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintStatusRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+  /api/v1/quejas/{id}/respuesta/:
+    post:
+      operationId: quejas_respuesta_create
+      summary: Responder queja (RF-23)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplaintResponseRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ComplaintResponseRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ComplaintResponseRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+  /api/v1/quejas/{id}/visibilidad/:
+    patch:
+      operationId: quejas_visibilidad_partial_update
+      summary: Controlar visibilidad (RF-24)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Queja.
+        required: true
+      tags:
+      - complaints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintVisibilityRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintVisibilityRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedComplaintVisibilityRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+  /api/v1/quejas/mis-quejas/:
+    get:
+      operationId: quejas_mis_quejas_retrieve
+      summary: Mis quejas (RF-15)
+      tags:
+      - complaints
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+  /api/v1/quejas/visibles/:
+    get:
+      operationId: quejas_visibles_retrieve
+      summary: Quejas visibles (RF-19)
+      tags:
+      - complaints
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complaint'
+          description: ''
+  /api/v1/refresh/:
+    post:
+      operationId: refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      summary: Refrescar access token
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/reportes/:
+    get:
+      operationId: reportes_list
+      summary: Listar reportes (RF-58)
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: type
+        schema:
+          type: string
+      tags:
+      - reports
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportList'
+          description: ''
+    post:
+      operationId: reportes_create
+      summary: Solicitar reporte (RF-56)
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+  /api/v1/reportes/{id}/:
+    get:
+      operationId: reportes_retrieve
+      summary: Consultar reporte (RF-57)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Reporte.
+        required: true
+      tags:
+      - reports
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+          description: ''
+  /api/v1/roles/:
+    get:
+      operationId: roles_list
+      summary: Listar roles del sistema
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRoleList'
+          description: ''
+  /api/v1/sedes/:
+    get:
+      operationId: sedes_list
+      summary: Listar sedes (RF-26)
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSiteList'
+          description: ''
+    post:
+      operationId: sedes_create
+      summary: Crear sede (RF-25)
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SiteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SiteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+          description: ''
+  /api/v1/sedes/{id}/:
+    get:
+      operationId: sedes_retrieve
+      summary: Detalle de sede (RF-27)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Sede.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+          description: ''
+    patch:
+      operationId: sedes_partial_update
+      summary: Actualizar sede (RF-28)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Sede.
+        required: true
+      tags:
+      - infrastructure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSiteRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+          description: ''
+    delete:
+      operationId: sedes_destroy
+      description: Eliminar sede con manejo de errores de integridad referencial.
+      summary: Eliminar sede (RF-29)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Sede.
+        required: true
+      tags:
+      - infrastructure
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/usuarios/:
+    get:
+      operationId: usuarios_list
+      summary: Listar usuarios
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: usuarios_create
+      summary: Crear usuario
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreate'
+          description: ''
+  /api/v1/usuarios/{id}/:
+    get:
+      operationId: usuarios_retrieve
+      summary: Detalle de usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: usuarios_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - usuarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: usuarios_partial_update
+      summary: Actualizar usuario (parcial)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: usuarios_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - usuarios
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/usuarios/{id}/permisos/:
+    get:
+      operationId: usuarios_permisos_retrieve
+      summary: Listar permisos de usuario (RF-66)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/usuarios/{id}/roles/:
+    post:
+      operationId: usuarios_roles_create
+      summary: Asignar rol a usuario (RF-64)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRoleAssignRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Rol asignado
+        '400':
+          description: Rol inválido
+        '404':
+          description: Usuario no encontrado
+  /api/v1/usuarios/{id}/roles/{rol_id}/:
+    delete:
+      operationId: usuarios_roles_destroy
+      summary: Remover rol de usuario (RF-65)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: rol_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - roles
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: Rol removido
+        '404':
+          description: Usuario o rol no encontrado
+components:
+  schemas:
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: Estudiante
+        student_name:
+          type: string
+          readOnly: true
+        student_id_code:
+          type: string
+          readOnly: true
+        room:
+          type: integer
+          title: Cuarto
+        room_detail:
+          type: string
+          readOnly: true
+        assigned_date:
+          type: string
+          format: date
+          title: Fecha de asignación
+        released_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          title: Fecha de liberación
+          description: NULL indica que la asignación está activa
+        is_active:
+          type: boolean
+          readOnly: true
+        assigned_by:
+          type: integer
+          readOnly: true
+          title: Asignado por
+        assigned_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assigned_by
+      - assigned_by_name
+      - assigned_date
+      - created_at
+      - id
+      - is_active
+      - released_date
+      - room
+      - room_detail
+      - student
+      - student_id_code
+      - student_name
+      - updated_at
+    AssignmentReleaseRequest:
+      type: object
+      description: Liberar un cuarto (RF-49).
+      properties:
+        released_date:
+          type: string
+          format: date
+    AssignmentRequest:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: Estudiante
+        room:
+          type: integer
+          title: Cuarto
+        assigned_date:
+          type: string
+          format: date
+          title: Fecha de asignación
+      required:
+      - assigned_date
+      - room
+      - student
+    BlankEnum:
+      enum:
+      - ''
+    Building:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre / Número
+          description: Nombre o número identificador del edificio
+          maxLength: 50
+        address:
+          type: string
+          nullable: true
+          title: Dirección
+        site:
+          type: integer
+          title: Sede
+        site_name:
+          type: string
+          readOnly: true
+        wing_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - site
+      - site_name
+      - updated_at
+      - wing_count
+    BuildingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre / Número
+          description: Nombre o número identificador del edificio
+          maxLength: 50
+        address:
+          type: string
+          nullable: true
+          title: Dirección
+        site:
+          type: integer
+          title: Sede
+      required:
+      - name
+      - site
+    Career:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          maxLength: 10
+        faculty:
+          type: integer
+          title: Facultad
+        faculty_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - faculty
+      - faculty_name
+      - id
+      - name
+      - updated_at
+    CareerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          maxLength: 10
+        faculty:
+          type: integer
+          title: Facultad
+      required:
+      - faculty
+      - name
+    CareerYear:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        career:
+          type: integer
+          title: Carrera
+        career_name:
+          type: string
+          readOnly: true
+        year:
+          allOf:
+          - $ref: '#/components/schemas/YearEnum'
+          title: Año
+          minimum: 0
+          maximum: 9223372036854775807
+        year_display:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - career
+      - career_name
+      - created_at
+      - id
+      - updated_at
+      - year
+      - year_display
+    CareerYearRequest:
+      type: object
+      properties:
+        career:
+          type: integer
+          title: Carrera
+        year:
+          allOf:
+          - $ref: '#/components/schemas/YearEnum'
+          title: Año
+          minimum: 0
+          maximum: 9223372036854775807
+      required:
+      - career
+      - year
+    ChangePasswordRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        confirm_new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - confirm_new_password
+      - new_password
+      - old_password
+    CleaningSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        room:
+          type: integer
+          title: Cuarto a limpiar
+        room_detail:
+          type: string
+          readOnly: true
+        student:
+          type: integer
+          title: Estudiante asignado
+        student_name:
+          type: string
+          readOnly: true
+        assigned_date:
+          type: string
+          format: date
+          title: Fecha asignada
+        completed:
+          type: boolean
+          title: Completada
+        evaluation:
+          nullable: true
+          title: Evaluación de la tarea
+          oneOf:
+          - $ref: '#/components/schemas/EvaluationEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        evaluation_display:
+          type: string
+          readOnly: true
+        comments:
+          type: string
+          nullable: true
+          title: Observaciones
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assigned_date
+      - created_at
+      - evaluation_display
+      - id
+      - room
+      - room_detail
+      - student
+      - student_name
+      - updated_at
+    CleaningScheduleRequest:
+      type: object
+      properties:
+        room:
+          type: integer
+          title: Cuarto a limpiar
+        student:
+          type: integer
+          title: Estudiante asignado
+        assigned_date:
+          type: string
+          format: date
+          title: Fecha asignada
+        completed:
+          type: boolean
+          title: Completada
+        evaluation:
+          nullable: true
+          title: Evaluación de la tarea
+          oneOf:
+          - $ref: '#/components/schemas/EvaluationEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        comments:
+          type: string
+          nullable: true
+          title: Observaciones
+      required:
+      - assigned_date
+      - room
+      - student
+    Complaint:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: Estudiante
+        student_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: Fecha de la queja
+        building:
+          type: integer
+          nullable: true
+          title: Edificio relacionado
+        building_name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          title: Descripción
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Tipo
+        type_display:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status24fEnum'
+          title: Estado
+        status_display:
+          type: string
+          readOnly: true
+        visibility:
+          type: boolean
+          title: Visible para otros estudiantes
+        response:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Respuesta
+        response_date:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Fecha de respuesta
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - building_name
+      - created_at
+      - description
+      - id
+      - response
+      - response_date
+      - status_display
+      - student
+      - student_name
+      - type
+      - type_display
+      - updated_at
+    ComplaintCreate:
+      type: object
+      description: Para crear una queja — el estudiante se toma del usuario autenticado.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          readOnly: true
+          title: Estudiante
+        student_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: Fecha de la queja
+        building:
+          type: integer
+          nullable: true
+          title: Edificio relacionado
+        building_name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          title: Descripción
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Tipo
+        type_display:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status24fEnum'
+          readOnly: true
+          title: Estado
+        status_display:
+          type: string
+          readOnly: true
+        visibility:
+          type: boolean
+          readOnly: true
+          title: Visible para otros estudiantes
+        response:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Respuesta
+        response_date:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Fecha de respuesta
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - building_name
+      - created_at
+      - description
+      - id
+      - response
+      - response_date
+      - status
+      - status_display
+      - student
+      - student_name
+      - type
+      - type_display
+      - updated_at
+      - visibility
+    ComplaintCreateRequest:
+      type: object
+      description: Para crear una queja — el estudiante se toma del usuario autenticado.
+      properties:
+        date:
+          type: string
+          format: date
+          title: Fecha de la queja
+        building:
+          type: integer
+          nullable: true
+          title: Edificio relacionado
+        description:
+          type: string
+          minLength: 1
+          title: Descripción
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Tipo
+      required:
+      - description
+      - type
+    ComplaintResponseRequest:
+      type: object
+      description: Responder una queja (RF-23).
+      properties:
+        response:
+          type: string
+          minLength: 10
+      required:
+      - response
+    ComplaintStatusStatusEnum:
+      enum:
+      - pendiente
+      - en_proceso
+      - resuelta
+      - rechazada
+      type: string
+      description: |-
+        * `pendiente` - pendiente
+        * `en_proceso` - en_proceso
+        * `resuelta` - resuelta
+        * `rechazada` - rechazada
+    CustomTokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    Dean:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        professor_name:
+          type: string
+          readOnly: true
+        faculty:
+          type: integer
+          title: Facultad supervisada
+        faculty_name:
+          type: string
+          readOnly: true
+      required:
+      - faculty
+      - faculty_name
+      - professor
+      - professor_name
+    DeanRequest:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        faculty:
+          type: integer
+          title: Facultad supervisada
+      required:
+      - faculty
+      - professor
+    Evaluation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: Estudiante evaluado
+        student_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          title: Fecha de evaluación
+        grade:
+          allOf:
+          - $ref: '#/components/schemas/GradeEnum'
+          title: Calificación
+        grade_display:
+          type: string
+          readOnly: true
+        comment:
+          type: string
+          nullable: true
+          title: Comentario del instructor
+        created_by:
+          type: integer
+          readOnly: true
+          title: Registrado por
+        created_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - created_by
+      - created_by_name
+      - grade
+      - grade_display
+      - id
+      - student
+      - student_name
+      - updated_at
+    EvaluationEnum:
+      enum:
+      - B
+      - R
+      - M
+      type: string
+      description: |-
+        * `B` - Bien
+        * `R` - Regular
+        * `M` - Mal
+    EvaluationRequest:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: Estudiante evaluado
+        date:
+          type: string
+          format: date
+          title: Fecha de evaluación
+        grade:
+          allOf:
+          - $ref: '#/components/schemas/GradeEnum'
+          title: Calificación
+        comment:
+          type: string
+          nullable: true
+          title: Comentario del instructor
+      required:
+      - grade
+      - student
+    Faculty:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          description: 'Abreviatura (ej: ''MATFISCOM'')'
+          maxLength: 10
+        career_count:
+          type: integer
+          readOnly: true
+          description: Número de carreras en esta facultad
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - career_count
+      - created_at
+      - id
+      - name
+      - updated_at
+    FacultyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          description: 'Abreviatura (ej: ''MATFISCOM'')'
+          maxLength: 10
+      required:
+      - name
+    GenderEnum:
+      enum:
+      - M
+      - F
+      type: string
+      description: |-
+        * `M` - Masculino
+        * `F` - Femenino
+    GradeEnum:
+      enum:
+      - B
+      - R
+      - M
+      type: string
+      description: |-
+        * `B` - Bien
+        * `R` - Regular
+        * `M` - Mal
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          description: 'Identificador del grupo (ej: ''A'', ''B'', ''C-1'')'
+          maxLength: 20
+        career_year:
+          type: integer
+          title: Año Académico
+        career_year_detail:
+          allOf:
+          - $ref: '#/components/schemas/CareerYear'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - career_year
+      - career_year_detail
+      - created_at
+      - id
+      - name
+      - updated_at
+    GroupAdvisor:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        professor_name:
+          type: string
+          readOnly: true
+        group:
+          type: integer
+          title: Grupo asesorado
+        group_name:
+          type: string
+          readOnly: true
+      required:
+      - group
+      - group_name
+      - professor
+      - professor_name
+    GroupAdvisorRequest:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        group:
+          type: integer
+          title: Grupo asesorado
+      required:
+      - group
+      - professor
+    GroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: 'Identificador del grupo (ej: ''A'', ''B'', ''C-1'')'
+          maxLength: 20
+        career_year:
+          type: integer
+          title: Año Académico
+      required:
+      - career_year
+      - name
+    Information:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: Título
+          maxLength: 200
+        content:
+          type: string
+          title: Contenido
+        published_date:
+          type: string
+          format: date
+          nullable: true
+        expires_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de expiración
+        is_public:
+          type: boolean
+          title: Visible para estudiantes
+        created_by:
+          type: integer
+          readOnly: true
+          title: Publicado por
+        created_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content
+      - created_at
+      - created_by
+      - created_by_name
+      - id
+      - title
+      - updated_at
+    InformationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Título
+          maxLength: 200
+        content:
+          type: string
+          minLength: 1
+          title: Contenido
+        published_date:
+          type: string
+          format: date
+          nullable: true
+        expires_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de expiración
+        is_public:
+          type: boolean
+          title: Visible para estudiantes
+      required:
+      - content
+      - title
+    NullEnum:
+      enum:
+      - null
+    PaginatedAssignmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+    PaginatedBuildingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Building'
+    PaginatedCareerList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Career'
+    PaginatedCareerYearList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CareerYear'
+    PaginatedCleaningScheduleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleaningSchedule'
+    PaginatedComplaintList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Complaint'
+    PaginatedEvaluationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluation'
+    PaginatedFacultyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Faculty'
+    PaginatedGroupList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+    PaginatedInformationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Information'
+    PaginatedProfessorList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Professor'
+    PaginatedReportList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+    PaginatedRoleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    PaginatedRoomListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomList'
+    PaginatedSiteList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Site'
+    PaginatedStudentListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentList'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PaginatedWingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Wing'
+    PatchedBuildingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre / Número
+          description: Nombre o número identificador del edificio
+          maxLength: 50
+        address:
+          type: string
+          nullable: true
+          title: Dirección
+        site:
+          type: integer
+          title: Sede
+    PatchedCareerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          maxLength: 10
+        faculty:
+          type: integer
+          title: Facultad
+    PatchedCareerYearRequest:
+      type: object
+      properties:
+        career:
+          type: integer
+          title: Carrera
+        year:
+          allOf:
+          - $ref: '#/components/schemas/YearEnum'
+          title: Año
+          minimum: 0
+          maximum: 9223372036854775807
+    PatchedCleaningCompleteRequest:
+      type: object
+      description: Marcar cuartelería como completada con evaluación (RF-70).
+      properties:
+        evaluation:
+          $ref: '#/components/schemas/EvaluationEnum'
+        comments:
+          type: string
+    PatchedCleaningScheduleRequest:
+      type: object
+      properties:
+        room:
+          type: integer
+          title: Cuarto a limpiar
+        student:
+          type: integer
+          title: Estudiante asignado
+        assigned_date:
+          type: string
+          format: date
+          title: Fecha asignada
+        completed:
+          type: boolean
+          title: Completada
+        evaluation:
+          nullable: true
+          title: Evaluación de la tarea
+          oneOf:
+          - $ref: '#/components/schemas/EvaluationEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        comments:
+          type: string
+          nullable: true
+          title: Observaciones
+    PatchedComplaintRequest:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: Estudiante
+        date:
+          type: string
+          format: date
+          title: Fecha de la queja
+        building:
+          type: integer
+          nullable: true
+          title: Edificio relacionado
+        description:
+          type: string
+          minLength: 1
+          title: Descripción
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Tipo
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status24fEnum'
+          title: Estado
+        visibility:
+          type: boolean
+          title: Visible para otros estudiantes
+    PatchedComplaintStatusRequest:
+      type: object
+      description: Cambiar estado de una queja (RF-22).
+      properties:
+        status:
+          $ref: '#/components/schemas/ComplaintStatusStatusEnum'
+    PatchedComplaintVisibilityRequest:
+      type: object
+      description: Controlar visibilidad de una queja (RF-24).
+      properties:
+        visibility:
+          type: boolean
+    PatchedEvaluationRequest:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: Estudiante evaluado
+        date:
+          type: string
+          format: date
+          title: Fecha de evaluación
+        grade:
+          allOf:
+          - $ref: '#/components/schemas/GradeEnum'
+          title: Calificación
+        comment:
+          type: string
+          nullable: true
+          title: Comentario del instructor
+    PatchedFacultyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        code:
+          type: string
+          nullable: true
+          title: Código
+          description: 'Abreviatura (ej: ''MATFISCOM'')'
+          maxLength: 10
+    PatchedGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: 'Identificador del grupo (ej: ''A'', ''B'', ''C-1'')'
+          maxLength: 20
+        career_year:
+          type: integer
+          title: Año Académico
+    PatchedInformationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Título
+          maxLength: 200
+        content:
+          type: string
+          minLength: 1
+          title: Contenido
+        published_date:
+          type: string
+          format: date
+          nullable: true
+        expires_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de expiración
+        is_public:
+          type: boolean
+          title: Visible para estudiantes
+    PatchedProfessorRequest:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          minLength: 1
+          title: ID de Empleado
+          maxLength: 20
+        department:
+          type: string
+          nullable: true
+          title: Departamento
+          maxLength: 100
+    PatchedRoomRequest:
+      type: object
+      properties:
+        number:
+          type: string
+          minLength: 1
+          title: Número / Identificador
+          maxLength: 10
+        wing:
+          type: integer
+          title: Ala
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Capacidad máxima
+          description: Número máximo de estudiantes que puede alojar el cuarto
+        is_active:
+          type: boolean
+          title: Habilitado
+          description: Desactivar para cuartos fuera de servicio sin eliminarlos
+    PatchedSiteRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        address:
+          type: string
+          nullable: true
+          title: Dirección / Ubicación
+        description:
+          type: string
+          nullable: true
+          title: Descripción
+    PatchedStudentRequest:
+      type: object
+      description: |-
+        Serializer completo de estudiante para creación y detalle.
+        Incluye current_room_info para evitar una llamada extra al frontend.
+      properties:
+        ci:
+          type: string
+          minLength: 1
+          title: Carné de Identidad
+          maxLength: 11
+        student_id:
+          type: string
+          minLength: 1
+          title: Matrícula / Expediente
+          maxLength: 20
+        birth_date:
+          type: string
+          format: date
+          title: Fecha de Nacimiento
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        address:
+          type: string
+          nullable: true
+          title: Dirección particular
+        province:
+          type: string
+          nullable: true
+          title: Provincia
+          maxLength: 50
+        municipality:
+          type: string
+          nullable: true
+          title: Municipio
+          maxLength: 50
+        phone:
+          type: string
+          nullable: true
+          title: Teléfono
+          maxLength: 20
+        emergency_phone:
+          type: string
+          nullable: true
+          title: Teléfono de familiar
+          maxLength: 20
+        illnesses:
+          type: string
+          nullable: true
+          title: Enfermedades
+        medications:
+          type: string
+          nullable: true
+          title: Medicamentos
+        is_militant:
+          type: boolean
+          title: Militante UJC/PCC
+        is_cadet_minint:
+          type: boolean
+          title: Cadete MININT
+        is_cadet_far:
+          type: boolean
+          title: Cadete FAR
+        academic_performance:
+          type: string
+          nullable: true
+          title: Aprovechamiento Docente
+        disciplinary_process:
+          type: string
+          nullable: true
+          title: Proceso Disciplinario
+        group:
+          type: integer
+          title: Grupo Académico
+    PatchedUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Dirección de correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        is_staff:
+          type: boolean
+          title: Es staff
+          description: Indica si el usuario puede entrar en este sitio de administración.
+    PatchedWingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre / Identificador
+          description: 'Identificador del ala (ej: ''A'', ''B'', ''Norte'')'
+          maxLength: 20
+        building:
+          type: integer
+          title: Edificio
+    Professor:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserInline'
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        employee_id:
+          type: string
+          title: ID de Empleado
+          maxLength: 20
+        department:
+          type: string
+          nullable: true
+          title: Departamento
+          maxLength: 100
+        is_dean:
+          type: boolean
+          readOnly: true
+          default: false
+        is_group_advisor:
+          type: boolean
+          readOnly: true
+          default: false
+        is_year_lead_professor:
+          type: boolean
+          readOnly: true
+          default: false
+        is_wing_supervisor:
+          type: boolean
+          readOnly: true
+          default: false
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - employee_id
+      - full_name
+      - id
+      - is_dean
+      - is_group_advisor
+      - is_wing_supervisor
+      - is_year_lead_professor
+      - updated_at
+      - user
+    ProfessorCreate:
+      type: object
+      description: Crea un Professor con su User asociado.
+      properties:
+        employee_id:
+          type: string
+          title: ID de Empleado
+          maxLength: 20
+        department:
+          type: string
+          nullable: true
+          title: Departamento
+          maxLength: 100
+      required:
+      - employee_id
+    ProfessorCreateRequest:
+      type: object
+      description: Crea un Professor con su User asociado.
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        email:
+          type: string
+          format: email
+          writeOnly: true
+          minLength: 1
+        first_name:
+          type: string
+          writeOnly: true
+          minLength: 1
+        last_name:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        employee_id:
+          type: string
+          minLength: 1
+          title: ID de Empleado
+          maxLength: 20
+        department:
+          type: string
+          nullable: true
+          title: Departamento
+          maxLength: 100
+      required:
+      - email
+      - employee_id
+      - first_name
+      - last_name
+      - password
+      - username
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre del reporte
+          maxLength: 200
+        type:
+          type: string
+          title: Tipo de reporte
+          maxLength: 50
+        parameters:
+          nullable: true
+          title: Parámetros
+        file_url:
+          type: string
+          readOnly: true
+          nullable: true
+          title: URL del archivo PDF
+        generated_by:
+          type: integer
+          readOnly: true
+          title: Generado por
+        generated_by_name:
+          type: string
+          readOnly: true
+        generated_date:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de generación
+      required:
+      - file_url
+      - generated_by
+      - generated_by_name
+      - generated_date
+      - id
+      - name
+      - type
+    ReportRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre del reporte
+          maxLength: 200
+        type:
+          type: string
+          minLength: 1
+          title: Tipo de reporte
+          maxLength: 50
+        parameters:
+          nullable: true
+          title: Parámetros
+      required:
+      - name
+      - type
+    Role:
+      type: object
+      description: Serializer para los Groups de Django ( roles del RBAC).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        user_count:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - user_count
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: string
+          title: Número / Identificador
+          maxLength: 10
+        wing:
+          type: integer
+          title: Ala
+        wing_name:
+          type: string
+          readOnly: true
+        building_name:
+          type: string
+          readOnly: true
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Capacidad máxima
+          description: Número máximo de estudiantes que puede alojar el cuarto
+        current_occupancy:
+          type: integer
+          readOnly: true
+          title: Ocupación actual
+          description: Se actualiza automáticamente con las asignaciones activas
+        is_active:
+          type: boolean
+          title: Habilitado
+          description: Desactivar para cuartos fuera de servicio sin eliminarlos
+        is_full:
+          type: boolean
+          readOnly: true
+        available_spots:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - available_spots
+      - building_name
+      - capacity
+      - created_at
+      - current_occupancy
+      - id
+      - is_full
+      - number
+      - updated_at
+      - wing
+      - wing_name
+    RoomList:
+      type: object
+      description: Versión compacta para listados — menos campos, más rápido.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: string
+          title: Número / Identificador
+          maxLength: 10
+        wing:
+          type: integer
+          title: Ala
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Capacidad máxima
+          description: Número máximo de estudiantes que puede alojar el cuarto
+        current_occupancy:
+          type: integer
+          readOnly: true
+          title: Ocupación actual
+          description: Se actualiza automáticamente con las asignaciones activas
+        is_active:
+          type: boolean
+          title: Habilitado
+          description: Desactivar para cuartos fuera de servicio sin eliminarlos
+        is_full:
+          type: boolean
+          readOnly: true
+      required:
+      - capacity
+      - current_occupancy
+      - id
+      - is_full
+      - number
+      - wing
+    RoomRequest:
+      type: object
+      properties:
+        number:
+          type: string
+          minLength: 1
+          title: Número / Identificador
+          maxLength: 10
+        wing:
+          type: integer
+          title: Ala
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          title: Capacidad máxima
+          description: Número máximo de estudiantes que puede alojar el cuarto
+        is_active:
+          type: boolean
+          title: Habilitado
+          description: Desactivar para cuartos fuera de servicio sin eliminarlos
+      required:
+      - capacity
+      - number
+      - wing
+    Site:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          maxLength: 100
+        address:
+          type: string
+          nullable: true
+          title: Dirección / Ubicación
+        description:
+          type: string
+          nullable: true
+          title: Descripción
+        building_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - building_count
+      - created_at
+      - id
+      - name
+      - updated_at
+    SiteRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 100
+        address:
+          type: string
+          nullable: true
+          title: Dirección / Ubicación
+        description:
+          type: string
+          nullable: true
+          title: Descripción
+      required:
+      - name
+    Status24fEnum:
+      enum:
+      - pendiente
+      - en_proceso
+      - resuelta
+      - rechazada
+      type: string
+      description: |-
+        * `pendiente` - Pendiente
+        * `en_proceso` - En proceso
+        * `resuelta` - Resuelta
+        * `rechazada` - Rechazada
+    Student:
+      type: object
+      description: |-
+        Serializer completo de estudiante para creación y detalle.
+        Incluye current_room_info para evitar una llamada extra al frontend.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserInline'
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        ci:
+          type: string
+          title: Carné de Identidad
+          maxLength: 11
+        student_id:
+          type: string
+          title: Matrícula / Expediente
+          maxLength: 20
+        birth_date:
+          type: string
+          format: date
+          title: Fecha de Nacimiento
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        address:
+          type: string
+          nullable: true
+          title: Dirección particular
+        province:
+          type: string
+          nullable: true
+          title: Provincia
+          maxLength: 50
+        municipality:
+          type: string
+          nullable: true
+          title: Municipio
+          maxLength: 50
+        phone:
+          type: string
+          nullable: true
+          title: Teléfono
+          maxLength: 20
+        emergency_phone:
+          type: string
+          nullable: true
+          title: Teléfono de familiar
+          maxLength: 20
+        illnesses:
+          type: string
+          nullable: true
+          title: Enfermedades
+        medications:
+          type: string
+          nullable: true
+          title: Medicamentos
+        is_militant:
+          type: boolean
+          title: Militante UJC/PCC
+        is_cadet_minint:
+          type: boolean
+          title: Cadete MININT
+        is_cadet_far:
+          type: boolean
+          title: Cadete FAR
+        academic_performance:
+          type: string
+          nullable: true
+          title: Aprovechamiento Docente
+        disciplinary_process:
+          type: string
+          nullable: true
+          title: Proceso Disciplinario
+        group:
+          type: integer
+          title: Grupo Académico
+        group_detail:
+          allOf:
+          - $ref: '#/components/schemas/Group'
+          readOnly: true
+        current_room_info:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - birth_date
+      - ci
+      - created_at
+      - current_room_info
+      - full_name
+      - gender
+      - group
+      - group_detail
+      - id
+      - student_id
+      - updated_at
+      - user
+    StudentCreate:
+      type: object
+      description: |-
+        Crea un Student junto con su User en una sola operación atómica.
+        Recibe los datos del user anidados.
+      properties:
+        ci:
+          type: string
+          title: Carné de Identidad
+          maxLength: 11
+        student_id:
+          type: string
+          title: Matrícula / Expediente
+          maxLength: 20
+        birth_date:
+          type: string
+          format: date
+          title: Fecha de Nacimiento
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        address:
+          type: string
+          nullable: true
+          title: Dirección particular
+        province:
+          type: string
+          nullable: true
+          title: Provincia
+          maxLength: 50
+        municipality:
+          type: string
+          nullable: true
+          title: Municipio
+          maxLength: 50
+        phone:
+          type: string
+          nullable: true
+          title: Teléfono
+          maxLength: 20
+        emergency_phone:
+          type: string
+          nullable: true
+          title: Teléfono de familiar
+          maxLength: 20
+        illnesses:
+          type: string
+          nullable: true
+          title: Enfermedades
+        medications:
+          type: string
+          nullable: true
+          title: Medicamentos
+        is_militant:
+          type: boolean
+          title: Militante UJC/PCC
+        is_cadet_minint:
+          type: boolean
+          title: Cadete MININT
+        is_cadet_far:
+          type: boolean
+          title: Cadete FAR
+        academic_performance:
+          type: string
+          nullable: true
+          title: Aprovechamiento Docente
+        disciplinary_process:
+          type: string
+          nullable: true
+          title: Proceso Disciplinario
+        group:
+          type: integer
+          title: Grupo Académico
+      required:
+      - birth_date
+      - ci
+      - gender
+      - group
+      - student_id
+    StudentCreateRequest:
+      type: object
+      description: |-
+        Crea un Student junto con su User en una sola operación atómica.
+        Recibe los datos del user anidados.
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        email:
+          type: string
+          format: email
+          writeOnly: true
+          minLength: 1
+        first_name:
+          type: string
+          writeOnly: true
+          minLength: 1
+        last_name:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        ci:
+          type: string
+          minLength: 1
+          title: Carné de Identidad
+          maxLength: 11
+        student_id:
+          type: string
+          minLength: 1
+          title: Matrícula / Expediente
+          maxLength: 20
+        birth_date:
+          type: string
+          format: date
+          title: Fecha de Nacimiento
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        address:
+          type: string
+          nullable: true
+          title: Dirección particular
+        province:
+          type: string
+          nullable: true
+          title: Provincia
+          maxLength: 50
+        municipality:
+          type: string
+          nullable: true
+          title: Municipio
+          maxLength: 50
+        phone:
+          type: string
+          nullable: true
+          title: Teléfono
+          maxLength: 20
+        emergency_phone:
+          type: string
+          nullable: true
+          title: Teléfono de familiar
+          maxLength: 20
+        illnesses:
+          type: string
+          nullable: true
+          title: Enfermedades
+        medications:
+          type: string
+          nullable: true
+          title: Medicamentos
+        is_militant:
+          type: boolean
+          title: Militante UJC/PCC
+        is_cadet_minint:
+          type: boolean
+          title: Cadete MININT
+        is_cadet_far:
+          type: boolean
+          title: Cadete FAR
+        academic_performance:
+          type: string
+          nullable: true
+          title: Aprovechamiento Docente
+        disciplinary_process:
+          type: string
+          nullable: true
+          title: Proceso Disciplinario
+        group:
+          type: integer
+          title: Grupo Académico
+      required:
+      - birth_date
+      - ci
+      - email
+      - first_name
+      - gender
+      - group
+      - last_name
+      - password
+      - student_id
+      - username
+    StudentList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        student_id:
+          type: string
+          title: Matrícula / Expediente
+          maxLength: 20
+        ci:
+          type: string
+          title: Carné de Identidad
+          maxLength: 11
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        group:
+          type: integer
+          title: Grupo Académico
+        group_name:
+          type: string
+          readOnly: true
+        has_room:
+          type: boolean
+          readOnly: true
+      required:
+      - ci
+      - full_name
+      - gender
+      - group
+      - group_name
+      - has_room
+      - id
+      - student_id
+    StudentRequest:
+      type: object
+      description: |-
+        Serializer completo de estudiante para creación y detalle.
+        Incluye current_room_info para evitar una llamada extra al frontend.
+      properties:
+        ci:
+          type: string
+          minLength: 1
+          title: Carné de Identidad
+          maxLength: 11
+        student_id:
+          type: string
+          minLength: 1
+          title: Matrícula / Expediente
+          maxLength: 20
+        birth_date:
+          type: string
+          format: date
+          title: Fecha de Nacimiento
+        gender:
+          allOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          title: Sexo
+        address:
+          type: string
+          nullable: true
+          title: Dirección particular
+        province:
+          type: string
+          nullable: true
+          title: Provincia
+          maxLength: 50
+        municipality:
+          type: string
+          nullable: true
+          title: Municipio
+          maxLength: 50
+        phone:
+          type: string
+          nullable: true
+          title: Teléfono
+          maxLength: 20
+        emergency_phone:
+          type: string
+          nullable: true
+          title: Teléfono de familiar
+          maxLength: 20
+        illnesses:
+          type: string
+          nullable: true
+          title: Enfermedades
+        medications:
+          type: string
+          nullable: true
+          title: Medicamentos
+        is_militant:
+          type: boolean
+          title: Militante UJC/PCC
+        is_cadet_minint:
+          type: boolean
+          title: Cadete MININT
+        is_cadet_far:
+          type: boolean
+          title: Cadete FAR
+        academic_performance:
+          type: string
+          nullable: true
+          title: Aprovechamiento Docente
+        disciplinary_process:
+          type: string
+          nullable: true
+          title: Proceso Disciplinario
+        group:
+          type: integer
+          title: Grupo Académico
+      required:
+      - birth_date
+      - ci
+      - gender
+      - group
+      - student_id
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TypeEnum:
+      enum:
+      - administrativa
+      - educativa
+      type: string
+      description: |-
+        * `administrativa` - Administrativa
+        * `educativa` - Educativa
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Dirección de correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        is_staff:
+          type: boolean
+          title: Es staff
+          description: Indica si el usuario puede entrar en este sitio de administración.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de alta
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Último inicio de sesión
+        roles:
+          type: array
+          items: {}
+          readOnly: true
+        user_type:
+          type: string
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - last_login
+      - roles
+      - user_type
+      - username
+    UserCreate:
+      type: object
+      description: Crea un nuevo usuario con contraseña hasheada correctamente.
+      properties:
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Dirección de correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+      required:
+      - username
+    UserCreateRequest:
+      type: object
+      description: Crea un nuevo usuario con contraseña hasheada correctamente.
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Dirección de correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    UserInline:
+      type: object
+      description: Representación mínima del User para embeber en Student/Professor.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Dirección de correo electrónico
+        first_name:
+          type: string
+          readOnly: true
+          title: Nombre
+        last_name:
+          type: string
+          readOnly: true
+          title: Apellidos
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+      required:
+      - email
+      - first_name
+      - id
+      - is_active
+      - last_name
+      - username
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Dirección de correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        is_staff:
+          type: boolean
+          title: Es staff
+          description: Indica si el usuario puede entrar en este sitio de administración.
+      required:
+      - username
+    UserRoleAssignRequest:
+      type: object
+      properties:
+        role_name:
+          type: string
+          minLength: 1
+      required:
+      - role_name
+    Wing:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre / Identificador
+          description: 'Identificador del ala (ej: ''A'', ''B'', ''Norte'')'
+          maxLength: 20
+        building:
+          type: integer
+          title: Edificio
+        building_name:
+          type: string
+          readOnly: true
+        site_name:
+          type: string
+          readOnly: true
+        room_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - building
+      - building_name
+      - created_at
+      - id
+      - name
+      - room_count
+      - site_name
+      - updated_at
+    WingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre / Identificador
+          description: 'Identificador del ala (ej: ''A'', ''B'', ''Norte'')'
+          maxLength: 20
+        building:
+          type: integer
+          title: Edificio
+      required:
+      - building
+      - name
+    WingSupervisor:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor / Instructor
+        professor_name:
+          type: string
+          readOnly: true
+        wing:
+          type: integer
+          title: Ala supervisada
+        wing_name:
+          type: string
+          readOnly: true
+      required:
+      - professor
+      - professor_name
+      - wing
+      - wing_name
+    WingSupervisorRequest:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor / Instructor
+        wing:
+          type: integer
+          title: Ala supervisada
+      required:
+      - professor
+      - wing
+    YearEnum:
+      enum:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      type: integer
+      description: |-
+        * `1` - 1° Año
+        * `2` - 2° Año
+        * `3` - 3° Año
+        * `4` - 4° Año
+        * `5` - 5° Año
+    YearLeadProfessor:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        professor_name:
+          type: string
+          readOnly: true
+        career_year:
+          type: integer
+          title: Año Académico supervisado
+        career_year_name:
+          type: string
+          readOnly: true
+      required:
+      - career_year
+      - career_year_name
+      - professor
+      - professor_name
+    YearLeadProfessorRequest:
+      type: object
+      properties:
+        professor:
+          type: integer
+          title: Profesor
+        career_year:
+          type: integer
+          title: Año Académico supervisado
+      required:
+      - career_year
+      - professor
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: auth
+  description: Autenticación JWT
+- name: academic
+  description: Facultades, Carreras, Años Académicos, Grupos
+- name: infrastructure
+  description: Sedes, Edificios, Alas, Cuartos
+- name: students
+  description: Gestión de Estudiantes
+- name: professors
+  description: Profesores y Roles
+- name: assignments
+  description: Asignación de Cuartos
+- name: evaluations
+  description: Evaluaciones de Estudiantes
+- name: complaints
+  description: Quejas y Planteamientos
+- name: cleaning
+  description: Cuartelerías
+- name: information
+  description: Noticias e Informaciones
+- name: reports
+  description: Reportes
+- name: roles
+  description: Gestión de Roles y Permisos
