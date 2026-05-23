@@ -142,18 +142,16 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 students.map((student) => {
-                  const firstName = student.first_name || "Desconocido";
-                  const lastName = student.last_name || "";
-                  const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
-                  const ci = (student as any).ci || (student as any).student_id || "-";
+                  const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
+                  const parts = fullName.split(" ");
+                  const initials = parts.length > 1 
+                                     ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() 
+                                     : `${parts[0]?.[0] || "E"}`.toUpperCase();
+                  
+                  const ci = student.ci || "-";
 
-                  // Extraemos carrera y año soportando que vengan aplanados o nestaos en 'group'
-                  const careerName = (student as any).career_name || 
-                                      (typeof (student as any).group !== 'number' ? (student as any).group?.career_year?.career?.name : null) || 
-                                      "No especificada";
-                  const yearNumber = (student as any).academic_year || (student as any).year_number ||
-                                      (typeof (student as any).group !== 'number' ? (student as any).group?.career_year?.year_number : null) || 
-                                      "-";
+                  const careerName = student.group?.career_year?.career?.name || "No especificada";
+                  const yearNumber = student.group?.career_year?.year ? `${student.group.career_year.year}ro` : "-";
                   
                   return (
                     <tr key={student.id} className="hover:bg-surface-container-low transition-colors group">
@@ -162,7 +160,7 @@ export default function DashboardPage() {
                           <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">
                             {initials}
                           </div>
-                          <div className="font-semibold text-on-surface">{firstName} {lastName}</div>
+                          <div className="font-semibold text-on-surface">{fullName}</div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
