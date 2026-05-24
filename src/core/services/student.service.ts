@@ -32,6 +32,30 @@ export const studentService = {
     return fetchClient<PaginatedResponse<Student>>(endpoint);
   },
 
+  getAllStudents: async (filters: ExtendedGetStudentsFilters = {}): Promise<PaginatedResponse<Student>> => {
+    const pageSize = filters.page_size ?? 100;
+    const firstPage = await studentService.getStudents({ ...filters, page: 1, page_size: pageSize });
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+
+    if (totalPages === 1) {
+      return firstPage;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        studentService.getStudents({ ...filters, page, page_size: pageSize })
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
+
   getStudentById: (id: number): Promise<Student> => {
     return fetchClient<Student>(`/api/v1/estudiantes/${id}/`);
   },

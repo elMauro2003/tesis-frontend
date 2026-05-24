@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
-import { useStudents } from "@/features/students/hooks/useStudents";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
 import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
@@ -58,7 +57,7 @@ export default function DashboardPage() {
 
   const activeAssignmentsQuery = useQuery({
     queryKey: ['active-assignments'],
-    queryFn: () => accommodationService.getActiveAssignments(),
+    queryFn: () => accommodationService.getAllActiveAssignments(),
     enabled: locationFilter !== 'all',
     staleTime: 60 * 1000,
   });
@@ -81,25 +80,44 @@ export default function DashboardPage() {
 
   const suggestions = suggestionsQuery.data?.results ?? [];
 
-  const { data, isLoading, isError, error } = useStudents({ 
-    page,
-    page_size: PAGE_SIZE,
-    search: debouncedSearch,
-    group: groupId === 'all' ? undefined : groupId,
-    group__in: careerId === 'all' || selectedCareerGroupIds.length === 0 ? undefined : selectedCareerGroupIds.join(','),
-    gender: gender === 'all' ? undefined : gender,
-    is_militant: isMilitant === 'all' ? undefined : isMilitant,
-    has_room: locationFilter === 'all' ? undefined : locationFilter === 'with_room',
+  const studentsQuery = useQuery({
+    queryKey: [
+      'students-all',
+      debouncedSearch,
+      groupId,
+      careerId,
+      gender,
+      isMilitant,
+    ],
+    queryFn: () => studentService.getAllStudents({
+      page_size: 100,
+      search: debouncedSearch,
+      group: groupId === 'all' ? undefined : groupId,
+      group__in: careerId === 'all' || selectedCareerGroupIds.length === 0 ? undefined : selectedCareerGroupIds.join(','),
+      gender: gender === 'all' ? undefined : gender,
+      is_militant: isMilitant === 'all' ? undefined : isMilitant,
+    }),
+    staleTime: 60 * 1000,
   });
 
-  const students = (data as any)?.results || [];
-  const totalPages = data ? Math.ceil(((data as any).count || 0) / PAGE_SIZE) : 1;
+  const allStudents = studentsQuery.data?.results ?? [];
+  const locationFilteredStudents = useMemo(() => {
+    if (locationFilter === 'all') return allStudents;
+    return allStudents.filter((student) => {
+      const hasRoom = assignedStudentIds.has(student.id) || Boolean(getStudentCurrentRoom(student));
+      return locationFilter === 'with_room' ? hasRoom : !hasRoom;
+    });
+  }, [allStudents, assignedStudentIds, locationFilter]);
 
-  const displayedStudents = (students as Student[]).filter((s: Student) => {
-    if (locationFilter === 'all') return true;
-    const hasRoom = assignedStudentIds.has(s.id) || Boolean(getStudentCurrentRoom(s));
-    return locationFilter === 'with_room' ? hasRoom : !hasRoom;
-  });
+  const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedStudents = useMemo(
+    () => locationFilteredStudents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [locationFilteredStudents, safePage]
+  );
+  const isLoading = studentsQuery.isLoading || (locationFilter !== 'all' && activeAssignmentsQuery.isLoading);
+  const isError = studentsQuery.isError || activeAssignmentsQuery.isError;
+  const error = (studentsQuery.error || activeAssignmentsQuery.error) as Error | null;
 
   // For handling input with simple debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +149,7 @@ export default function DashboardPage() {
   // Reset page when server-side filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, careerId, groupId, gender, isMilitant]);
+  }, [debouncedSearch, careerId, groupId, gender, isMilitant, locationFilter]);
 
   useEffect(() => {
     if (careerId === 'all') return;
@@ -154,6 +172,12 @@ export default function DashboardPage() {
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
   
   // keyboard navigation for suggestions
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -330,14 +354,14 @@ export default function DashboardPage() {
                     Error al cargar los datos: {(error as Error)?.message || "Intente nuevamente"}
                   </td>
                 </tr>
-              ) : students.length === 0 ? (
+              ) : paginatedStudents.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">
                     No se encontraron estudiantes
                   </td>
                 </tr>
               ) : (
-                displayedStudents.map((student: Student) => {
+                paginatedStudents.map((student: Student) => {
                   const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
                   const parts = fullName.split(" ");
                   const initials = parts.length > 1 
@@ -400,20 +424,20 @@ export default function DashboardPage() {
         {/* Pagination */}
         <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
           <div className="text-sm font-medium text-on-surface-variant">
-            Página {page} de {totalPages}
+            Página {safePage} de {totalPages}
           </div>
           <div className="flex items-center gap-2">
               <button 
               className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-              disabled={page <= 1}
+              disabled={safePage <= 1}
               onClick={() => setPage(old => Math.max(1, old - 1))}
             >
               <span className="material-symbols-outlined text-lg">chevron_left</span>
             </button>
             <button 
               className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={page >= totalPages}
-              onClick={() => setPage(old => (((data as any) && (data as any).next) ? old + 1 : old))}
+              disabled={safePage >= totalPages}
+              onClick={() => setPage(old => Math.min(totalPages, old + 1))}
             >
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>

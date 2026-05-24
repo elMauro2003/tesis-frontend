@@ -51,6 +51,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   const careerName = student?.group?.career_year?.career?.name || "No especificada";
   const groupName = student?.group?.name || "No especificado";
   const yearNumber = student?.group?.career_year?.year ? `${student.group.career_year.year}ro` : "No especificado";
+  const currentRoom = student?.current_room ?? null;
 
   // Calculate age based on birth_date
   let age = "-";
@@ -148,7 +149,13 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Cuarto</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No asignado</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">
+                  {currentRoom ? (
+                    <span>{currentRoom.number}{currentRoom.wing ? ` · ${currentRoom.wing}` : ''}{currentRoom.building ? ` · ${currentRoom.building}` : ''}</span>
+                  ) : (
+                    'No asignado'
+                  )}
+                </p>
               </div>
             </div>
           </section>

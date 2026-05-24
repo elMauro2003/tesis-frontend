@@ -17,6 +17,11 @@ export interface Student {
     };
   };
   is_militant: boolean;
+  current_room?: {
+    number?: string;
+    wing?: string;
+    building?: string;
+  } | null;
   // Fallbacks just in case
   first_name?: string;
   last_name?: string;
