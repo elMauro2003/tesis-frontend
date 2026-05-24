@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { FetchError } from '@/lib/fetchClient';
 import { Student } from '@/types/models';
 import { studentService } from '@/core/services/student.service';
 import { useQuery } from '@tanstack/react-query';
+
+type StudentCurrentRoom = {
+  number?: string;
+  wing?: string;
+  building?: string;
+} | null;
 
 interface ViewStudentPanelProps {
   studentId: number | null;
@@ -10,6 +17,7 @@ interface ViewStudentPanelProps {
 
 export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) {
   const [student, setStudent] = useState<Student | null>(null);
+  const [currentRoom, setCurrentRoom] = useState<StudentCurrentRoom>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const ANIM_MS = 320;
@@ -22,14 +30,47 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
     setIsOpen(true);
   }, [studentId]);
 
-  const { data: studentData, isLoading, isError, error } = useQuery({
+  const { data: studentData, isLoading: isStudentLoading, isError: isStudentError, error: studentError } = useQuery({
     queryKey: ['student', studentId],
     queryFn: () => (studentId ? studentService.getStudentById(studentId) : Promise.resolve(null as any)),
     enabled: !!studentId,
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: roomData, isLoading: isRoomLoading, isError: isRoomError } = useQuery({
+    queryKey: ['student-current-room', studentId],
+    queryFn: async () => {
+      if (!studentId) return null;
+      try {
+        return await studentService.getStudentCurrentRoom(studentId);
+      } catch (err) {
+        if (err instanceof FetchError && err.status === 404) {
+          return null;
+        }
+        throw err;
+      }
+    },
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => { if (studentData) setStudent(studentData); }, [studentData]);
+  useEffect(() => {
+    if (!roomData) {
+      setCurrentRoom(null);
+      return;
+    }
+    // Normalize Room -> StudentCurrentRoom shape
+    const wingName = roomData.wing && typeof roomData.wing === 'object' ? roomData.wing.name : (roomData.wing ?? '')?.toString?.() || undefined;
+    const buildingName = roomData.wing && typeof roomData.wing === 'object' && roomData.wing.building && typeof roomData.wing.building === 'object'
+      ? roomData.wing.building.name
+      : undefined;
+    setCurrentRoom({
+      number: roomData.number,
+      wing: wingName,
+      building: buildingName,
+    });
+  }, [roomData]);
 
   const handleRequestClose = () => {
     setIsOpen(false);
@@ -49,21 +90,21 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   const isFemale = student?.gender?.toUpperCase() === 'F';
     
   const careerName = student?.group?.career_year?.career?.name || "No especificada";
-  const groupName = student?.group?.name || "No especificado";
-  const yearNumber = student?.group?.career_year?.year ? `${student.group.career_year.year}ro` : "No especificado";
-  const currentRoom = student?.current_room ?? null;
+  const groupName = student?.group_name || student?.group?.name || "No especificado";
+  const ageValue = student?.age ?? null;
+  const yearValue = student?.group?.career_year?.year ?? null;
+  const locationLabel = currentRoom
+    ? `${currentRoom.number || 'Sin número'}${currentRoom.wing ? ` · ${currentRoom.wing}` : ''}${currentRoom.building ? ` · ${currentRoom.building}` : ''}`
+    : 'Sin ubicación';
+  const userLabel = typeof student?.user === 'object' && student.user
+    ? [student.user.first_name, student.user.last_name].filter(Boolean).join(' ').trim() || student.user.email || 'Usuario vinculado'
+    : student?.user
+      ? `Usuario #${student.user}`
+      : 'No registrado';
 
-  // Calculate age based on birth_date
-  let age = "-";
-  if (student?.birth_date) {
-    const today = new Date();
-    const birthDate = new Date(student.birth_date);
-    age = (today.getFullYear() - birthDate.getFullYear()).toString();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age = (parseInt(age) - 1).toString();
-    }
-  }
+  const isLoading = isStudentLoading || isRoomLoading;
+  const isError = isStudentError || isRoomError;
+  const error = studentError as Error | null;
   return (
     <>
       {/* Backdrop */}
@@ -101,7 +142,10 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           
           <div className="flex gap-2">
             <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
-              {isLoading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : `${yearNumber} Año`}
+              {isLoading ? <span className="inline-block w-20 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : careerName}
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
+              {isLoading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : (currentRoom ? `${currentRoom.number || 'Sin número'}${currentRoom.wing ? ` · ${currentRoom.wing}` : ''}` : 'Sin ubicación')}
             </span>
           </div>
         </header>

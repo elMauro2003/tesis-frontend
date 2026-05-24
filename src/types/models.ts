@@ -58,6 +58,7 @@ export interface Student {
   full_name: string;
   birth_date: string;
   gender: string;
+  created_at?: string;
   group: {
     id: number;
     name: string;
@@ -69,12 +70,19 @@ export interface Student {
       };
     };
   };
+  group_name?: string;
+  age?: number;
   is_militant: boolean;
   current_room?: {
     number?: string;
     wing?: string;
     building?: string;
   } | null;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  } | number;
   first_name?: string;
   last_name?: string;
 }

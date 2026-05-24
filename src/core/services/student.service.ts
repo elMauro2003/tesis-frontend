@@ -1,5 +1,5 @@
 import { fetchClient } from "@/lib/fetchClient";
-import { Student, PaginatedResponse } from "@/types/models";
+import { Room, Student, PaginatedResponse } from "@/types/models";
 
 export interface GetStudentsFilters {
   search?: string;
@@ -13,7 +13,6 @@ export interface GetStudentsFilters {
 // Extend filters with optional server-side room filter if supported
 export interface ExtendedGetStudentsFilters extends GetStudentsFilters {
   has_room?: boolean;
-  group__in?: string;
 }
 
 export const studentService = {
@@ -54,6 +53,10 @@ export const studentService = {
         ...remainingPages.flatMap((page) => page.results),
       ],
     };
+  },
+
+  getStudentCurrentRoom: (id: number): Promise<Room> => {
+    return fetchClient<Room>(`/api/v1/estudiantes/${id}/current_room/`);
   },
 
   getStudentById: (id: number): Promise<Student> => {

@@ -17,11 +17,6 @@ const getAssignmentStudentId = (assignment: RoomAssignment): number | null => {
   return assignment.student?.id ?? null;
 };
 
-const getStudentCurrentRoom = (student: Student): string | null => {
-  const currentRoom = (student as Student & { current_room?: { number?: string } | null }).current_room;
-  return currentRoom?.number ?? null;
-};
-
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [page, setPage] = useState(1);
@@ -44,16 +39,6 @@ export default function DashboardPage() {
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
   const PAGE_SIZE = 10;
-
-  const selectedCareerGroupIds = useMemo(() => {
-    if (careerId === 'all') return [] as number[];
-    return groups
-      .filter((group) => {
-        const careerRef = group.career_year && typeof group.career_year === 'object' ? group.career_year.career?.id : undefined;
-        return careerRef === careerId;
-      })
-      .map((group) => group.id);
-  }, [careerId, groups]);
 
   const activeAssignmentsQuery = useQuery({
     queryKey: ['active-assignments'],
@@ -93,7 +78,6 @@ export default function DashboardPage() {
       page_size: 100,
       search: debouncedSearch,
       group: groupId === 'all' ? undefined : groupId,
-      group__in: careerId === 'all' || selectedCareerGroupIds.length === 0 ? undefined : selectedCareerGroupIds.join(','),
       gender: gender === 'all' ? undefined : gender,
       is_militant: isMilitant === 'all' ? undefined : isMilitant,
     }),
@@ -101,13 +85,18 @@ export default function DashboardPage() {
   });
 
   const allStudents = studentsQuery.data?.results ?? [];
+  const careerFilteredStudents = useMemo(() => {
+    if (careerId === 'all') return allStudents;
+    return allStudents.filter((student) => student.group?.career_year?.career?.id === careerId);
+  }, [allStudents, careerId]);
+
   const locationFilteredStudents = useMemo(() => {
-    if (locationFilter === 'all') return allStudents;
-    return allStudents.filter((student) => {
-      const hasRoom = assignedStudentIds.has(student.id) || Boolean(getStudentCurrentRoom(student));
+    if (locationFilter === 'all') return careerFilteredStudents;
+    return careerFilteredStudents.filter((student) => {
+      const hasRoom = assignedStudentIds.has(student.id);
       return locationFilter === 'with_room' ? hasRoom : !hasRoom;
     });
-  }, [allStudents, assignedStudentIds, locationFilter]);
+  }, [careerFilteredStudents, assignedStudentIds, locationFilter]);
 
   const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -150,16 +139,6 @@ export default function DashboardPage() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, careerId, groupId, gender, isMilitant, locationFilter]);
-
-  useEffect(() => {
-    if (careerId === 'all') return;
-    if (groupId !== 'all') {
-      const matchingGroup = groups.some((group) => group.id === groupId && selectedCareerGroupIds.includes(group.id));
-      if (!matchingGroup) {
-        setGroupId('all');
-      }
-    }
-  }, [careerId, groupId, groups, selectedCareerGroupIds]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
