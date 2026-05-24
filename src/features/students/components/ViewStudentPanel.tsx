@@ -11,63 +11,59 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const ANIM_MS = 320;
 
   useEffect(() => {
+    let mounted = true;
+
     if (!studentId) {
-      setStudent(null);
-      return;
+      // start closing animation if panel was open
+      setIsOpen(false);
+      // cleanup student after animation finishes
+      const t = setTimeout(() => {
+        if (mounted) setStudent(null);
+      }, ANIM_MS);
+      return () => { mounted = false; clearTimeout(t); };
     }
 
-    let mounted = true;
+    setIsOpen(true);
     setLoading(true);
     setError(null);
 
     studentService.getStudentById(studentId)
-      .then((s) => {
-        if (!mounted) return;
-        setStudent(s);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err?.message || 'Error al cargar el estudiante');
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
+      .then((s) => { if (mounted) setStudent(s); })
+      .catch((err) => { if (mounted) setError(err?.message || 'Error al cargar el estudiante'); })
+      .finally(() => { if (mounted) setLoading(false); });
 
     return () => { mounted = false; };
   }, [studentId]);
 
-  if (!studentId) return null;
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60]" />
-    );
-  }
-  if (error) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-[70]"><div className="bg-white p-4 rounded shadow">{error}</div></div>
-    );
-  }
+  const handleRequestClose = () => {
+    setIsOpen(false);
+    // wait for animation to finish then notify parent to clear id
+    setTimeout(() => onClose(), ANIM_MS);
+  };
 
-  if (!student) return null;
+  // If neither open nor we have student data, don't render DOM
+  if (!isOpen && !studentId && !student) return null;
 
-  const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
+  const fullName = student?.full_name || `${student?.first_name || ""} ${student?.last_name || ""}`.trim() || "Desconocido";
   const parts = fullName.split(" ");
   const initials = parts.length > 1 
                       ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() 
                       : `${parts[0]?.[0] || "E"}`.toUpperCase();
 
-  const isFemale = student.gender?.toUpperCase() === 'F';
+  const isFemale = student?.gender?.toUpperCase() === 'F';
     
-  const careerName = student.group?.career_year?.career?.name || "No especificada";
-  const groupName = student.group?.name || "No especificado";
-  const yearNumber = student.group?.career_year?.year ? `${student.group.career_year.year}ro` : "No especificado";
+  const careerName = student?.group?.career_year?.career?.name || "No especificada";
+  const groupName = student?.group?.name || "No especificado";
+  const yearNumber = student?.group?.career_year?.year ? `${student.group.career_year.year}ro` : "No especificado";
 
   // Calculate age based on birth_date
   let age = "-";
-  if (student.birth_date) {
+  if (student?.birth_date) {
     const today = new Date();
     const birthDate = new Date(student.birth_date);
     age = (today.getFullYear() - birthDate.getFullYear()).toString();
@@ -78,36 +74,42 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   }
   return (
     <>
+      {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] transition-opacity"
-        onClick={onClose}
+        className={`fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={handleRequestClose}
+        aria-hidden
       />
-      <div className="fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-[var(--color-surface-container-lowest)] shadow-2xl flex flex-col overflow-hidden transform transition-transform">
+      {/* Panel */}
+      <div className={`fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-[var(--color-surface-container-lowest)] shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`} role="dialog" aria-modal="true">
         
         {/* Header */}
         <header className="bg-[var(--color-surface-container-lowest)] border-b border-[var(--color-outline-variant)]/20 p-6 flex flex-col gap-4 relative">
           <button 
-            onClick={onClose}
+            onClick={handleRequestClose}
             className="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
+            aria-label="Cerrar panel"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
           
           <div className="flex items-center gap-4 mt-2">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${
-              isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
-            }`}>
-              {initials}
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"}`}>
+              {loading ? (
+                <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-container-high)] animate-pulse" />
+              ) : (
+                initials
+              )}
             </div>
             <div>
-              <h3 className="text-2xl font-headline font-bold text-[var(--color-primary-dark)] leading-tight">{fullName}</h3>
-              <p className="text-[var(--color-on-surface-variant)] font-medium mt-1">CI: {student.ci}</p>
+              <h3 className="text-2xl font-headline font-bold text-[var(--color-primary-dark)] leading-tight">{loading ? <span className="block w-40 h-6 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : fullName}</h3>
+              <p className="text-[var(--color-on-surface-variant)] font-medium mt-1">{loading ? <span className="block w-24 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : `CI: ${student?.ci || '-'}`}</p>
             </div>
           </div>
           
           <div className="flex gap-2">
             <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
-              {yearNumber} Año
+              {loading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : `${yearNumber} Año`}
             </span>
           </div>
         </header>
@@ -120,19 +122,19 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div className="col-span-2">
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Dirección</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrada</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-full h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrada')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Celular</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Teléfono Familiar</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Sexo</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{student.gender === 'F' ? 'Femenino' : 'Masculino'}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-20 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.gender === 'F' ? 'Femenino' : 'Masculino')}</p>
               </div>
             </div>
           </section>
@@ -178,7 +180,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
               </div>
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              {student.is_militant ? (
+              {student?.is_militant ? (
                 <span className="px-3 py-1.5 rounded-lg bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] text-[11px] font-bold border border-ghost">
                   Militante UJC
                 </span>
