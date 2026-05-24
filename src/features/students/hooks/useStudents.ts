@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { studentService, GetStudentsFilters } from '@/core/services/student.service';
+import { studentService, ExtendedGetStudentsFilters } from '@/core/services/student.service';
 
-export function useStudents(filters: GetStudentsFilters = {}) {
+export function useStudents(filters: ExtendedGetStudentsFilters = {}) {
   return useQuery({
     queryKey: ['students', filters],
     queryFn: () => studentService.getStudents(filters),
-    /* A proper stale time configuration */
-    staleTime: 5 * 60 * 1000, 
+    staleTime: 5 * 60 * 1000,
   });
 }

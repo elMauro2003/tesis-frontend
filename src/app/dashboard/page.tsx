@@ -28,6 +28,7 @@ export default function DashboardPage() {
   // Suggestions
   const [suggestions, setSuggestions] = useState<Student[]>([]);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
   const PAGE_SIZE = 10;
 
   const { data, isLoading, isError, error } = useStudents({ 
@@ -39,10 +40,10 @@ export default function DashboardPage() {
     is_militant: isMilitant === 'all' ? undefined : isMilitant,
   });
 
-  const students = data?.results || [];
-  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 1;
+  const students = (data as any)?.results || [];
+  const totalPages = data ? Math.ceil(((data as any).count || 0) / PAGE_SIZE) : 1;
 
-  const displayedStudents = students.filter(s => {
+  const displayedStudents = (students as Student[]).filter((s: Student) => {
     if (locationFilter === 'all') return true;
     const hasRoom = Boolean((s as any).room || (s as any).current_room || (s as any).assignment || (s as any).room_assignment);
     return locationFilter === 'with_room' ? hasRoom : !hasRoom;
@@ -87,10 +88,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!search || search.length < 2) { setSuggestions([]); return; }
+    // use React Query style manual fetching for suggestions
     let mounted = true;
     studentService.getStudents({ search, page_size: 5 })
-      .then((res) => { if (!mounted) return; setSuggestions(res.results || []); })
-      .catch(() => { if (!mounted) return; setSuggestions([]); });
+      .then((res) => { if (!mounted) return; setSuggestions(res.results || []); setActiveSuggestion(-1); })
+      .catch(() => { if (!mounted) return; setSuggestions([]); setActiveSuggestion(-1); });
     return () => { mounted = false; };
   }, [search]);
   
@@ -98,6 +100,28 @@ export default function DashboardPage() {
     if (e.key === 'Enter') {
       setDebouncedSearch(search);
       setPage(1);
+    }
+  };
+
+  // keyboard navigation for suggestions
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (suggestions.length === 0) return handleKeyDown(e);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestion((s) => Math.min(s + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestion((s) => Math.max(s - 1, 0));
+    } else if (e.key === 'Enter') {
+      if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
+        const s = suggestions[activeSuggestion];
+        setSelectedStudentId(s.id);
+        setSuggestions([]);
+        setSearch('');
+      } else {
+        setDebouncedSearch(search);
+        setPage(1);
+      }
     }
   };
 
@@ -137,13 +161,13 @@ export default function DashboardPage() {
             value={search}
             onChange={handleSearch}
             onBlur={handleSearchBlur}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleInputKeyDown}
           />
           {/* Suggestions dropdown */}
           {suggestions.length > 0 && search.length >= 2 && (
             <div ref={suggestionsRef} className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50">
-              {suggestions.map(s => (
-                <button key={s.id} onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setSuggestions([]); setSearch('');}} className="w-full text-left px-4 py-2 hover:bg-surface-container-high transition-colors">{s.full_name || `${s.first_name} ${s.last_name}`} — {s.ci}</button>
+              {suggestions.map((s, idx) => (
+                <button key={s.id} onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setSuggestions([]); setSearch('');}} className={`w-full text-left px-4 py-2 transition-colors ${activeSuggestion === idx ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}>{s.full_name || `${s.first_name} ${s.last_name}`} — {s.ci}</button>
               ))}
             </div>
           )}
@@ -222,7 +246,7 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : (
-                displayedStudents.map((student) => {
+                displayedStudents.map((student: Student) => {
                   const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
                   const parts = fullName.split(" ");
                   const initials = parts.length > 1 
@@ -288,7 +312,7 @@ export default function DashboardPage() {
             Página {page} de {totalPages}
           </div>
           <div className="flex items-center gap-2">
-            <button 
+              <button 
               className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
               disabled={page <= 1}
               onClick={() => setPage(old => Math.max(1, old - 1))}
@@ -298,7 +322,7 @@ export default function DashboardPage() {
             <button 
               className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={page >= totalPages}
-              onClick={() => setPage(old => (data && data.next ? old + 1 : old))}
+              onClick={() => setPage(old => (((data as any) && (data as any).next) ? old + 1 : old))}
             >
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>

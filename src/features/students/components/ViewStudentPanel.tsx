@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Student } from '@/types/models';
 import { studentService } from '@/core/services/student.service';
+import { useQuery } from '@tanstack/react-query';
 
 interface ViewStudentPanelProps {
   studentId: number | null;
@@ -9,36 +10,26 @@ interface ViewStudentPanelProps {
 
 export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) {
   const [student, setStudent] = useState<Student | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const ANIM_MS = 320;
 
   useEffect(() => {
-    let mounted = true;
-
     if (!studentId) {
-      // start closing animation if panel was open
       setIsOpen(false);
-      // cleanup student after animation finishes
-      const t = setTimeout(() => {
-        if (mounted) setStudent(null);
-      }, ANIM_MS);
-      return () => { mounted = false; clearTimeout(t); };
+      return;
     }
-
     setIsOpen(true);
-    setLoading(true);
-    setError(null);
-
-    studentService.getStudentById(studentId)
-      .then((s) => { if (mounted) setStudent(s); })
-      .catch((err) => { if (mounted) setError(err?.message || 'Error al cargar el estudiante'); })
-      .finally(() => { if (mounted) setLoading(false); });
-
-    return () => { mounted = false; };
   }, [studentId]);
+
+  const { data: studentData, isLoading, isError, error } = useQuery({
+    queryKey: ['student', studentId],
+    queryFn: () => (studentId ? studentService.getStudentById(studentId) : Promise.resolve(null as any)),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => { if (studentData) setStudent(studentData); }, [studentData]);
 
   const handleRequestClose = () => {
     setIsOpen(false);
@@ -95,21 +86,21 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           
           <div className="flex items-center gap-4 mt-2">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"}`}>
-              {loading ? (
+              {isLoading ? (
                 <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-container-high)] animate-pulse" />
               ) : (
                 initials
               )}
             </div>
             <div>
-              <h3 className="text-2xl font-headline font-bold text-[var(--color-primary-dark)] leading-tight">{loading ? <span className="block w-40 h-6 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : fullName}</h3>
-              <p className="text-[var(--color-on-surface-variant)] font-medium mt-1">{loading ? <span className="block w-24 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : `CI: ${student?.ci || '-'}`}</p>
+              <h3 className="text-2xl font-headline font-bold text-[var(--color-primary-dark)] leading-tight">{isLoading ? <span className="block w-40 h-6 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : fullName}</h3>
+              <p className="text-[var(--color-on-surface-variant)] font-medium mt-1">{isLoading ? <span className="block w-24 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : `CI: ${student?.ci || '-'}`}</p>
             </div>
           </div>
           
           <div className="flex gap-2">
             <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
-              {loading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : `${yearNumber} Año`}
+              {isLoading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : `${yearNumber} Año`}
             </span>
           </div>
         </header>
@@ -122,19 +113,19 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div className="col-span-2">
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Dirección</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-full h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrada')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-full h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrada')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Celular</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Teléfono Familiar</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Sexo</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{loading ? <span className="block w-20 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.gender === 'F' ? 'Femenino' : 'Masculino')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-20 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.gender === 'F' ? 'Femenino' : 'Masculino')}</p>
               </div>
             </div>
           </section>
