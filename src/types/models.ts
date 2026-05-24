@@ -71,12 +71,38 @@ export interface Student {
     };
   };
   group_name?: string;
+  // Detailed shapes returned by the detail endpoints
+  group_detail?: {
+    id: number;
+    name: string;
+    career_year: number;
+    career_year_detail?: {
+      id: number;
+      career: number;
+      career_name: string;
+      year: number;
+      year_display?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    created_at?: string;
+    updated_at?: string;
+  };
   age?: number;
   is_militant: boolean;
   current_room?: {
     number?: string;
     wing?: string;
     building?: string;
+  } | null;
+  // Alternative detail shape provided by detail endpoint
+  current_room_info?: {
+    assignment_id?: number;
+    room_id?: number;
+    room_number?: string;
+    wing?: string;
+    building?: string;
+    assigned_date?: string;
   } | null;
   user?: {
     first_name?: string;

@@ -89,13 +89,14 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
 
   const isFemale = student?.gender?.toUpperCase() === 'F';
     
-  const careerName = student?.group?.career_year?.career?.name || "No especificada";
-  const groupName = student?.group_name || student?.group?.name || "No especificado";
+  // Prefer detail shapes returned by the student detail endpoint (group_detail, career_year_detail)
+  const careerName = student?.group_detail?.career_year_detail?.career_name || student?.group?.career_year?.career?.name || "No especificada";
+  const groupName = student?.group_detail?.name || student?.group_name || (student?.group && typeof student.group === 'object' ? student.group.name : "No especificado");
   const ageValue = student?.age ?? null;
-  const yearValue = student?.group?.career_year?.year ?? null;
+  const yearValue = student?.group_detail?.career_year_detail?.year ?? student?.group?.career_year?.year ?? null;
   const locationLabel = currentRoom
     ? `${currentRoom.number || 'Sin número'}${currentRoom.wing ? ` · ${currentRoom.wing}` : ''}${currentRoom.building ? ` · ${currentRoom.building}` : ''}`
-    : 'Sin ubicación';
+    : (student?.current_room_info ? `${student.current_room_info.room_number || 'Sin número'}${student.current_room_info.wing ? ` · ${student.current_room_info.wing}` : ''}${student.current_room_info.building ? ` · ${student.current_room_info.building}` : ''}` : 'Sin ubicación');
   const userLabel = typeof student?.user === 'object' && student.user
     ? [student.user.first_name, student.user.last_name].filter(Boolean).join(' ').trim() || student.user.email || 'Usuario vinculado'
     : student?.user
@@ -196,6 +197,8 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
                 <p className="text-sm text-[var(--color-on-surface)] font-semibold">
                   {currentRoom ? (
                     <span>{currentRoom.number}{currentRoom.wing ? ` · ${currentRoom.wing}` : ''}{currentRoom.building ? ` · ${currentRoom.building}` : ''}</span>
+                  ) : student?.current_room_info ? (
+                    <span>{student.current_room_info.room_number}{student.current_room_info.wing ? ` · ${student.current_room_info.wing}` : ''}{student.current_room_info.building ? ` · ${student.current_room_info.building}` : ''}</span>
                   ) : (
                     'No asignado'
                   )}

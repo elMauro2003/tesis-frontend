@@ -85,15 +85,33 @@ export default function DashboardPage() {
   });
 
   const allStudents = studentsQuery.data?.results ?? [];
+  // Helper to normalize student.group into a Group-like object using loaded `groups`
+  const resolveStudentGroup = (student: Student) => {
+    const grp = (student as any).group;
+    if (!grp) return null;
+    // already object with career_year
+    if (typeof grp === 'object' && grp.career_year) return grp;
+    // if group is numeric id
+    if (typeof grp === 'number') return groups.find(g => g.id === grp) as any || null;
+    // if group is string name, try to find by name
+    if (typeof grp === 'string') return groups.find(g => g.name === grp) as any || null;
+    return null;
+  };
+
   const careerFilteredStudents = useMemo(() => {
     if (careerId === 'all') return allStudents;
-    return allStudents.filter((student) => student.group?.career_year?.career?.id === careerId);
+    return allStudents.filter((student) => {
+      // student.group may be: string (group name), number (id) or object
+      const g = resolveStudentGroup(student);
+      return g?.career_year && (typeof g.career_year.career === 'object' ? g.career_year.career.id : g.career_year.career) === careerId;
+    });
   }, [allStudents, careerId]);
 
   const locationFilteredStudents = useMemo(() => {
     if (locationFilter === 'all') return careerFilteredStudents;
     return careerFilteredStudents.filter((student) => {
-      const hasRoom = assignedStudentIds.has(student.id);
+      // Prefer server-provided boolean when available to avoid extra requests
+      const hasRoom = typeof (student as any).has_room === 'boolean' ? (student as any).has_room : assignedStudentIds.has(student.id);
       return locationFilter === 'with_room' ? hasRoom : !hasRoom;
     });
   }, [careerFilteredStudents, assignedStudentIds, locationFilter]);
@@ -349,8 +367,22 @@ export default function DashboardPage() {
                   
                   const ci = student.ci || "-";
 
-                  const careerName = student.group?.career_year?.career?.name || "No especificada";
-                  const yearNumber = student.group?.career_year?.year ? `${student.group.career_year.year}ro` : "-";
+                  const resolvedGroup = resolveStudentGroup(student);
+                  // Fallback: parse `group_name` which often contains "<Career> — <N>° Año — Grupo ..."
+                  const fallbackCareer = (() => {
+                    const gn = student.group_name || '';
+                    const parts = gn.split(' — ');
+                    return parts[0] || 'No especificada';
+                  })();
+
+                  const fallbackYear = (() => {
+                    const gn = student.group_name || '';
+                    const m = gn.match(/(\d+)°\s*Año/);
+                    return m ? `${m[1]}ro` : '-';
+                  })();
+
+                  const careerName = resolvedGroup?.career_year?.career?.name || (resolvedGroup?.career_year && (typeof resolvedGroup.career_year.career === 'number' ? (careers.find(c=>c.id===resolvedGroup.career_year.career)?.name) : resolvedGroup.career_year.career?.name)) || fallbackCareer || "No especificada";
+                  const yearNumber = resolvedGroup?.career_year?.year ? `${resolvedGroup.career_year.year}ro` : fallbackYear || "-";
                   
                   const isFemale = student.gender?.toUpperCase() === 'F';
                   
