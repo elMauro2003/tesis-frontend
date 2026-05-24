@@ -10,9 +10,13 @@ export interface GetStudentsFilters {
   page_size?: number;
   ordering?: string;
 }
+// Extend filters with optional server-side room filter if supported
+export interface ExtendedGetStudentsFilters extends GetStudentsFilters {
+  has_room?: boolean;
+}
 
 export const studentService = {
-  getStudents: (filters: GetStudentsFilters = {}): Promise<PaginatedResponse<Student>> => {
+  getStudents: (filters: ExtendedGetStudentsFilters = {}): Promise<PaginatedResponse<Student>> => {
     const params = new URLSearchParams();
     
     Object.entries(filters).forEach(([key, value]) => {
