@@ -18,6 +18,8 @@
   --color-tertiary: #7f2500;
   
   --color-error: #ba1a1a;
+  --color-success: #16a34a;          /* green-600: success/positive states */
+  --color-success-light: #dcfce7;    /* green-50: light success background */
   
   /* Surfaces & Backgrounds */
   --color-background: #f7f9fb;

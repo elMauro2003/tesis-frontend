@@ -63,6 +63,16 @@ export const studentService = {
     return fetchClient<Student>(`/api/v1/estudiantes/${id}/`);
   },
 
+  // Fetch multiple student details by ids in parallel. Useful to enrich list rows with full relations.
+  getStudentsByIds: async (ids: number[]): Promise<Student[]> => {
+    if (!ids || ids.length === 0) return [];
+    // Use allSettled so a failure fetching one student's detail doesn't reject the whole batch.
+    const results = await Promise.allSettled(ids.map((id) => studentService.getStudentById(id)));
+    return results
+      .filter((r): r is PromiseFulfilledResult<Student> => r.status === 'fulfilled')
+      .map((r) => r.value);
+  },
+
   createStudent: (data: Partial<Student>): Promise<Student> => {
     return fetchClient<Student>("/api/v1/estudiantes/", {
       method: "POST",

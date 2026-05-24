@@ -71,6 +71,9 @@ export interface Student {
     };
   };
   group_name?: string;
+  address?: string;
+  phone?: string;
+  emergency_phone?: string;
   // Detailed shapes returned by the detail endpoints
   group_detail?: {
     id: number;

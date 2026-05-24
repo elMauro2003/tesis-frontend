@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FetchError } from '@/lib/fetchClient';
 import { Student } from '@/types/models';
 import { studentService } from '@/core/services/student.service';
+import { academicService } from '@/core/services/academic.service';
 import { useQuery } from '@tanstack/react-query';
 
 type StudentCurrentRoom = {
@@ -72,6 +73,25 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
     });
   }, [roomData]);
 
+  // Determine career id if available (from detail shapes)
+  const careerId = student?.group_detail?.career_year_detail?.career ?? (student?.group && typeof student.group === 'object' ? (student.group as any).career_year?.career?.id ?? (student.group as any).career_year?.career : undefined);
+
+  const { data: careerData } = useQuery({
+    queryKey: ['career', careerId],
+    queryFn: () => careerId ? academicService.getCareerById(Number(careerId)) : Promise.resolve(null as any),
+    enabled: !!careerId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // If careerData contains a faculty as id, fetch faculty detail
+  const facultyId = careerData && typeof careerData.faculty === 'number' ? careerData.faculty : undefined;
+  const { data: facultyData } = useQuery({
+    queryKey: ['faculty', facultyId],
+    queryFn: () => facultyId ? academicService.getFacultyById(Number(facultyId)) : Promise.resolve(null as any),
+    enabled: !!facultyId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleRequestClose = () => {
     setIsOpen(false);
     // wait for animation to finish then notify parent to clear id
@@ -94,9 +114,11 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   const groupName = student?.group_detail?.name || student?.group_name || (student?.group && typeof student.group === 'object' ? student.group.name : "No especificado");
   const ageValue = student?.age ?? null;
   const yearValue = student?.group_detail?.career_year_detail?.year ?? student?.group?.career_year?.year ?? null;
+  // Build a robust location label from possible shapes returned by the API
   const locationLabel = currentRoom
     ? `${currentRoom.number || 'Sin número'}${currentRoom.wing ? ` · ${currentRoom.wing}` : ''}${currentRoom.building ? ` · ${currentRoom.building}` : ''}`
-    : (student?.current_room_info ? `${student.current_room_info.room_number || 'Sin número'}${student.current_room_info.wing ? ` · ${student.current_room_info.wing}` : ''}${student.current_room_info.building ? ` · ${student.current_room_info.building}` : ''}` : 'Sin ubicación');
+    : (student?.current_room_info ? `${student.current_room_info.room_number || 'Sin número'}${student.current_room_info.wing ? ` · ${student.current_room_info.wing}` : ''}${student.current_room_info.building ? ` · ${student.current_room_info.building}` : ''}` : (student?.current_room ? `${student.current_room.number || 'Sin número'}${student.current_room.wing ? ` · ${student.current_room.wing}` : ''}${student.current_room.building ? ` · ${student.current_room.building}` : ''}` : 'Sin ubicación'));
+
   const userLabel = typeof student?.user === 'object' && student.user
     ? [student.user.first_name, student.user.last_name].filter(Boolean).join(' ').trim() || student.user.email || 'Usuario vinculado'
     : student?.user
@@ -106,6 +128,16 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
   const isLoading = isStudentLoading || isRoomLoading;
   const isError = isStudentError || isRoomError;
   const error = studentError as Error | null;
+  // Short badge texts
+  const truncate = (s: string | undefined | null, n = 20) => {
+    if (!s) return '';
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  };
+
+  const careerBadge = yearValue ? `${yearValue}° Año` : (careerName ? careerName.split(' ').slice(0,2).join(' ') : '—');
+  // prefer building short name for location badge
+  const buildingName = currentRoom?.building || student?.current_room_info?.building || student?.current_room?.building || undefined;
+  const locationBadge = buildingName ? truncate(buildingName, 18) : 'Sin ubicación';
   return (
     <>
       {/* Backdrop */}
@@ -142,11 +174,11 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           </div>
           
           <div className="flex gap-2">
-            <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
-              {isLoading ? <span className="inline-block w-20 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : careerName}
+            <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+              {isLoading ? <span className="inline-block w-20 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : careerBadge}
             </span>
-            <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
-              {isLoading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : (currentRoom ? `${currentRoom.number || 'Sin número'}${currentRoom.wing ? ` · ${currentRoom.wing}` : ''}` : 'Sin ubicación')}
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${locationBadge !== 'Sin ubicación' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]/30'}`}>
+              {isLoading ? <span className="inline-block w-12 h-3 bg-[var(--color-surface-container-high)] animate-pulse rounded"></span> : locationBadge}
             </span>
           </div>
         </header>
@@ -159,15 +191,15 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div className="col-span-2">
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Dirección</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-full h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrada')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-full h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.address || 'No registrada')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Celular</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.phone || 'No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Teléfono Familiar</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : ('No registrado')}</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{isLoading ? <span className="block w-28 h-4 bg-[var(--color-surface-container-high)] animate-pulse rounded-md"></span> : (student?.emergency_phone || 'No registrado')}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Sexo</p>
@@ -182,7 +214,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Facultad</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No especificada</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{(facultyData && facultyData.name) || (careerData && typeof careerData.faculty === 'object' ? careerData.faculty.name : undefined) || 'No especificada'}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Carrera</p>

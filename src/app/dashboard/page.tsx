@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [locationFilter, setLocationFilter] = useState<'all' | 'with_room' | 'without_room'>('all');
 
   const [careers, setCareers] = useState<CareerOption[]>([]);
+  const [faculties, setFaculties] = useState<Array<{id:number;name:string}>>([]);
   const [groups, setGroups] = useState<GroupOption[]>([]);
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
@@ -122,6 +123,53 @@ export default function DashboardPage() {
     () => locationFilteredStudents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
     [locationFilteredStudents, safePage]
   );
+
+  // Fetch full student details for the currently visible rows to ensure all relations are loaded
+  const visibleStudentIds = paginatedStudents.map(s => s.id);
+  const visibleDetailsQuery = useQuery({
+    queryKey: ['students-visible-details', visibleStudentIds, debouncedSearch, careerId, groupId, gender, isMilitant],
+    queryFn: () => {
+      if (visibleStudentIds.length === 0) return Promise.resolve([] as any);
+      return studentService.getStudentsByIds(visibleStudentIds);
+    },
+    enabled: visibleStudentIds.length > 0,
+    staleTime: 60 * 1000,
+  });
+
+  const visibleDetailsById = useMemo(() => {
+    const map = new Map<number, any>();
+    (visibleDetailsQuery.data || []).forEach((s: any) => map.set(s.id, s));
+    return map;
+  }, [visibleDetailsQuery.data]);
+
+  // Enriched details: ensure career and faculty objects are present when only ids are returned
+  const enrichedVisibleDetailsById = useMemo(() => {
+    const map = new Map<number, any>();
+    (visibleDetailsQuery.data || []).forEach((s: any) => {
+      const copy = { ...s };
+      try {
+        const gd = copy.group_detail || copy.group || null;
+        if (gd && gd.career_year_detail) {
+          const cry = gd.career_year_detail;
+          // career may be id or object
+          if (typeof cry.career === 'number') {
+            const careerObj = careers.find(c => c.id === cry.career);
+            if (careerObj) cry.career = careerObj;
+          }
+          // if career now has faculty id, resolve to object from faculties
+          if (cry.career && typeof cry.career === 'object' && (cry.career as any).faculty) {
+            const facId = (cry.career as any).faculty;
+            const facObj = faculties.find(f => f.id === facId);
+            if (facObj) (cry.career as any).faculty = facObj;
+          }
+        }
+      } catch (err) {
+        // ignore enrichment errors
+      }
+      map.set(copy.id, copy);
+    });
+    return map;
+  }, [visibleDetailsQuery.data, careers, faculties]);
   const isLoading = studentsQuery.isLoading || (locationFilter !== 'all' && activeAssignmentsQuery.isLoading);
   const isError = studentsQuery.isError || activeAssignmentsQuery.isError;
   const error = (studentsQuery.error || activeAssignmentsQuery.error) as Error | null;
@@ -136,6 +184,11 @@ export default function DashboardPage() {
     let mounted = true;
     fetchClient('/api/v1/carreras/')
       .then((res: any) => { if (!mounted) return; setCareers(res.results || res); })
+      .catch(() => {})
+    ;
+
+    fetchClient('/api/v1/facultades/')
+      .then((res: any) => { if (!mounted) return; setFaculties(res.results || res); })
       .catch(() => {})
     ;
 
@@ -359,32 +412,24 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 paginatedStudents.map((student: Student) => {
-                  const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
+                  // Prefer detailed version if we fetched it for the visible rows
+                  const detailed = enrichedVisibleDetailsById.get(student.id) as Student | undefined;
+                  const source = detailed || student;
+
+                  const fullName = source.full_name || `${source.first_name || ""} ${source.last_name || ""}`.trim() || "Desconocido";
                   const parts = fullName.split(" ");
                   const initials = parts.length > 1 
                                      ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() 
                                      : `${parts[0]?.[0] || "E"}`.toUpperCase();
                   
-                  const ci = student.ci || "-";
+                  const ci = source.ci || "-";
 
-                  const resolvedGroup = resolveStudentGroup(student);
-                  // Fallback: parse `group_name` which often contains "<Career> — <N>° Año — Grupo ..."
-                  const fallbackCareer = (() => {
-                    const gn = student.group_name || '';
-                    const parts = gn.split(' — ');
-                    return parts[0] || 'No especificada';
-                  })();
+                  // Resolve career/year preferring the detailed payload
+                  const careerName = detailed?.group_detail?.career_year_detail?.career_name || detailed?.group?.career_year?.career?.name || student.group_name?.split(' — ')[0] || "No especificada";
+                  const _m = student.group_name ? student.group_name.match(/(\d+)°\s*Año/) : null;
+                  const yearNumber = detailed?.group_detail?.career_year_detail?.year ? `${detailed.group_detail.career_year_detail.year}ro` : (_m ? `${_m[1]}ro` : "-");
 
-                  const fallbackYear = (() => {
-                    const gn = student.group_name || '';
-                    const m = gn.match(/(\d+)°\s*Año/);
-                    return m ? `${m[1]}ro` : '-';
-                  })();
-
-                  const careerName = resolvedGroup?.career_year?.career?.name || (resolvedGroup?.career_year && (typeof resolvedGroup.career_year.career === 'number' ? (careers.find(c=>c.id===resolvedGroup.career_year.career)?.name) : resolvedGroup.career_year.career?.name)) || fallbackCareer || "No especificada";
-                  const yearNumber = resolvedGroup?.career_year?.year ? `${resolvedGroup.career_year.year}ro` : fallbackYear || "-";
-                  
-                  const isFemale = student.gender?.toUpperCase() === 'F';
+                  const isFemale = source.gender?.toUpperCase() === 'F';
                   
                   return (
                     <tr key={student.id} className="hover:bg-[var(--color-primary-selected)] transition-colors group">
