@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStudents } from "@/features/students/hooks/useStudents";
+import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
+import { Student } from "@/types/models";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
   const { data, isLoading, isError, error } = useStudents({ 
     page, 
@@ -38,20 +41,20 @@ export default function DashboardPage() {
   return (
     <>
       <header className="mb-10 flex items-center justify-between">
-        <h2 className="text-4xl font-headline font-extrabold tracking-tight text-primary-container">Estudiantes</h2>
+        <h2 className="text-4xl font-headline font-extrabold tracking-tight text-[var(--color-primary-dark)]">Estudiantes</h2>
         <div className="flex items-center gap-4">
-          {/* Primary CTA with Gradient */}
-          <button className="flex items-center gap-2 bg-brand-gradient text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95">
+          {/* Primary CTA */}
+          <button className="flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer">
             <span className="material-symbols-outlined text-lg">person_add</span>
             <span>Añadir Estudiante</span>
           </button>
           
-          <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container transition-colors relative">
+          <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container transition-colors relative cursor-pointer">
             <span className="material-symbols-outlined font-normal text-on-surface-variant">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
           </button>
           
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high ring-2 ring-surface-container-lowest shadow-sm overflow-hidden text-primary font-bold">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high ring-2 ring-surface-container-lowest shadow-sm overflow-hidden text-primary font-bold cursor-default">
             {user ? `${user.username?.[0] || 'U'}`.toUpperCase() : 'U'}
           </div>
         </div>
@@ -92,7 +95,7 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
             </div>
             
-            <button className="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-all">
+            <button className="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-all cursor-pointer">
               <span className="material-symbols-outlined text-lg">add</span>
               <span className="text-sm font-medium">Añadir filtro</span>
             </button>
@@ -100,9 +103,9 @@ export default function DashboardPage() {
 
           {/* Segmented Control */}
           <div className="bg-surface-container-low p-1 rounded-xl flex items-center gap-1">
-            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors">Todos</button>
-            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors">Con Cuarto</button>
-            <button className="px-6 py-2 text-sm font-medium rounded-lg bg-primary-container text-on-primary shadow-sm">Pendientes</button>
+            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Todos</button>
+            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Con Cuarto</button>
+            <button className="px-6 py-2 text-sm font-medium rounded-lg bg-primary text-on-primary shadow-sm cursor-pointer">Pendientes</button>
           </div>
         </div>
       </section>
@@ -153,11 +156,15 @@ export default function DashboardPage() {
                   const careerName = student.group?.career_year?.career?.name || "No especificada";
                   const yearNumber = student.group?.career_year?.year ? `${student.group.career_year.year}ro` : "-";
                   
+                  const isFemale = student.gender?.toUpperCase() === 'F';
+                  
                   return (
-                    <tr key={student.id} className="hover:bg-surface-container-low transition-colors group">
+                    <tr key={student.id} className="hover:bg-[var(--color-primary-selected)] transition-colors group">
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
+                          }`}>
                             {initials}
                           </div>
                           <div className="font-semibold text-on-surface">{fullName}</div>
@@ -174,13 +181,17 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-end gap-1">
-                          <button className="p-2 text-outline hover:text-primary transition-colors" title="Consultar">
+                          <button 
+                            className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" 
+                            title="Consultar"
+                            onClick={() => setSelectedStudentId(student.id)}
+                          >
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </button>
-                          <button className="p-2 text-outline hover:text-primary transition-colors" title="Editar">
+                          <button className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
                             <span className="material-symbols-outlined text-xl">edit</span>
                           </button>
-                          <button className="p-2 text-outline hover:text-error transition-colors" title="Dar de Baja">
+                          <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja">
                             <span className="material-symbols-outlined text-xl">person_remove</span>
                           </button>
                         </div>
@@ -216,6 +227,12 @@ export default function DashboardPage() {
           </div>
         </footer>
       </section>
+
+      {/* Slide-over panel */}
+      <ViewStudentPanel 
+        studentId={selectedStudentId} 
+        onClose={() => setSelectedStudentId(null)} 
+      />
     </>
   );
 }

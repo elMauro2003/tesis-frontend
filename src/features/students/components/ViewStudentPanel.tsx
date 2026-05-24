@@ -1,0 +1,208 @@
+import React, { useEffect, useState } from 'react';
+import { Student } from '@/types/models';
+import { studentService } from '@/core/services/student.service';
+
+interface ViewStudentPanelProps {
+  studentId: number | null;
+  onClose: () => void;
+}
+
+export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) {
+  const [student, setStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!studentId) {
+      setStudent(null);
+      return;
+    }
+
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+
+    studentService.getStudentById(studentId)
+      .then((s) => {
+        if (!mounted) return;
+        setStudent(s);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err?.message || 'Error al cargar el estudiante');
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+
+    return () => { mounted = false; };
+  }, [studentId]);
+
+  if (!studentId) return null;
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60]" />
+    );
+  }
+  if (error) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-[70]"><div className="bg-white p-4 rounded shadow">{error}</div></div>
+    );
+  }
+
+  if (!student) return null;
+
+  const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
+  const parts = fullName.split(" ");
+  const initials = parts.length > 1 
+                      ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() 
+                      : `${parts[0]?.[0] || "E"}`.toUpperCase();
+
+  const isFemale = student.gender?.toUpperCase() === 'F';
+    
+  const careerName = student.group?.career_year?.career?.name || "No especificada";
+  const groupName = student.group?.name || "No especificado";
+  const yearNumber = student.group?.career_year?.year ? `${student.group.career_year.year}ro` : "No especificado";
+
+  // Calculate age based on birth_date
+  let age = "-";
+  if (student.birth_date) {
+    const today = new Date();
+    const birthDate = new Date(student.birth_date);
+    age = (today.getFullYear() - birthDate.getFullYear()).toString();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age = (parseInt(age) - 1).toString();
+    }
+  }
+  return (
+    <>
+      <div 
+        className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-[var(--color-surface-container-lowest)] shadow-2xl flex flex-col overflow-hidden transform transition-transform">
+        
+        {/* Header */}
+        <header className="bg-[var(--color-surface-container-lowest)] border-b border-[var(--color-outline-variant)]/20 p-6 flex flex-col gap-4 relative">
+          <button 
+            onClick={onClose}
+            className="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+          
+          <div className="flex items-center gap-4 mt-2">
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${
+              isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"
+            }`}>
+              {initials}
+            </div>
+            <div>
+              <h3 className="text-2xl font-headline font-bold text-[var(--color-primary-dark)] leading-tight">{fullName}</h3>
+              <p className="text-[var(--color-on-surface-variant)] font-medium mt-1">CI: {student.ci}</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] text-xs font-bold border border-[var(--color-outline-variant)]/30">
+              {yearNumber} Año
+            </span>
+          </div>
+        </header>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[var(--color-surface)]">
+          {/* Contacto y Origen */}
+          <section className="soft-lift-card p-5 border border-ghost">
+            <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Contacto y Origen</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+              <div className="col-span-2">
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Dirección</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrada</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Celular</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Teléfono Familiar</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Sexo</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{student.gender === 'F' ? 'Femenino' : 'Masculino'}</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Academia y Ubicación */}
+          <section className="soft-lift-card p-5 border border-ghost">
+            <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Academia y Ubicación</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Facultad</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No especificada</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Carrera</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{careerName}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Rendimiento</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No disponible</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Cuarto</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No asignado</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Salud y Perfil */}
+          <section className="soft-lift-card p-5 border border-ghost">
+            <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Salud y Perfil</h4>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Enfermedades</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Medicamentos</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Trayectoria Disciplinaria</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrada</p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {student.is_militant ? (
+                <span className="px-3 py-1.5 rounded-lg bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] text-[11px] font-bold border border-ghost">
+                  Militante UJC
+                </span>
+              ) : (
+                <span className="text-sm text-[var(--color-outline)] font-medium">No registrado</span>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Footer */}
+        <footer className="border-t border-[var(--color-outline-variant)]/20 p-4 bg-[var(--color-surface-container-lowest)] flex justify-end gap-3 shrink-0">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">
+            <span className="material-symbols-outlined text-lg">edit</span>
+            Editar Datos
+          </button>
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg text-slate-600 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors cursor-pointer"
+          >
+            Cerrar Panel
+          </button>
+        </footer>
+      </div>
+    </>
+  );
+}
