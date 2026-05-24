@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
+import { DeleteStudentModal } from "@/features/students/components/DeleteStudentModal";
 import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentToDeleteId, setSelectedStudentToDeleteId] = useState<number | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Filters
@@ -141,6 +143,13 @@ export default function DashboardPage() {
     (visibleDetailsQuery.data || []).forEach((s: any) => map.set(s.id, s));
     return map;
   }, [visibleDetailsQuery.data]);
+
+  const selectedStudentToDelete = useMemo(() => {
+    if (!selectedStudentToDeleteId) return null;
+    return (visibleDetailsById.get(selectedStudentToDeleteId) as Student | undefined)
+      || paginatedStudents.find((student) => student.id === selectedStudentToDeleteId)
+      || null;
+  }, [selectedStudentToDeleteId, visibleDetailsById, paginatedStudents]);
 
   // Enriched details: ensure career and faculty objects are present when only ids are returned
   const enrichedVisibleDetailsById = useMemo(() => {
@@ -464,7 +473,7 @@ export default function DashboardPage() {
                           <button className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
                             <span className="material-symbols-outlined text-xl">edit</span>
                           </button>
-                          <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja">
+                          <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja" onClick={() => setSelectedStudentToDeleteId(student.id)}>
                             <span className="material-symbols-outlined text-xl">person_remove</span>
                           </button>
                         </div>
@@ -505,6 +514,12 @@ export default function DashboardPage() {
       <ViewStudentPanel 
         studentId={selectedStudentId} 
         onClose={() => setSelectedStudentId(null)} 
+      />
+
+      <DeleteStudentModal
+        student={selectedStudentToDelete}
+        open={selectedStudentToDeleteId !== null}
+        onClose={() => setSelectedStudentToDeleteId(null)}
       />
     </>
   );
