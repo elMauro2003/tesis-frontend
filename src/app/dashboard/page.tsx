@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStudents } from "@/features/students/hooks/useStudents";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
 import { Student } from "@/types/models";
+import { fetchClient } from '@/lib/fetchClient';
+import { studentService } from '@/core/services/student.service';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -13,13 +15,38 @@ export default function DashboardPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
+  // Filters
+  const [careerId, setCareerId] = useState<number | 'all'>('all');
+  const [groupId, setGroupId] = useState<number | 'all'>('all');
+  const [gender, setGender] = useState<'M' | 'F' | 'all'>('all');
+  const [isMilitant, setIsMilitant] = useState<boolean | 'all'>('all');
+  const [locationFilter, setLocationFilter] = useState<'all' | 'with_room' | 'without_room'>('all');
+
+  const [careers, setCareers] = useState<Array<{id:number,name:string}>>([]);
+  const [groups, setGroups] = useState<Array<{id:number,name:string}>>([]);
+
+  // Suggestions
+  const [suggestions, setSuggestions] = useState<Student[]>([]);
+  const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const PAGE_SIZE = 10;
+
   const { data, isLoading, isError, error } = useStudents({ 
-    page, 
-    search: debouncedSearch 
+    page,
+    page_size: PAGE_SIZE,
+    search: debouncedSearch,
+    group: groupId === 'all' ? undefined : groupId,
+    gender: gender === 'all' ? undefined : gender,
+    is_militant: isMilitant === 'all' ? undefined : isMilitant,
   });
 
   const students = data?.results || [];
-  const totalPages = data ? Math.ceil(data.count / 10) : 1; // Assuming page_size is 10
+  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 1;
+
+  const displayedStudents = students.filter(s => {
+    if (locationFilter === 'all') return true;
+    const hasRoom = Boolean((s as any).room || (s as any).current_room || (s as any).assignment || (s as any).room_assignment);
+    return locationFilter === 'with_room' ? hasRoom : !hasRoom;
+  });
 
   // For handling input with simple debounce
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +57,42 @@ export default function DashboardPage() {
     setDebouncedSearch(search);
     setPage(1); // Reset page on new search
   };
+
+  // Fetch careers and groups for filters
+  useEffect(() => {
+    let mounted = true;
+    fetchClient('/api/v1/carreras/')
+      .then((res: any) => { if (!mounted) return; setCareers(res.results || res); })
+      .catch(() => {})
+    ;
+
+    fetchClient('/api/v1/grupos/')
+      .then((res: any) => { if (!mounted) return; setGroups(res.results || res); })
+      .catch(() => {})
+    ;
+
+    return () => { mounted = false; };
+  }, []);
+
+  // Debounce search and fetch suggestions
+  useEffect(() => {
+    const deb = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(deb);
+  }, [search]);
+
+  // Reset page when server-side filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, careerId, groupId, gender, isMilitant]);
+
+  useEffect(() => {
+    if (!search || search.length < 2) { setSuggestions([]); return; }
+    let mounted = true;
+    studentService.getStudents({ search, page_size: 5 })
+      .then((res) => { if (!mounted) return; setSuggestions(res.results || []); })
+      .catch(() => { if (!mounted) return; setSuggestions([]); });
+    return () => { mounted = false; };
+  }, [search]);
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -76,36 +139,41 @@ export default function DashboardPage() {
             onBlur={handleSearchBlur}
             onKeyDown={handleKeyDown}
           />
+          {/* Suggestions dropdown */}
+          {suggestions.length > 0 && search.length >= 2 && (
+            <div ref={suggestionsRef} className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50">
+              {suggestions.map(s => (
+                <button key={s.id} onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setSuggestions([]); setSearch('');}} className="w-full text-left px-4 py-2 hover:bg-surface-container-high transition-colors">{s.full_name || `${s.first_name} ${s.last_name}`} — {s.ci}</button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bottom Row Filters */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <select className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option>Facultad: Todas</option>
+              <select value={careerId} onChange={(e) => setCareerId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
+                <option value="all">Carrera: Todas</option>
+                {careers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
             </div>
             
             <div className="relative">
-              <select className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option>Carrera: Todas</option>
+              <select value={groupId} onChange={(e) => setGroupId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
+                <option value="all">Grupo: Todos</option>
+                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
             </div>
-            
-            <button className="flex items-center gap-2 px-3 py-2 bg-surface-container-low rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-all cursor-pointer">
-              <span className="material-symbols-outlined text-lg">add</span>
-              <span className="text-sm font-medium">Añadir filtro</span>
-            </button>
           </div>
 
           {/* Segmented Control */}
           <div className="bg-surface-container-low p-1 rounded-xl flex items-center gap-1">
-            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Todos</button>
-            <button className="px-6 py-2 text-sm font-medium rounded-lg text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer">Con Cuarto</button>
-            <button className="px-6 py-2 text-sm font-medium rounded-lg bg-primary text-on-primary shadow-sm cursor-pointer">Pendientes</button>
+            <button onClick={() => setLocationFilter('all')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Todos</button>
+            <button onClick={() => setLocationFilter('with_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='with_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Con Cuarto</button>
+            <button onClick={() => setLocationFilter('without_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='without_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Sin ubicación</button>
           </div>
         </div>
       </section>
@@ -126,11 +194,21 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-outline-variant/20">
               
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">
-                    Cargando estudiantes...
-                  </td>
-                </tr>
+                // Skeleton rows
+                Array.from({length:6}).map((_, idx) => (
+                  <tr key={`skeleton-${idx}`} className="animate-pulse">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[var(--color-surface-container-high)]" />
+                        <div className="h-4 w-56 bg-[var(--color-surface-container-high)] rounded" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-5"><div className="h-4 w-20 bg-[var(--color-surface-container-high)] rounded" /></td>
+                    <td className="px-6 py-5"><div className="h-4 w-32 bg-[var(--color-surface-container-high)] rounded" /></td>
+                    <td className="px-6 py-5"><div className="h-4 w-16 bg-[var(--color-surface-container-high)] rounded" /></td>
+                    <td className="px-6 py-5"><div className="h-4 w-24 bg-[var(--color-surface-container-high)] rounded ml-auto" /></td>
+                  </tr>
+                ))
               ) : isError ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-error">
@@ -144,7 +222,7 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : (
-                students.map((student) => {
+                displayedStudents.map((student) => {
                   const fullName = student.full_name || `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Desconocido";
                   const parts = fullName.split(" ");
                   const initials = parts.length > 1 
