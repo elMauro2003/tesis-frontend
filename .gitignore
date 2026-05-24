@@ -44,5 +44,5 @@ yarn-error.log*
 next-env.d.ts
 
 #AI
-.AGENTS.md
-.CLAUDE.md
+AGENTS.md
+CLAUDE.md
