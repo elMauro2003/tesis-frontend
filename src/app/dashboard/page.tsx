@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStudents } from "@/features/students/hooks/useStudents";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
-import { Student } from "@/types/models";
+import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
+import { accommodationService } from '@/core/services/accommodation.service';
+
+type CareerOption = { id: number; name: string };
+type GroupOption = { id: number; name: string; career_year?: { career?: { id: number } } | number };
+
+const getAssignmentStudentId = (assignment: RoomAssignment): number | null => {
+  if (typeof assignment.student === 'number') return assignment.student;
+  return assignment.student?.id ?? null;
+};
+
+const getStudentCurrentRoom = (student: Student): string | null => {
+  const currentRoom = (student as Student & { current_room?: { number?: string } | null }).current_room;
+  return currentRoom?.number ?? null;
+};
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -14,6 +29,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Filters
   const [careerId, setCareerId] = useState<number | 'all'>('all');
@@ -22,22 +38,58 @@ export default function DashboardPage() {
   const [isMilitant, setIsMilitant] = useState<boolean | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<'all' | 'with_room' | 'without_room'>('all');
 
-  const [careers, setCareers] = useState<Array<{id:number,name:string}>>([]);
-  const [groups, setGroups] = useState<Array<{id:number,name:string}>>([]);
+  const [careers, setCareers] = useState<CareerOption[]>([]);
+  const [groups, setGroups] = useState<GroupOption[]>([]);
 
-  // Suggestions
-  const [suggestions, setSuggestions] = useState<Student[]>([]);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
   const PAGE_SIZE = 10;
+
+  const selectedCareerGroupIds = useMemo(() => {
+    if (careerId === 'all') return [] as number[];
+    return groups
+      .filter((group) => {
+        const careerRef = group.career_year && typeof group.career_year === 'object' ? group.career_year.career?.id : undefined;
+        return careerRef === careerId;
+      })
+      .map((group) => group.id);
+  }, [careerId, groups]);
+
+  const activeAssignmentsQuery = useQuery({
+    queryKey: ['active-assignments'],
+    queryFn: () => accommodationService.getActiveAssignments(),
+    enabled: locationFilter !== 'all',
+    staleTime: 60 * 1000,
+  });
+
+  const assignedStudentIds = useMemo(() => {
+    const ids = new Set<number>();
+    activeAssignmentsQuery.data?.results.forEach((assignment) => {
+      const studentId = getAssignmentStudentId(assignment);
+      if (studentId !== null) ids.add(studentId);
+    });
+    return ids;
+  }, [activeAssignmentsQuery.data]);
+
+  const suggestionsQuery = useQuery({
+    queryKey: ['student-suggestions', debouncedSearch],
+    queryFn: () => studentService.getStudents({ search: debouncedSearch, page_size: 5 }),
+    enabled: debouncedSearch.trim().length >= 2,
+    staleTime: 30 * 1000,
+  });
+
+  const suggestions = suggestionsQuery.data?.results ?? [];
 
   const { data, isLoading, isError, error } = useStudents({ 
     page,
     page_size: PAGE_SIZE,
     search: debouncedSearch,
     group: groupId === 'all' ? undefined : groupId,
+    group__in: careerId === 'all' || selectedCareerGroupIds.length === 0 ? undefined : selectedCareerGroupIds.join(','),
     gender: gender === 'all' ? undefined : gender,
     is_militant: isMilitant === 'all' ? undefined : isMilitant,
+    has_room: locationFilter === 'all' ? undefined : locationFilter === 'with_room',
   });
 
   const students = (data as any)?.results || [];
@@ -45,7 +97,7 @@ export default function DashboardPage() {
 
   const displayedStudents = (students as Student[]).filter((s: Student) => {
     if (locationFilter === 'all') return true;
-    const hasRoom = Boolean((s as any).room || (s as any).current_room || (s as any).assignment || (s as any).room_assignment);
+    const hasRoom = assignedStudentIds.has(s.id) || Boolean(getStudentCurrentRoom(s));
     return locationFilter === 'with_room' ? hasRoom : !hasRoom;
   });
 
@@ -54,11 +106,6 @@ export default function DashboardPage() {
     setSearch(e.target.value);
   };
   
-  const handleSearchBlur = () => {
-    setDebouncedSearch(search);
-    setPage(1); // Reset page on new search
-  };
-
   // Fetch careers and groups for filters
   useEffect(() => {
     let mounted = true;
@@ -75,7 +122,7 @@ export default function DashboardPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Debounce search and fetch suggestions
+  // Debounce search
   useEffect(() => {
     const deb = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(deb);
@@ -87,25 +134,43 @@ export default function DashboardPage() {
   }, [debouncedSearch, careerId, groupId, gender, isMilitant]);
 
   useEffect(() => {
-    if (!search || search.length < 2) { setSuggestions([]); return; }
-    // use React Query style manual fetching for suggestions
-    let mounted = true;
-    studentService.getStudents({ search, page_size: 5 })
-      .then((res) => { if (!mounted) return; setSuggestions(res.results || []); setActiveSuggestion(-1); })
-      .catch(() => { if (!mounted) return; setSuggestions([]); setActiveSuggestion(-1); });
-    return () => { mounted = false; };
-  }, [search]);
-  
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setDebouncedSearch(search);
-      setPage(1);
+    if (careerId === 'all') return;
+    if (groupId !== 'all') {
+      const matchingGroup = groups.some((group) => group.id === groupId && selectedCareerGroupIds.includes(group.id));
+      if (!matchingGroup) {
+        setGroupId('all');
+      }
     }
-  };
+  }, [careerId, groupId, groups, selectedCareerGroupIds]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!searchContainerRef.current?.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+        setActiveSuggestion(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+  
   // keyboard navigation for suggestions
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (suggestions.length === 0) return handleKeyDown(e);
+    if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+      setActiveSuggestion(-1);
+      return;
+    }
+
+    if (suggestions.length === 0) {
+      if (e.key === 'Enter') {
+        setDebouncedSearch(search);
+        setPage(1);
+      }
+      return;
+    }
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveSuggestion((s) => Math.min(s + 1, suggestions.length - 1));
@@ -116,7 +181,7 @@ export default function DashboardPage() {
       if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
         const s = suggestions[activeSuggestion];
         setSelectedStudentId(s.id);
-        setSuggestions([]);
+        setIsSearchFocused(false);
         setSearch('');
       } else {
         setDebouncedSearch(search);
@@ -150,7 +215,7 @@ export default function DashboardPage() {
       {/* Search and Filter Bar */}
       <section className="space-y-6 mb-8">
         {/* Top Row Search */}
-        <div className="relative group">
+        <div ref={searchContainerRef} className="relative group">
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
             <span className="material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">search</span>
           </div>
@@ -160,15 +225,41 @@ export default function DashboardPage() {
             type="text" 
             value={search}
             onChange={handleSearch}
-            onBlur={handleSearchBlur}
+            onFocus={() => setIsSearchFocused(true)}
             onKeyDown={handleInputKeyDown}
+            aria-autocomplete="list"
+            aria-expanded={isSearchFocused && search.trim().length >= 2}
+            aria-controls="student-suggestions-listbox"
+            aria-activedescendant={activeSuggestion >= 0 && suggestions[activeSuggestion] ? `student-suggestion-${suggestions[activeSuggestion].id}` : undefined}
           />
           {/* Suggestions dropdown */}
-          {suggestions.length > 0 && search.length >= 2 && (
-            <div ref={suggestionsRef} className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50">
-              {suggestions.map((s, idx) => (
-                <button key={s.id} onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setSuggestions([]); setSearch('');}} className={`w-full text-left px-4 py-2 transition-colors ${activeSuggestion === idx ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}>{s.full_name || `${s.first_name} ${s.last_name}`} — {s.ci}</button>
-              ))}
+          {isSearchFocused && search.trim().length >= 2 && (
+            <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50 overflow-hidden">
+              {suggestionsQuery.isFetching ? (
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={`suggestion-skeleton-${idx}`} className="px-4 py-3 animate-pulse">
+                    <div className="h-4 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
+                  </div>
+                ))
+              ) : suggestions.length > 0 ? (
+                suggestions.map((s, idx) => (
+                  <button
+                    key={s.id}
+                    id={`student-suggestion-${s.id}`}
+                    role="option"
+                    aria-selected={activeSuggestion === idx}
+                    onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setIsSearchFocused(false); setActiveSuggestion(-1); setSearch('');}}
+                    className={`w-full text-left px-4 py-3 transition-colors ${activeSuggestion === idx ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-semibold text-on-surface">{s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim()}</span>
+                      <span className="text-xs text-on-surface-variant">{s.ci} · {s.student_id}</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-on-surface-variant">No se encontraron coincidencias</div>
+              )}
             </div>
           )}
         </div>
