@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
 import { DeleteStudentModal } from "@/features/students/components/DeleteStudentModal";
+import { EvaluateStudentModal } from "@/features/students/components/EvaluateStudentModal";
 import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
@@ -25,6 +27,7 @@ export default function DashboardPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedStudentToDeleteId, setSelectedStudentToDeleteId] = useState<number | null>(null);
+  const [selectedStudentToEvaluateId, setSelectedStudentToEvaluateId] = useState<number | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Filters
@@ -150,6 +153,13 @@ export default function DashboardPage() {
       || paginatedStudents.find((student) => student.id === selectedStudentToDeleteId)
       || null;
   }, [selectedStudentToDeleteId, visibleDetailsById, paginatedStudents]);
+
+  const selectedStudentToEvaluate = useMemo(() => {
+    if (!selectedStudentToEvaluateId) return null;
+    return (visibleDetailsById.get(selectedStudentToEvaluateId) as Student | undefined)
+      || paginatedStudents.find((student) => student.id === selectedStudentToEvaluateId)
+      || null;
+  }, [selectedStudentToEvaluateId, visibleDetailsById, paginatedStudents]);
 
   // Enriched details: ensure career and faculty objects are present when only ids are returned
   const enrichedVisibleDetailsById = useMemo(() => {
@@ -279,10 +289,10 @@ export default function DashboardPage() {
         <h2 className="text-4xl font-headline font-extrabold tracking-tight text-[var(--color-primary-dark)]">Estudiantes</h2>
         <div className="flex items-center gap-4">
           {/* Primary CTA */}
-          <button className="flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer">
+          <Link href="/dashboard/estudiantes/nueva" className="flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer">
             <span className="material-symbols-outlined text-lg">person_add</span>
             <span>Añadir Estudiante</span>
-          </button>
+          </Link>
           
           <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container transition-colors relative cursor-pointer">
             <span className="material-symbols-outlined font-normal text-on-surface-variant">notifications</span>
@@ -470,8 +480,11 @@ export default function DashboardPage() {
                           >
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </button>
-                          <button className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
+                          <Link href={`/dashboard/estudiantes/${student.id}/editar`} className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
                             <span className="material-symbols-outlined text-xl">edit</span>
+                          </Link>
+                          <button className="p-2 text-outline hover:text-yellow-500 transition-colors cursor-pointer" title="Evaluar" onClick={() => setSelectedStudentToEvaluateId(student.id)}>
+                            <span className="material-symbols-outlined text-xl">star</span>
                           </button>
                           <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja" onClick={() => setSelectedStudentToDeleteId(student.id)}>
                             <span className="material-symbols-outlined text-xl">person_remove</span>
@@ -520,6 +533,12 @@ export default function DashboardPage() {
         student={selectedStudentToDelete}
         open={selectedStudentToDeleteId !== null}
         onClose={() => setSelectedStudentToDeleteId(null)}
+      />
+
+      <EvaluateStudentModal
+        student={selectedStudentToEvaluate}
+        open={selectedStudentToEvaluateId !== null}
+        onClose={() => setSelectedStudentToEvaluateId(null)}
       />
     </>
   );

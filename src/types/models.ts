@@ -51,6 +51,31 @@ export interface Room {
 }
 
 // Gestión de Personas
+export interface StudentCreateRequest {
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  password?: string;
+  ci: string;
+  student_id: string;
+  birth_date: string;
+  gender: string;
+  group: number;
+  address?: string;
+  province?: string;
+  municipality?: string;
+  phone?: string;
+  emergency_phone?: string;
+  illnesses?: string;
+  medications?: string;
+  is_militant?: boolean;
+  is_cadet_minint?: boolean;
+  is_cadet_far?: boolean;
+  academic_performance?: string;
+  disciplinary_process?: string;
+}
+
 export interface Student {
   id: number;
   ci: string;
@@ -59,6 +84,14 @@ export interface Student {
   birth_date: string;
   gender: string;
   created_at?: string;
+  province?: string;
+  municipality?: string;
+  illnesses?: string;
+  medications?: string;
+  is_cadet_minint?: boolean;
+  is_cadet_far?: boolean;
+  academic_performance?: string;
+  disciplinary_process?: string;
   group: {
     id: number;
     name: string;

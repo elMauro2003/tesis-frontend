@@ -1,5 +1,5 @@
 import { fetchClient } from "@/lib/fetchClient";
-import { Room, Student, PaginatedResponse } from "@/types/models";
+import { Room, Student, StudentCreateRequest, PaginatedResponse } from "@/types/models";
 
 export interface GetStudentsFilters {
   search?: string;
@@ -73,14 +73,14 @@ export const studentService = {
       .map((r) => r.value);
   },
 
-  createStudent: (data: Partial<Student>): Promise<Student> => {
+  createStudent: (data: StudentCreateRequest): Promise<Student> => {
     return fetchClient<Student>("/api/v1/estudiantes/", {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
-  updateStudent: (id: number, data: Partial<Student>): Promise<Student> => {
+  updateStudent: (id: number, data: Partial<StudentCreateRequest>): Promise<Student> => {
     return fetchClient<Student>(`/api/v1/estudiantes/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data),

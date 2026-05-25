@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { FetchError } from '@/lib/fetchClient';
 import { Student } from '@/types/models';
 import { studentService } from '@/core/services/student.service';
@@ -271,10 +272,12 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
 
         {/* Footer */}
         <footer className="border-t border-[var(--color-outline-variant)]/20 p-4 bg-[var(--color-surface-container-lowest)] flex justify-end gap-3 shrink-0">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">
-            <span className="material-symbols-outlined text-lg">edit</span>
-            Editar Datos
-          </button>
+          {student && (
+            <Link href={`/dashboard/estudiantes/${student.id}/editar`} className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">
+              <span className="material-symbols-outlined text-lg">edit</span>
+              Editar Datos
+            </Link>
+          )}
           <button 
             onClick={onClose}
             className="px-4 py-2 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg text-slate-600 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors cursor-pointer"
