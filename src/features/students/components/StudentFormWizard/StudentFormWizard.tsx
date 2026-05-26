@@ -18,6 +18,7 @@ import {
 } from "@/types/models";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface StudentFormWizardProps {
   initialStudentId?: number;
@@ -28,7 +29,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [fetchingInitial, setFetchingInitial] = useState(!!initialStudentId);
-  const [error, setError] = useState<string | null>(null);
   const isEditing = !!initialStudentId;
 
   // Step 1 State
@@ -180,10 +180,15 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         await studentService.updateStudent(initialStudentId!, payload);
       }
 
+      toast.success(isEditing ? "Estudiante actualizado" : "Estudiante creado", {
+        description: "La información se ha guardado correctamente.",
+      });
       router.push("/dashboard/estudiantes");
     } catch (e: any) {
       console.error("Error submitting student", e);
-      setError(e.response?.data?.message || "Ocurrió un error al guardar el estudiante. Verifique su conexión y los datos ingresados.");
+      toast.error("Ocurrió un error al guardar", {
+        description: e.response?.data?.message || "Verifique su conexión y los datos ingresados.",
+      });
     } finally {
       setLoading(false);
     }
@@ -445,19 +450,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           )}
         </div>
 
-        {/* Error Banner Inline */}
-        {error && (
-          <div className="mx-6 mb-4 p-4 rounded-xl bg-red-50 text-[var(--color-error)] flex items-start gap-3 animate-in fade-in zoom-in-95 duration-200">
-            <span className="material-symbols-outlined text-[var(--color-error)]">error</span>
-            <div className="flex-1 text-sm font-medium">
-              {error}
-            </div>
-            <button onClick={() => setError(null)} className="text-[var(--color-error)] hover:opacity-70">
-              <span className="material-symbols-outlined text-sm">close</span>
-            </button>
-          </div>
-        )}
-
         {/* Footer Actions */}
         <div className="p-6 bg-[var(--color-surface-container-lowest)] border-t border-[var(--color-outline-variant)]/20 flex items-center justify-between mt-auto">
           <Button 
@@ -473,10 +465,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
             {step > 1 && (
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  setError(null);
-                  setStep(step - 1);
-                }}
+                onClick={() => setStep(step - 1)}
                 type="button"
               >
                 <span className="material-symbols-outlined text-lg">arrow_back</span>
@@ -488,16 +477,19 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               <Button 
                 variant="default"
                 onClick={() => {
-                  setError(null);
                   if (step === 1) {
                     if (!first_name || !last_name || !ci || !student_id || !birth_date || !gender || (!isEditing && (!username || !password || !email))) {
-                      setError("Por favor, complete todos los campos obligatorios (*) para continuar.");
+                      toast.warning("Faltan campos obligatorios", {
+                        description: "Por favor, complete todos los campos marcados con (*) para continuar.",
+                      });
                       return;
                     }
                   }
                   if (step === 2) {
                     if (!groupId) {
-                      setError("Debe seleccionar un grupo al cual asignar el estudiante.");
+                      toast.warning("Grupo no seleccionado", {
+                        description: "Debe seleccionar un grupo al cual asignar el estudiante.",
+                      });
                       return;
                     }
                   }
