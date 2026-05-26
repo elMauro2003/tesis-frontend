@@ -484,6 +484,44 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       });
                       return;
                     }
+                    if (ci.length !== 11 || !/^\d+$/.test(ci)) {
+                      toast.warning("Formato CI inválido", {
+                        description: "El carné de identidad debe tener exactamente 11 dígitos.",
+                      });
+                      return;
+                    }
+                    if (student_id.length > 20) {
+                       toast.warning("Matrícula muy larga", {
+                        description: "La matrícula no puede exceder los 20 caracteres.",
+                      });
+                      return;
+                    }
+                    if (!isEditing) {
+                      if (!/^[\w.@+-]+$/.test(username)) {
+                        toast.warning("Formato de usuario inválido", {
+                          description: "Solo letras, números y los caracteres @/./+/-/_",
+                        });
+                        return;
+                      }
+                      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        toast.warning("Correo inválido", {
+                          description: "Inserte un formato de correo electrónico válido.",
+                        });
+                        return;
+                      }
+                    }
+                    if (phone && phone.length > 20) {
+                      toast.warning("Teléfono muy largo", {
+                        description: "El teléfono móvil no debe exceder los 20 caracteres.",
+                      });
+                      return;
+                    }
+                    if (emergency_phone && emergency_phone.length > 20) {
+                      toast.warning("Teléfono muy largo", {
+                        description: "El teléfono de contacto no debe exceder los 20 caracteres.",
+                      });
+                      return;
+                    }
                   }
                   if (step === 2) {
                     if (!groupId) {
