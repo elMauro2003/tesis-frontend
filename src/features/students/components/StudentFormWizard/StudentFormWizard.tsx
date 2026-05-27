@@ -183,11 +183,22 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       toast.success(isEditing ? "Estudiante actualizado" : "Estudiante creado", {
         description: "La información se ha guardado correctamente.",
       });
-      router.push("/dashboard/estudiantes");
+      router.push("/dashboard");
     } catch (e: any) {
       console.error("Error submitting student", e);
+      let errorMsg = "Verifique su conexión y los datos ingresados.";
+      if (e.data?.error?.message) {
+         errorMsg = e.data.error.message;
+      } else if (e.data?.message) {
+         errorMsg = e.data.message;
+      } else if (e.status === 400) {
+         errorMsg = "Existen errores de validación (Ej. Credenciales o Carné ya registrados).";
+      } else if (e.status === 500) {
+         errorMsg = "Ocurrió un error interno en el servidor. Puede que existan datos duplicados en el registro o campos corruptos.";
+      }
+
       toast.error("Ocurrió un error al guardar", {
-        description: e.response?.data?.message || "Verifique su conexión y los datos ingresados.",
+        description: errorMsg,
       });
     } finally {
       setLoading(false);
@@ -454,7 +465,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         <div className="p-6 bg-[var(--color-surface-container-lowest)] border-t border-[var(--color-outline-variant)]/20 flex items-center justify-between mt-auto">
           <Button 
             variant="ghost" 
-            onClick={() => router.push("/dashboard/estudiantes")}
+            onClick={() => router.push("/dashboard")}
             className="text-slate-500 hover:text-error hover:bg-error/10"
             type="button"
           >
