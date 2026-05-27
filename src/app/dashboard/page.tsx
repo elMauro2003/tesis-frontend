@@ -12,7 +12,7 @@ import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
 
-type CareerOption = { id: number; name: string };
+type CareerOption = { id: number; name: string; faculty?: any };
 type GroupOption = { id: number; name: string; career_year?: { career?: { id: number } } | number };
 
 const getAssignmentStudentId = (assignment: RoomAssignment): number | null => {
@@ -31,14 +31,15 @@ export default function DashboardPage() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Filters
-  const [careerId, setCareerId] = useState<number | 'all'>('all');
-  const [groupId, setGroupId] = useState<number | 'all'>('all');
+  const [facultyId, setFacultyId] = useState<number | 'all'>('all');
+  const [buildingId, setBuildingId] = useState<number | 'all'>('all');
   const [gender, setGender] = useState<'M' | 'F' | 'all'>('all');
   const [isMilitant, setIsMilitant] = useState<boolean | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<'all' | 'with_room' | 'without_room'>('all');
 
   const [careers, setCareers] = useState<CareerOption[]>([]);
   const [faculties, setFaculties] = useState<Array<{id:number;name:string}>>([]);
+  const [buildings, setBuildings] = useState<Array<{id:number;name:string}>>([]);
   const [groups, setGroups] = useState<GroupOption[]>([]);
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
@@ -75,15 +76,15 @@ export default function DashboardPage() {
     queryKey: [
       'students-all',
       debouncedSearch,
-      groupId,
-      careerId,
+      facultyId,
+      buildingId,
       gender,
       isMilitant,
     ],
     queryFn: () => studentService.getAllStudents({
       page_size: 100,
       search: debouncedSearch,
-      group: groupId === 'all' ? undefined : groupId,
+      // Faculty is filtered locally, building locally if no api support,
       gender: gender === 'all' ? undefined : gender,
       is_militant: isMilitant === 'all' ? undefined : isMilitant,
     }),
@@ -91,7 +92,7 @@ export default function DashboardPage() {
   });
 
   const allStudents = studentsQuery.data?.results ?? [];
-  // Helper to normalize student.group into a Group-like object using loaded `groups`
+  // Helper to normalize student.group into a Group-like object from groups (if needed)
   const resolveStudentGroup = (student: Student) => {
     const grp = (student as any).group;
     if (!grp) return null;
@@ -104,25 +105,54 @@ export default function DashboardPage() {
     return null;
   };
 
-  const careerFilteredStudents = useMemo(() => {
-    if (careerId === 'all') return allStudents;
-    return allStudents.filter((student) => {
-      // student.group may be: string (group name), number (id) or object
-      const g = resolveStudentGroup(student);
-      return g?.career_year && (typeof g.career_year.career === 'object' ? g.career_year.career.id : g.career_year.career) === careerId;
-    });
-  }, [allStudents, careerId]);
+  const facultyFilteredStudents = useMemo(() => {
+      if (facultyId === 'all') return allStudents;
+      return allStudents.filter((student) => {
+        const g = resolveStudentGroup(student);
+        if (!g?.career_year) return false;
+        let cId = null;
+        if (typeof g.career_year.career === 'object' && g.career_year.career) {
+          cId = g.career_year.career.id;
+        } else if (typeof g.career_year.career === 'number') {
+          cId = g.career_year.career;
+        }
+        if (cId === null) return false;
+        const careerObj = careers.find(c => c.id === cId);
+        const fId = careerObj ? careerObj.faculty : null;
+        const actualFId = typeof fId === 'object' && fId !== null ? fId.id : fId;
+        return actualFId === facultyId;
+      });
+    }, [allStudents, facultyId, careers, groups]);
 
-  const locationFilteredStudents = useMemo(() => {
-    if (locationFilter === 'all') return careerFilteredStudents;
-    return careerFilteredStudents.filter((student) => {
-      // Prefer server-provided boolean when available to avoid extra requests
-      const hasRoom = typeof (student as any).has_room === 'boolean' ? (student as any).has_room : assignedStudentIds.has(student.id);
-      return locationFilter === 'with_room' ? hasRoom : !hasRoom;
-    });
-  }, [careerFilteredStudents, assignedStudentIds, locationFilter]);
+    const buildingFilteredStudents = useMemo(() => {
+      if (buildingId === 'all') return facultyFilteredStudents;
+      return facultyFilteredStudents.filter((student) => {
+         // handle paginated response or array
+         const rawData = activeAssignmentsQuery.data;
+         const assignments = Array.isArray(rawData) ? rawData : (rawData?.results || []);
+         const assign = assignments.find((a: any) => getAssignmentStudentId(a) === student.id);
+         if (!assign || !assign.room) return false;
+         
+         const roomObj = typeof assign.room === 'object' ? assign.room : null;
+         if (roomObj && typeof roomObj.wing === 'object') {
+             const b = typeof roomObj.wing.building === 'object' ? roomObj.wing.building.id : roomObj.wing.building;
+             return b === buildingId;
+         }
+         return false;
+      });
+    }, [facultyFilteredStudents, buildingId, activeAssignmentsQuery.data]);
 
-  const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
+    const locationFilteredStudents = useMemo(() => {
+      if (locationFilter === 'all') return buildingFilteredStudents;
+      return buildingFilteredStudents.filter((student: any) => {
+        const hasRoom = typeof student.has_room === 'boolean' 
+             ? student.has_room 
+             : assignedStudentIds.has(student.id);
+        return locationFilter === 'with_room' ? hasRoom : !hasRoom;
+      });
+    }, [buildingFilteredStudents, assignedStudentIds, locationFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedStudents = useMemo(
     () => locationFilteredStudents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
@@ -132,7 +162,7 @@ export default function DashboardPage() {
   // Fetch full student details for the currently visible rows to ensure all relations are loaded
   const visibleStudentIds = paginatedStudents.map(s => s.id);
   const visibleDetailsQuery = useQuery({
-    queryKey: ['students-visible-details', visibleStudentIds, debouncedSearch, careerId, groupId, gender, isMilitant],
+    queryKey: ['students-visible-details', visibleStudentIds, debouncedSearch, facultyId, buildingId, gender, isMilitant],
     queryFn: () => {
       if (visibleStudentIds.length === 0) return Promise.resolve([] as any);
       return studentService.getStudentsByIds(visibleStudentIds);
@@ -216,6 +246,11 @@ export default function DashboardPage() {
       .catch(() => {})
     ;
 
+    fetchClient('/api/v1/edificios/')
+      .then((res: any) => { if (!mounted) return; setBuildings(res.results || res); })
+      .catch(() => {})
+    ;
+
     return () => { mounted = false; };
   }, []);
 
@@ -228,7 +263,7 @@ export default function DashboardPage() {
   // Reset page when server-side filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, careerId, groupId, gender, isMilitant, locationFilter]);
+  }, [debouncedSearch, facultyId, buildingId, gender, isMilitant, locationFilter]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -361,17 +396,17 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <select value={careerId} onChange={(e) => setCareerId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option value="all">Carrera: Todas</option>
-                {careers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <select value={facultyId} onChange={(e) => setFacultyId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
+                <option value="all">Todas las Facultades</option>
+                {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
             </div>
             
             <div className="relative">
-              <select value={groupId} onChange={(e) => setGroupId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option value="all">Grupo: Todos</option>
-                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              <select value={buildingId} onChange={(e) => setBuildingId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
+                <option value="all">Todos los Edificios</option>
+                {buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
             </div>
