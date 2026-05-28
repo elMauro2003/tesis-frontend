@@ -78,7 +78,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [last_name, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
   const [ci, setCi] = useState("");
   const [student_id, setStudentId] = useState("");
   const [gender, setGender] = useState("");
@@ -220,7 +219,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           setPersistedStudentId(initialStudentId);
           setFirstName(student.user && typeof student.user === 'object' ? student.user.first_name || "" : student.first_name || "");
           setLastName(student.user && typeof student.user === 'object' ? student.user.last_name || "" : student.last_name || "");
-          setEmail(student.user && typeof student.user === 'object' ? student.user.email || "" : "");
           // For editing, username/password aren't strictly required or may be unchangeable from here
           // We will omit them or send conditionally
           setCi(student.ci || "");
@@ -344,7 +342,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       last_name,
       ci,
       student_id: ci,
-      email: email || undefined,
       gender,
       birth_date: extractBirthDate(ci),
       province,
@@ -352,7 +349,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       address,
       phone,
       emergency_phone,
-      group: groupId ? Number(groupId) : 1,
+      group: Number(groupId),
       academic_performance,
       illnesses,
       medications,
@@ -361,11 +358,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       is_cadet_minint,
       is_cadet_far,
     };
+    
+    if (!groupId) {
+      throw new Error("Debe seleccionar un grupo académico válido antes de guardar.");
+    }
 
     if (!isEditing && !persistedStudentId) {
       payload.username = username;
       payload.password = password;
-      payload.email = email;
       setSubmissionStage("saving-student");
       const createdStudent = await studentService.createStudent(payload as StudentCreateRequest);
       setPersistedStudentId(createdStudent.id);
@@ -414,16 +414,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
   const handleSubmit = async () => {
     if (!isEditing && !persistedStudentId) {
-      if (!username || !password || !email) {
-        toast.warning("Faltan datos de cuenta", { description: "Por favor, complete usuario, contraseña y correo." });
+      if (!username || !password) {
+        toast.warning("Faltan datos de cuenta", { description: "Por favor, complete usuario y contraseña para continuar." });
         return;
       }
       if (!/^[\w.@+-]+$/.test(username)) {
         toast.warning("Formato de usuario inválido", { description: "Solo letras, números y los caracteres @/./+/-/_" });
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        toast.warning("Correo inválido", { description: "Inserte un formato de correo electrónico válido." });
         return;
       }
     }
@@ -541,11 +537,15 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sexo <span className="text-[var(--color-error)]">*</span></label>
-                  <select required value={gender} onChange={e => setGender(e.target.value)} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none">
-                    <option value="">Seleccionar</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Femenino</option>
-                  </select>
+                  <Select required value={gender} onValueChange={setGender}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Masculino</SelectItem>
+                      <SelectItem value="F">Femenino</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Row 3 */}
@@ -616,58 +616,85 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Facultad <span className="text-[var(--color-error)]">*</span></label>
-                  <select required value={facultyId} onChange={e => setFacultyId(e.target.value ? Number(e.target.value) : "")} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer">
-                    <option value="">Seleccionar Facultad</option>
-                    {faculties.map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
+                  <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                      <SelectValue placeholder="Seleccionar Facultad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {faculties.map((f) => (
+                        <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carrera <span className="text-[var(--color-error)]">*</span></label>
-                  <select required disabled={!facultyId} value={careerId} onChange={e => setCareerId(e.target.value ? Number(e.target.value) : "")} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer disabled:opacity-50">
-                    <option value="">Seleccionar Carrera</option>
-                    {careers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <Select required disabled={!facultyId} value={careerId === "" ? "" : String(careerId)} onValueChange={(value) => setCareerId(value ? Number(value) : "")}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                      <SelectValue placeholder="Seleccionar Carrera" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {careers.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Año Académico <span className="text-[var(--color-error)]">*</span></label>
-                  <select required disabled={!careerId} value={careerYearId} onChange={e => setCareerYearId(e.target.value ? Number(e.target.value) : "")} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer disabled:opacity-50">
-                    <option value="">Seleccionar Año</option>
-                    {careerYears.map(y => (
-                      <option key={y.id} value={y.id}>Año {y.year_number}</option>
-                    ))}
-                  </select>
+                  <Select required disabled={!careerId} value={careerYearId === "" ? "" : String(careerYearId)} onValueChange={(value) => setCareerYearId(value ? Number(value) : "")}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                      <SelectValue placeholder="Seleccionar Año" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {careerYears.map((y) => (
+                        <SelectItem key={y.id} value={String(y.id)}>Año {y.year_number ?? y.year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Grupo <span className="text-[var(--color-error)]">*</span></label>
+                  <Select required disabled={!careerYearId} value={groupId === "" ? "" : String(groupId)} onValueChange={(value) => setGroupId(value ? Number(value) : "")}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                      <SelectValue placeholder={careerYearId ? "Seleccionar Grupo" : "Selecciona primero el año académico"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Aprovechamiento Docente</label>
-                  <select value={academic_performance} onChange={e => setAcademicPerformance(e.target.value)} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer">
-                    <option value="">No Defindo</option>
-                    <option value="Excelente">Excelente</option>
-                    <option value="Bien">Bien</option>
-                    <option value="Regular">Regular</option>
-                    <option value="Mal">Mal</option>
-                  </select>
+                  <Select value={academic_performance} onValueChange={setAcademicPerformance}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                      <SelectValue placeholder="No Defindo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Excelente">Excelente</SelectItem>
+                      <SelectItem value="Bien">Bien</SelectItem>
+                      <SelectItem value="Regular">Regular</SelectItem>
+                      <SelectItem value="Mal">Mal</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1 md:col-span-2">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto <span className="text-[var(--color-error)]">*</span></label>
-                  <select
-                    required
-                    value={selectedRoomId}
-                    onChange={(e) => setSelectedRoomId(e.target.value ? Number(e.target.value) : "")}
-                    disabled={roomsLoading && roomOptions.length === 0}
-                    className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer disabled:opacity-50"
-                  >
-                    <option value="">{roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"}</option>
-                    {roomOptions.map((room) => (
-                      <option key={room.id} value={room.id}>
-                        {getRoomLabel(room)}
-                      </option>
-                    ))}
-                  </select>
+                  <Select required value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "")} disabled={roomsLoading && roomOptions.length === 0}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                      <SelectValue placeholder={roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roomOptions.map((room) => (
+                        <SelectItem key={room.id} value={String(room.id)}>
+                          {getRoomLabel(room)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-[var(--color-outline)] px-1">
                     {roomsLoading
                       ? "La lista se está cargando desde la API."
@@ -704,11 +731,15 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               
               <div className="max-w-md space-y-1">
                 <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Proceso Disciplinario</label>
-                <select value={disciplinary_process} onChange={e => setDisciplinaryProcess(e.target.value)} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer">
-                  <option value="">Ninguno</option>
-                  <option value="Alerta Leve">Alerta Leve</option>
-                  <option value="Sanción Grave">Sanción Grave</option>
-                </select>
+                <Select value={disciplinary_process} onValueChange={setDisciplinaryProcess}>
+                  <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                    <SelectValue placeholder="Ninguno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alerta Leve">Alerta Leve</SelectItem>
+                    <SelectItem value="Sanción Grave">Sanción Grave</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="pt-4 mt-6 border-t border-[var(--color-outline-variant)]/20">
@@ -764,16 +795,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       <div className="relative flex items-center">
                         <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">person</span>
                         <input required value={username} onChange={e => setUsername(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. jperez"/>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center px-1">
-                        <label className="block text-sm font-semibold text-[var(--color-on-surface-variant)]">Correo Electrónico <span className="text-[var(--color-error)]">*</span></label>
-                      </div>
-                      <div className="relative flex items-center">
-                        <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">email</span>
-                        <input required value={email} onChange={e => setEmail(e.target.value)} type="email" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. jperez@uclv.cu"/>
                       </div>
                     </div>
 

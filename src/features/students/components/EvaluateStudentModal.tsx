@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { evaluationService } from "@/core/services/evaluation.service";
 import { Student } from "@/types/models";
 // import { toast } from "sonner"; // If they use sonner, wait I don't know, let's omit if not sure
@@ -121,15 +122,16 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Evaluación</label>
-                <select 
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg py-2.5 px-4 text-sm text-[var(--color-on-surface)] font-medium focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all outline-none cursor-pointer"
-                  value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                  >
-                    <option value="B">Bien (B)</option>
-                    <option value="R">Regular (R)</option>
-                    <option value="M">Mal (M)</option>
-                </select>
+                <Select value={grade} onValueChange={setGrade}>
+                  <SelectTrigger className="w-full bg-[var(--color-surface-container-lowest)] border-none rounded-lg text-sm text-[var(--color-on-surface)] font-medium shadow-none h-11">
+                    <SelectValue placeholder="Seleccionar evaluación" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="B">Bien (B)</SelectItem>
+                    <SelectItem value="R">Regular (R)</SelectItem>
+                    <SelectItem value="M">Mal (M)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Fecha</label>

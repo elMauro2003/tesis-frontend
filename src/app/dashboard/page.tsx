@@ -11,6 +11,7 @@ import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CareerOption = { id: number; name: string; faculty?: any };
 type GroupOption = { id: number; name: string; career_year?: { career?: { id: number } } | number };
@@ -395,20 +396,32 @@ export default function DashboardPage() {
         {/* Bottom Row Filters */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <select value={facultyId} onChange={(e) => setFacultyId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option value="all">Todas las Facultades</option>
-                {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
+            <div className="w-[220px]">
+              <Select value={facultyId === 'all' ? 'all' : String(facultyId)} onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todas las Facultades" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las Facultades</SelectItem>
+                  {faculties.map((f) => (
+                    <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="relative">
-              <select value={buildingId} onChange={(e) => setBuildingId(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors focus:ring-0 outline-none">
-                <option value="all">Todos los Edificios</option>
-                {buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-lg">expand_more</span>
+
+            <div className="w-[220px]">
+              <Select value={buildingId === 'all' ? 'all' : String(buildingId)} onValueChange={(value) => setBuildingId(value === 'all' ? 'all' : Number(value))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos los Edificios" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los Edificios</SelectItem>
+                  {buildings.map((b) => (
+                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

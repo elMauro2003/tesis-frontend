@@ -1,6 +1,63 @@
 import { AuthTokens } from "@/types/auth";
 import { API_URL } from "@/configs/env";
 
+const extractHumanErrorMessage = (payload: unknown): string | null => {
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const preferredKeys = ["message", "detail", "error"];
+
+  for (const key of preferredKeys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+    if (value && typeof value === "object") {
+      const nestedMessage = extractHumanErrorMessage(value);
+      if (nestedMessage) {
+        return nestedMessage;
+      }
+    }
+  }
+
+  const nonFieldErrors = record.non_field_errors;
+  if (Array.isArray(nonFieldErrors)) {
+    const firstString = nonFieldErrors.find((item): item is string => typeof item === "string" && item.trim().length > 0);
+    if (firstString) {
+      return firstString.trim();
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+
+    if (Array.isArray(value)) {
+      const firstString = value.find((item): item is string => typeof item === "string" && item.trim().length > 0);
+      if (firstString) {
+        return firstString.trim();
+      }
+    }
+
+    if (value && typeof value === "object") {
+      const nestedMessage = extractHumanErrorMessage(value);
+      if (nestedMessage) {
+        return nestedMessage;
+      }
+    }
+  }
+
+  return null;
+};
+
 export class FetchError extends Error {
   constructor(
     public status: number,
@@ -75,7 +132,9 @@ export const fetchClient = async <T>(
     } catch {
       errorData = null;
     }
-    throw new FetchError(response.status, response.statusText, errorData);
+
+    const humanMessage = extractHumanErrorMessage(errorData) || "Ocurrió un error al procesar la solicitud. Intente nuevamente.";
+    throw new FetchError(response.status, humanMessage, errorData);
   }
 
   // 204 No Content has no body

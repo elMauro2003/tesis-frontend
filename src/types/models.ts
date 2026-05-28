@@ -13,6 +13,7 @@ export interface Career {
 export interface AcademicYear {
   id: number;
   year_number: number;
+  year?: number;
   career: Career | number;
 }
 

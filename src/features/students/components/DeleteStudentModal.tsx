@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { studentService } from "@/core/services/student.service";
 import { Student } from "@/types/models";
 
@@ -84,13 +85,18 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
           <div className="space-y-4">
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Motivo de la baja</label>
-              <select className="w-full bg-[var(--color-surface-container-low)] rounded-lg py-2 px-3 text-sm font-medium text-[var(--color-on-surface)] focus:ring-2 focus:ring-red-600/20 outline-none cursor-pointer">
-                <option>Graduación</option>
-                <option>Abandono</option>
-                <option>Sanción Disciplinaria</option>
-                <option>Traslado</option>
-                <option>Otro</option>
-              </select>
+              <Select defaultValue="Graduación">
+                <SelectTrigger className="w-full bg-[var(--color-surface-container-low)] rounded-lg text-sm font-medium text-[var(--color-on-surface)] shadow-none h-10">
+                  <SelectValue placeholder="Seleccionar motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Graduación">Graduación</SelectItem>
+                  <SelectItem value="Abandono">Abandono</SelectItem>
+                  <SelectItem value="Sanción Disciplinaria">Sanción Disciplinaria</SelectItem>
+                  <SelectItem value="Traslado">Traslado</SelectItem>
+                  <SelectItem value="Otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Observaciones adicionales</label>
