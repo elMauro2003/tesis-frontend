@@ -25,6 +25,7 @@ import {
 } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -66,6 +66,8 @@ const getRoomIdFromStudent = (student: Student) => {
   const roomId = student.current_room_info?.room_id;
   return typeof roomId === "number" ? roomId : null;
 };
+
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 export default function StudentFormWizard({ initialStudentId }: StudentFormWizardProps) {
   const router = useRouter();
@@ -511,12 +513,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 2 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carné de Identidad <span className="text-[var(--color-error)]">*</span></label>
-                  <Input required value={ci} onChange={e => setCi(e.target.value)} type="text" placeholder="Ej. 01051512345" />
+                  <Input required value={ci} onChange={e => setCi(digitsOnly(e.target.value))} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 01051512345" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sexo <span className="text-[var(--color-error)]">*</span></label>
                   <Select required value={gender} onValueChange={setGender}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar" />
                     </SelectTrigger>
                     <SelectContent>
@@ -530,7 +532,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Provincia</label>
                   <Select value={province} onValueChange={setProvince}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Provincia" />
                     </SelectTrigger>
                     <SelectContent>
@@ -545,7 +547,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Municipio</label>
                   <Select value={municipality} onValueChange={setMunicipality} disabled={!province}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder={province ? "Seleccionar Municipio" : "Selecciona primero una provincia"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -567,17 +569,11 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 5 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono Móvil</label>
-                  <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">call</span>
-                    <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="pl-12" placeholder="+53 51234567" />
-                  </div>
+                  <Input value={phone} onChange={e => setPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 51234567" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono de Contacto (Familiar)</label>
-                  <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">home_iot_device</span>
-                    <Input value={emergency_phone} onChange={e => setEmergencyPhone(e.target.value)} type="tel" className="pl-12" placeholder="Ej. 42123456" />
-                  </div>
+                  <Input value={emergency_phone} onChange={e => setEmergencyPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 42123456" />
                 </div>
               </div>
             </div>
@@ -595,7 +591,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Facultad <span className="text-[var(--color-error)]">*</span></label>
                   <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Facultad" />
                     </SelectTrigger>
                     <SelectContent>
@@ -608,7 +604,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carrera <span className="text-[var(--color-error)]">*</span></label>
                   <Select required disabled={!facultyId} value={careerId === "" ? "" : String(careerId)} onValueChange={(value) => setCareerId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Carrera" />
                     </SelectTrigger>
                     <SelectContent>
@@ -621,7 +617,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Año Académico <span className="text-[var(--color-error)]">*</span></label>
                   <Select required disabled={!careerId} value={careerYearId === "" ? "" : String(careerYearId)} onValueChange={(value) => setCareerYearId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Año" />
                     </SelectTrigger>
                     <SelectContent>
@@ -634,7 +630,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Aprovechamiento Docente</label>
                   <Select value={academic_performance} onValueChange={setAcademicPerformance}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="No Defindo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -649,7 +645,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1 md:col-span-2">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto <span className="text-[var(--color-error)]">*</span></label>
                   <Select required value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "")} disabled={roomsLoading && roomOptions.length === 0}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder={roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -697,7 +693,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               <div className="max-w-md space-y-1">
                 <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Proceso Disciplinario</label>
                 <Select value={disciplinary_process} onValueChange={setDisciplinaryProcess}>
-                  <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                  <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                     <SelectValue placeholder="Ninguno" />
                   </SelectTrigger>
                   <SelectContent>
@@ -711,28 +707,28 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <h4 className="text-xs font-bold text-[var(--color-outline)] uppercase tracking-widest mb-6">Perfil Sociopolítico e Institucional</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* UJC */}
-                  <label className={`group flex items-center justify-between p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_militant ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
+                  <label className={`group flex items-center justify-between gap-4 p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_militant ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
                     <div className="flex flex-col">
                       <span className="font-bold text-[var(--color-on-surface)]">Militante de la UJC/PCC</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Organización Política</span>
                     </div>
-                    <Switch checked={is_militant} onCheckedChange={setIsMilitant} />
+                    <Checkbox checked={is_militant} onCheckedChange={(checked) => setIsMilitant(checked === true)} className="h-5 w-5 rounded-md border-[var(--color-outline)] data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)] data-[state=checked]:text-[var(--color-on-primary)]" />
                   </label>
                   {/* MININT */}
-                  <label className={`group flex items-center justify-between p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_minint ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
+                  <label className={`group flex items-center justify-between gap-4 p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_minint ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
                     <div className="flex flex-col">
                       <span className="font-bold text-[var(--color-on-surface)]">Cadete MININT</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Min. del Interior</span>
                     </div>
-                    <Switch checked={is_cadet_minint} onCheckedChange={setIsCadetMinint} />
+                    <Checkbox checked={is_cadet_minint} onCheckedChange={(checked) => setIsCadetMinint(checked === true)} className="h-5 w-5 rounded-md border-[var(--color-outline)] data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)] data-[state=checked]:text-[var(--color-on-primary)]" />
                   </label>
                   {/* FAR */}
-                  <label className={`group flex items-center justify-between p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_far ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
+                  <label className={`group flex items-center justify-between gap-4 p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_far ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
                     <div className="flex flex-col">
                       <span className="font-bold text-[var(--color-on-surface)]">Cadete FAR</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Min. Fuerzas Armadas</span>
                     </div>
-                    <Switch checked={is_cadet_far} onCheckedChange={setIsCadetFar} />
+                    <Checkbox checked={is_cadet_far} onCheckedChange={(checked) => setIsCadetFar(checked === true)} className="h-5 w-5 rounded-md border-[var(--color-outline)] data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)] data-[state=checked]:text-[var(--color-on-primary)]" />
                   </label>
                 </div>
               </div>
@@ -743,25 +739,19 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                     <span className="material-symbols-outlined text-[var(--color-primary)]">account_circle</span>
                     <h3 className="text-xl font-bold text-[var(--color-primary)]">Cuenta de Usuario</h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center px-1">
                         <label className="block text-sm font-semibold text-[var(--color-on-surface-variant)]">Nombre de Usuario <span className="text-[var(--color-error)]">*</span></label>
                       </div>
-                      <div className="relative flex items-center">
-                        <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">person</span>
-                        <Input required value={username} onChange={e => setUsername(e.target.value)} type="text" className="pl-12" placeholder="Ej. jperez" />
-                      </div>
+                      <Input required value={username} onChange={e => setUsername(e.target.value)} type="text" placeholder="Ej. jperez" />
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 space-y-2 max-w-[50%]">
+                    <div className="space-y-2">
                       <div className="flex justify-between items-center px-1">
                         <label className="block text-sm font-semibold text-[var(--color-on-surface-variant)]">Contraseña Provisional <span className="text-[var(--color-error)]">*</span></label>
                       </div>
-                      <div className="relative flex items-center">
-                        <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">key</span>
-                          <Input required value={password} onChange={e => setPassword(e.target.value)} type="password" className="pl-12" placeholder="••••••••" />
-                      </div>
+                      <Input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" />
                     </div>
                   </div>
                 </div>
