@@ -14,6 +14,7 @@ import {
 import {
   infrastructureService,
 } from "@/core/services/infrastructure.service";
+import { cubaProvinces, getMunicipalitiesByProvince } from "@/constants/cubaGeography";
 import { 
   StudentCreateRequest, 
   Student,
@@ -25,6 +26,13 @@ import {
 } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface StudentFormWizardProps {
@@ -107,6 +115,31 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [is_cadet_minint, setIsCadetMinint] = useState(false);
   const [is_cadet_far, setIsCadetFar] = useState(false);
 
+  const provinceOptions = useMemo(() => {
+    if (!province) {
+      return cubaProvinces;
+    }
+
+    const selectedProvinceExists = cubaProvinces.some((item) => item.value === province);
+    if (selectedProvinceExists) {
+      return cubaProvinces;
+    }
+
+    return [
+      { value: province, label: province, municipalities: [] },
+      ...cubaProvinces,
+    ];
+  }, [province]);
+
+  const municipalityOptions = useMemo(() => {
+    const options = getMunicipalitiesByProvince(province);
+    if (!municipality) {
+      return options;
+    }
+
+    return options.includes(municipality) ? options : [municipality, ...options];
+  }, [province, municipality]);
+
   // Fetch initial academic data
   useEffect(() => {
     academicService.getFaculties().then(res => setFaculties(res.results)).catch(console.error);
@@ -138,6 +171,20 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       setGroupId("");
     }
   }, [careerYearId]);
+
+  useEffect(() => {
+    if (!province) {
+      if (municipality) {
+        setMunicipality("");
+      }
+      return;
+    }
+
+    const provinceMunicipalities = getMunicipalitiesByProvince(province);
+    if (municipality && !provinceMunicipalities.includes(municipality)) {
+      setMunicipality("");
+    }
+  }, [province]);
 
   useEffect(() => {
     let cancelled = false;
@@ -504,11 +551,33 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 3 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Provincia</label>
-                  <input value={province} onChange={e => setProvince(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. Villa Clara"/>
+                  <Select value={province} onValueChange={setProvince}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px]">
+                      <SelectValue placeholder="Seleccionar Provincia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinceOptions.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Municipio</label>
-                  <input value={municipality} onChange={e => setMunicipality(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. Santa Clara"/>
+                  <Select value={municipality} onValueChange={setMunicipality} disabled={!province}>
+                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
+                      <SelectValue placeholder={province ? "Seleccionar Municipio" : "Selecciona primero una provincia"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {municipalityOptions.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Row 4 */}
