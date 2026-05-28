@@ -55,7 +55,10 @@ export function BottomSheet({
             {subtitle ? <DialogDescription className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{subtitle}</DialogDescription> : null}
           </header>
         ) : (
-          <DialogTitle className="sr-only">Diálogo</DialogTitle>
+          <>
+            <DialogTitle className="sr-only">Diálogo</DialogTitle>
+            <DialogDescription className="sr-only">Formulario modal</DialogDescription>
+          </>
         )}
 
         <div>{children}</div>

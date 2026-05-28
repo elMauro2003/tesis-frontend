@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { 
   studentService 
 } from "@/core/services/student.service";
@@ -15,6 +16,7 @@ import {
   infrastructureService,
 } from "@/core/services/infrastructure.service";
 import { cubaProvinces, getMunicipalitiesByProvince } from "@/constants/cubaGeography";
+import { FetchError } from "@/lib/fetchClient";
 import { 
   StudentCreateRequest, 
   Student,
@@ -68,9 +70,57 @@ const getRoomIdFromStudent = (student: Student) => {
 };
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
+const DEFAULT_STUDENT_GROUP_ID = 1;
+
+const toRoman = (num?: number | null) => {
+  if (!num || num <= 0) return String(num ?? "");
+  const romans = [
+    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+    [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+    [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"],
+  ];
+  let n = Math.floor(Number(num));
+  let res = "";
+  for (const [value, roman] of romans) {
+    while (n >= value) {
+      res += roman;
+      n -= value;
+    }
+  }
+  return res;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const resolveCreatedStudentId = async (createdStudent: Partial<StudentCreateRequest> & { id?: number }, fallbackUsername?: string, fallbackCi?: string) => {
+  if (typeof createdStudent.id === "number") {
+    return createdStudent.id;
+  }
+
+  const searchTerms = [fallbackCi, fallbackUsername].filter((term): term is string => !!term && term.trim().length > 0);
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (const term of searchTerms) {
+      const response = await studentService.getStudents({ search: term, page: 1, page_size: 20 });
+      const exactMatch = response.results.find((student) => {
+        const candidateUsername = student.user && typeof student.user === "object" ? student.user.username : undefined;
+        return student.ci === term || student.student_id === term || candidateUsername === term;
+      });
+
+      if (exactMatch?.id) {
+        return exactMatch.id;
+      }
+    }
+
+    await sleep(250);
+  }
+
+  return null;
+};
 
 export default function StudentFormWizard({ initialStudentId }: StudentFormWizardProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [fetchingInitial, setFetchingInitial] = useState(!!initialStudentId);
   const isEditing = !!initialStudentId;
@@ -91,6 +141,52 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [emergency_phone, setEmergencyPhone] = useState("");
+  // Refs and helpers for focusing fields from validation modal
+  const focusField = (key: string) => {
+    const goToStepAndFocus = (s: number, selector: string, click = false) => {
+      setStep(s);
+      // Wait a tick for DOM to update
+      setTimeout(() => {
+        const el = document.getElementById(selector) as HTMLElement | null;
+        if (el) {
+          if (click) el.click();
+          try { el.focus(); } catch {}
+        } else {
+          // try querySelector by name
+          const el2 = document.querySelector(`[name="${selector}"]`) as HTMLElement | null;
+          if (el2) {
+            if (click) (el2 as HTMLElement).click();
+            try { el2.focus(); } catch {}
+          }
+        }
+      }, 120);
+    };
+
+    const map: Record<string, () => void> = {
+      first_name: () => goToStepAndFocus(1, 'first_name'),
+      last_name: () => goToStepAndFocus(1, 'last_name'),
+      ci: () => goToStepAndFocus(1, 'ci'),
+      address: () => goToStepAndFocus(1, 'address'),
+      phone: () => goToStepAndFocus(1, 'phone'),
+      emergency_phone: () => goToStepAndFocus(1, 'emergency_phone'),
+      username: () => goToStepAndFocus(3, 'username'),
+      password: () => goToStepAndFocus(3, 'password'),
+      faculty: () => goToStepAndFocus(2, 'faculty_select', true),
+      career: () => goToStepAndFocus(2, 'career_select', true),
+      year: () => goToStepAndFocus(2, 'career_year_select', true),
+      group: () => goToStepAndFocus(2, 'room_select', true),
+      room: () => goToStepAndFocus(2, 'room_select', true),
+    };
+
+    const action = map[key] || (() => {
+      // fallback: try to focus element with id equal to key
+      goToStepAndFocus(1, key);
+    });
+
+    action();
+    // close modal after focusing attempt
+    setValidationErrors(null);
+  };
 
   // Step 2 State
   const [facultyId, setFacultyId] = useState<number | "">("");
@@ -115,6 +211,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [is_militant, setIsMilitant] = useState(false);
   const [is_cadet_minint, setIsCadetMinint] = useState(false);
   const [is_cadet_far, setIsCadetFar] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ key: string; message: string }[] | null>(null);
 
   const provinceOptions = useMemo(() => {
     if (!province) {
@@ -322,6 +419,20 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const shouldShowCurrentRoom = Boolean(isEditing && currentRoomSnapshot);
 
   const createOrUpdateStudent = async () => {
+    // Validate that selected careerYear belongs to selected career
+    if (careerId && careerYearId) {
+      const matched = careerYears.some((y) => Number(y.id) === Number(careerYearId));
+      if (!matched) {
+        const msg = `El año académico seleccionado no pertenece a la carrera elegida. Seleccione un año válido para la carrera.`;
+        setValidationErrors([{ key: "year", message: msg }]);
+        throw new Error(msg);
+      }
+    }
+
+    // Determine numeric year to send (year_number) from selected careerYearId
+    const selectedCareerYear = careerYears.find((y) => Number(y.id) === Number(careerYearId));
+    const yearToSend = selectedCareerYear ? (selectedCareerYear.year_number ?? selectedCareerYear.year) : (careerYearId ? Number(careerYearId) : undefined);
+
     const payload: Partial<StudentCreateRequest> = {
       first_name,
       last_name,
@@ -329,6 +440,9 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       student_id: ci,
       gender,
       birth_date: extractBirthDate(ci),
+      career: Number(careerId),
+      year: yearToSend !== undefined ? Number(yearToSend) : undefined,
+      group: DEFAULT_STUDENT_GROUP_ID,
       province,
       municipality,
       address,
@@ -348,8 +462,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       payload.password = password;
       setSubmissionStage("saving-student");
       const createdStudent = await studentService.createStudent(payload as StudentCreateRequest);
-      setPersistedStudentId(createdStudent.id);
-      return createdStudent.id;
+      const resolvedStudentId = await resolveCreatedStudentId(createdStudent, username, ci);
+
+      if (!resolvedStudentId) {
+        throw new Error("No se pudo recuperar el identificador del estudiante recién creado para asignarle cuarto.");
+      }
+
+      setPersistedStudentId(resolvedStudentId);
+      return resolvedStudentId;
     }
 
     if (!isEditing && persistedStudentId) {
@@ -375,20 +495,42 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
     const roomId = Number(selectedRoomId);
     const roomHasChanged = currentRoomId !== roomId;
+    const previousAssignmentId = currentAssignmentId;
+    const previousRoomId = currentRoomId;
 
-    if (isEditing && currentAssignmentId && roomHasChanged) {
-      setSubmissionStage("releasing-room");
-      await accommodationService.releaseAssignment(currentAssignmentId);
-      setCurrentAssignmentId(null);
-    }
+    try {
+      if (isEditing && currentAssignmentId && roomHasChanged) {
+        setSubmissionStage("releasing-room");
+        await accommodationService.releaseAssignment(currentAssignmentId);
+        setCurrentAssignmentId(null);
+      }
 
-    if (!isEditing || roomHasChanged || currentRoomId === null) {
-      setSubmissionStage("assigning-room");
-      await accommodationService.createAssignment({
-        student: studentId,
-        room: roomId,
-        assigned_date: new Date().toISOString().slice(0, 10),
-      });
+      if (!isEditing || roomHasChanged || currentRoomId === null) {
+        setSubmissionStage("assigning-room");
+        const assignment = await accommodationService.createAssignment({
+          student: studentId,
+          room: roomId,
+          assigned_date: new Date().toISOString().slice(0, 10),
+        });
+
+        setCurrentRoomId(roomId);
+        setCurrentAssignmentId(assignment.id ?? null);
+      }
+    } catch (roomError) {
+      if (isEditing && roomHasChanged && previousAssignmentId && previousRoomId !== null) {
+        try {
+          await accommodationService.createAssignment({
+            student: studentId,
+            room: previousRoomId,
+            assigned_date: new Date().toISOString().slice(0, 10),
+          });
+          setCurrentRoomId(previousRoomId);
+        } catch (rollbackError) {
+          console.error("No se pudo restaurar el cuarto anterior", rollbackError);
+        }
+      }
+
+      throw roomError;
     }
   };
 
@@ -411,8 +553,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       return;
     }
 
+    setValidationErrors(null);
+
+    let createdStudentId: number | null = null;
+    const isCreateFlow = !isEditing && !persistedStudentId;
+
     try {
       const studentId = await createOrUpdateStudent();
+      createdStudentId = studentId ?? null;
 
       if (studentId) {
         await assignRoomToStudent(studentId);
@@ -421,29 +569,80 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       toast.success(isEditing ? "Estudiante actualizado" : "Estudiante creado", {
         description: "La información y la asignación de cuarto se completaron correctamente.",
       });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["students-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["students-visible-details"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-suggestions"] }),
+        queryClient.invalidateQueries({ queryKey: ["students"] }),
+        queryClient.invalidateQueries({ queryKey: ["active-assignments"] }),
+      ]);
+
       router.push("/dashboard");
     } catch (error) {
       console.error("Error submitting student", error);
 
-      let errorMsg = "Verifique su conexión y los datos ingresados.";
-      if (error instanceof Error && error.message) {
-        errorMsg = error.message;
-      } else if (error && typeof error === "object" && "data" in error) {
-        const typedError = error as { status?: number; data?: { error?: { message?: string }; message?: string } };
-        if (typedError.data?.error?.message) {
-          errorMsg = typedError.data.error.message;
-        } else if (typedError.data?.message) {
-          errorMsg = typedError.data.message;
-        } else if (typedError.status === 400) {
-          errorMsg = "Existen errores de validación. Revise el estudiante o el cuarto seleccionado.";
-        } else if (typedError.status === 500) {
-          errorMsg = "Ocurrió un error interno en el servidor durante el guardado o la asignación.";
+      if (createdStudentId && isCreateFlow) {
+        try {
+          await studentService.deleteStudent(createdStudentId);
+        } catch (rollbackError) {
+          console.error("No se pudo eliminar el estudiante creado tras fallar la asignación", rollbackError);
         }
       }
 
-      toast.error("Ocurrió un error al guardar", {
-        description: errorMsg,
-      });
+      // Default message
+      let title = "Ocurrió un error al guardar";
+      let description = "Verifique su conexión y los datos ingresados.";
+      let shouldShowValidationModal = false;
+
+      // If FetchError from fetchClient, extract structured info
+      if (error instanceof FetchError) {
+        const fe = error as FetchError;
+        if (fe.status === 401) {
+          title = "Autenticación requerida";
+          description = "No se pudo verificar su sesión. Inicie sesión nuevamente.";
+        } else if (fe.status === 400 && fe.data) {
+          // Try to extract field-level validation details
+          const details = (fe.data?.error && fe.data.error.details) || fe.data?.details || fe.data;
+          if (details && typeof details === "object") {
+            const items: { key: string; message: string }[] = [];
+            for (const [key, val] of Object.entries(details)) {
+              if (Array.isArray(val)) {
+                items.push({ key, message: val.join(", ") });
+              } else if (typeof val === "string") {
+                items.push({ key, message: val });
+              } else if (typeof val === "object") {
+                const nested = Object.values(val).flatMap(v => Array.isArray(v) ? v : [String(v)]);
+                items.push({ key, message: nested.join(", ") });
+              }
+            }
+
+            if (items.length > 0) {
+              title = "Errores de validación";
+              description = items.map(i => `${i.key}: ${i.message}`).join("; ");
+              // Show modal with detailed field errors
+              setValidationErrors(items);
+              shouldShowValidationModal = true;
+            } else if (fe.message) {
+              description = fe.message;
+            }
+          } else if (fe.message) {
+            description = fe.message;
+          }
+        } else if (fe.status >= 500) {
+          title = "Error del servidor";
+          description = fe.message || "Ocurrió un error interno en el servidor.";
+        } else if (fe.message) {
+          description = fe.message;
+        }
+      } else if (error instanceof Error && error.message) {
+        description = error.message;
+      }
+
+      // If validationErrors set, show modal instead of toast
+      if (!shouldShowValidationModal) {
+        toast.error(title, { description });
+      }
     } finally {
       setSubmissionStage("idle");
     }
@@ -503,17 +702,17 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 1 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Nombres <span className="text-[var(--color-error)]">*</span></label>
-                  <Input required value={first_name} onChange={e => setFirstName(e.target.value)} type="text" placeholder="Ej. Juan Carlos" />
+                  <Input id="first_name" required value={first_name} onChange={e => setFirstName(e.target.value)} type="text" placeholder="Ej. Juan Carlos" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Apellidos <span className="text-[var(--color-error)]">*</span></label>
-                  <Input required value={last_name} onChange={e => setLastName(e.target.value)} type="text" placeholder="Ej. Pérez García" />
+                  <Input id="last_name" required value={last_name} onChange={e => setLastName(e.target.value)} type="text" placeholder="Ej. Pérez García" />
                 </div>
 
                 {/* Row 2 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carné de Identidad <span className="text-[var(--color-error)]">*</span></label>
-                  <Input required value={ci} onChange={e => setCi(digitsOnly(e.target.value))} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 01051512345" />
+                  <Input id="ci" required value={ci} onChange={e => setCi(digitsOnly(e.target.value))} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 01051512345" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sexo <span className="text-[var(--color-error)]">*</span></label>
@@ -563,17 +762,17 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 4 */}
                 <div className="col-span-1 md:col-span-2 space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Dirección Particular</label>
-                  <Input value={address} onChange={e => setAddress(e.target.value)} type="text" placeholder="Calle, Número, Reparto..." />
+                  <Input id="address" value={address} onChange={e => setAddress(e.target.value)} type="text" placeholder="Calle, Número, Reparto..." />
                 </div>
                 
                 {/* Row 5 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono Móvil</label>
-                  <Input value={phone} onChange={e => setPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 51234567" />
+                  <Input id="phone" value={phone} onChange={e => setPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 51234567" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono de Contacto (Familiar)</label>
-                  <Input value={emergency_phone} onChange={e => setEmergencyPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 42123456" />
+                  <Input id="emergency_phone" value={emergency_phone} onChange={e => setEmergencyPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 42123456" />
                 </div>
               </div>
             </div>
@@ -590,8 +789,8 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Facultad <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                    <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
+                    <SelectTrigger id="faculty_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Facultad" />
                     </SelectTrigger>
                     <SelectContent>
@@ -604,7 +803,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carrera <span className="text-[var(--color-error)]">*</span></label>
                   <Select required disabled={!facultyId} value={careerId === "" ? "" : String(careerId)} onValueChange={(value) => setCareerId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                    <SelectTrigger id="career_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Carrera" />
                     </SelectTrigger>
                     <SelectContent>
@@ -617,12 +816,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Año Académico <span className="text-[var(--color-error)]">*</span></label>
                   <Select required disabled={!careerId} value={careerYearId === "" ? "" : String(careerYearId)} onValueChange={(value) => setCareerYearId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                    <SelectTrigger id="career_year_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder="Seleccionar Año" />
                     </SelectTrigger>
                     <SelectContent>
                       {careerYears.map((y) => (
-                        <SelectItem key={y.id} value={String(y.id)}>Año {y.year_number ?? y.year}</SelectItem>
+                        <SelectItem key={y.id} value={String(y.id)}>{`Año ${toRoman(y.year_number ?? y.year)}`}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -644,8 +843,8 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
                 <div className="space-y-1 md:col-span-2">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "")} disabled={roomsLoading && roomOptions.length === 0}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                  <Select required value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "") } disabled={roomsLoading && roomOptions.length === 0}>
+                    <SelectTrigger id="room_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                       <SelectValue placeholder={roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -744,14 +943,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       <div className="flex justify-between items-center px-1">
                         <label className="block text-sm font-semibold text-[var(--color-on-surface-variant)]">Nombre de Usuario <span className="text-[var(--color-error)]">*</span></label>
                       </div>
-                      <Input required value={username} onChange={e => setUsername(e.target.value)} type="text" placeholder="Ej. jperez" />
+                      <Input id="username" required value={username} onChange={e => setUsername(e.target.value)} type="text" placeholder="Ej. jperez" />
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex justify-between items-center px-1">
                         <label className="block text-sm font-semibold text-[var(--color-on-surface-variant)]">Contraseña Provisional <span className="text-[var(--color-error)]">*</span></label>
                       </div>
-                      <Input required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" />
+                      <Input id="password" required value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" />
                     </div>
                   </div>
                 </div>
@@ -814,9 +1013,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                     }
                   }
                   if (step === 2) {
-                    if (!careerYearId) {
-                      toast.warning("Faltan campos", {
-                        description: "Debe seleccionar un año académico.",
+                    const missing: string[] = [];
+                    if (!facultyId) missing.push("Facultad");
+                    if (!careerId) missing.push("Carrera");
+                    if (!careerYearId) missing.push("Año académico");
+
+                    if (missing.length > 0) {
+                      toast.warning("Faltan campos académicos", {
+                        description: `Complete: ${missing.join(", ")}`,
                       });
                       return;
                     }
@@ -867,6 +1071,24 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
             <div className="h-2 rounded-full bg-[var(--color-surface-container-high)] overflow-hidden">
               <div className="h-full w-1/2 animate-pulse bg-[var(--color-primary)]" />
             </div>
+          </div>
+        </div>
+      </BottomSheet>
+      <BottomSheet open={!!validationErrors} onClose={() => setValidationErrors(null)} maxWidthClassName="max-w-lg">
+        <div className="p-6">
+          <h3 className="text-lg font-bold">Errores de validación</h3>
+          <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">Corrige los siguientes campos e inténtalo de nuevo:</p>
+          <ul className="mt-4 list-disc pl-5 space-y-2 text-sm">
+            {validationErrors?.map((item, idx) => (
+              <li key={idx} className="break-words">
+                <button onClick={() => focusField(item.key)} className="text-left w-full hover:underline">
+                  <strong className="uppercase text-[10px] tracking-wider mr-2">{item.key}</strong>: {item.message}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6 flex justify-end">
+            <Button variant="outline" onClick={() => setValidationErrors(null)}>Cerrar</Button>
           </div>
         </div>
       </BottomSheet>
