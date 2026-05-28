@@ -1,35 +1,69 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   studentService 
 } from "@/core/services/student.service";
+import {
+  accommodationService,
+} from "@/core/services/accommodation.service";
 import { 
   academicService 
 } from "@/core/services/academic.service";
+import {
+  infrastructureService,
+} from "@/core/services/infrastructure.service";
 import { 
   StudentCreateRequest, 
   Student,
   Faculty,
   Career,
   AcademicYear as CareerYear,
-  Group
+  Group,
+  Room
 } from "@/types/models";
-import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { toast } from "sonner";
 
 interface StudentFormWizardProps {
   initialStudentId?: number;
 }
 
+type SubmissionStage = "idle" | "saving-student" | "releasing-room" | "assigning-room";
+
+const isRoomSelectable = (room: Room) => {
+  const currentOccupancy = room.current_occupancy ?? room.occupancy ?? 0;
+  return room.is_active && !room.is_full && currentOccupancy < room.capacity;
+};
+
+const getRoomLabel = (room: Room) => {
+  const wing = room.wing && typeof room.wing === "object" ? room.wing : null;
+  const building = wing && wing.building && typeof wing.building === "object" ? wing.building : null;
+  const currentOccupancy = room.current_occupancy ?? room.occupancy ?? 0;
+  const occupancyLabel = room.capacity > 0 ? `${currentOccupancy}/${room.capacity}` : "";
+
+  return [
+    building?.name,
+    wing?.name,
+    `Cuarto ${room.number}`,
+    room.available_spots !== undefined ? `${room.available_spots} libres` : occupancyLabel,
+  ].filter(Boolean).join(" · ");
+};
+
+const getRoomIdFromStudent = (student: Student) => {
+  const roomId = student.current_room_info?.room_id;
+  return typeof roomId === "number" ? roomId : null;
+};
+
 export default function StudentFormWizard({ initialStudentId }: StudentFormWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [fetchingInitial, setFetchingInitial] = useState(!!initialStudentId);
   const isEditing = !!initialStudentId;
+  const [submissionStage, setSubmissionStage] = useState<SubmissionStage>("idle");
+  const [persistedStudentId, setPersistedStudentId] = useState<number | null>(initialStudentId ?? null);
 
   // Step 1 State
   const [first_name, setFirstName] = useState("");
@@ -58,6 +92,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [careers, setCareers] = useState<Career[]>([]);
   const [careerYears, setCareerYears] = useState<CareerYear[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<number | "">("");
+  const [currentRoomId, setCurrentRoomId] = useState<number | null>(null);
+  const [currentRoomSnapshot, setCurrentRoomSnapshot] = useState<Room | null>(null);
+  const [currentAssignmentId, setCurrentAssignmentId] = useState<number | null>(null);
 
   // Step 3 State
   const [illnesses, setIllnesses] = useState("");
@@ -99,11 +139,38 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
     }
   }, [careerYearId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    setRoomsLoading(true);
+    infrastructureService.getAvailableRooms()
+      .then((response) => {
+        if (cancelled) return;
+        setRooms(response.results.filter(isRoomSelectable));
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("No se pudieron cargar los cuartos", {
+          description: "Revise su conexión o la disponibilidad de la API e inténtelo nuevamente.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRoomsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Load Edit Data
   useEffect(() => {
     if (initialStudentId) {
       studentService.getStudentById(initialStudentId)
         .then(async (student) => {
+          setPersistedStudentId(initialStudentId);
           setFirstName(student.user && typeof student.user === 'object' ? student.user.first_name || "" : student.first_name || "");
           setLastName(student.user && typeof student.user === 'object' ? student.user.last_name || "" : student.last_name || "");
           setEmail(student.user && typeof student.user === 'object' ? student.user.email || "" : "");
@@ -136,6 +203,38 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           setIsCadetMinint(!!student.is_cadet_minint);
           setIsCadetFar(!!student.is_cadet_far);
 
+          const roomIdFromStudent = getRoomIdFromStudent(student);
+
+          if (roomIdFromStudent) {
+            setCurrentRoomId(roomIdFromStudent);
+            setSelectedRoomId(roomIdFromStudent);
+          }
+
+          try {
+            const currentRoomPromise = studentService.getStudentCurrentRoom(initialStudentId);
+            const assignmentPromise = roomIdFromStudent
+              ? Promise.resolve(null)
+              : accommodationService.getAssignments({ student: initialStudentId, is_active: true, page: 1 });
+
+            const [currentRoom, assignmentResponse] = await Promise.all([currentRoomPromise, assignmentPromise]);
+
+            setCurrentRoomId(currentRoom.id);
+            setCurrentRoomSnapshot(currentRoom);
+            setSelectedRoomId((previousRoomId) => previousRoomId || currentRoom.id);
+
+            if (assignmentResponse && assignmentResponse.results.length > 0) {
+              setCurrentAssignmentId(assignmentResponse.results[0].id);
+            }
+
+            if (student.current_room_info?.assignment_id) {
+              setCurrentAssignmentId(student.current_room_info.assignment_id);
+            }
+          } catch (assignmentError) {
+            if (!((assignmentError as { status?: number }).status === 404)) {
+              console.error(assignmentError);
+            }
+          }
+
           setFetchingInitial(false);
         })
         .catch((e) => {
@@ -157,8 +256,117 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
     return '2000-01-01'; 
   }
 
+  const roomOptions = useMemo(() => {
+    const options = [...rooms];
+
+    if (currentRoomSnapshot && !options.some((room) => room.id === currentRoomSnapshot.id)) {
+      options.unshift(currentRoomSnapshot);
+    }
+
+    if (!currentRoomSnapshot && currentRoomId !== null && !options.some((room) => room.id === currentRoomId)) {
+      options.unshift({
+        id: currentRoomId,
+        number: String(currentRoomId),
+        wing: 0,
+        capacity: 0,
+        is_active: true,
+        current_occupancy: 0,
+      } as Room);
+    }
+
+    return options;
+  }, [rooms, currentRoomId, currentRoomSnapshot]);
+
+  const submissionLabel = submissionStage === "saving-student"
+    ? (isEditing ? "Actualizando estudiante" : "Creando estudiante")
+    : submissionStage === "releasing-room"
+      ? "Liberando cuarto anterior"
+      : "Asignando cuarto";
+
+  const submissionDetail = submissionStage === "saving-student"
+    ? "Estamos guardando la información principal del estudiante."
+    : submissionStage === "releasing-room"
+      ? "Se detectó un cambio de cuarto y primero debemos liberar la asignación anterior."
+      : "Estamos conectando al estudiante con el cuarto seleccionado.";
+
+  const shouldShowCurrentRoom = Boolean(isEditing && currentRoomSnapshot);
+
+  const createOrUpdateStudent = async () => {
+    const payload: Partial<StudentCreateRequest> = {
+      first_name,
+      last_name,
+      ci,
+      student_id: ci,
+      email: email || undefined,
+      gender,
+      birth_date: extractBirthDate(ci),
+      province,
+      municipality,
+      address,
+      phone,
+      emergency_phone,
+      group: groupId ? Number(groupId) : 1,
+      academic_performance,
+      illnesses,
+      medications,
+      disciplinary_process,
+      is_militant,
+      is_cadet_minint,
+      is_cadet_far,
+    };
+
+    if (!isEditing && !persistedStudentId) {
+      payload.username = username;
+      payload.password = password;
+      payload.email = email;
+      setSubmissionStage("saving-student");
+      const createdStudent = await studentService.createStudent(payload as StudentCreateRequest);
+      setPersistedStudentId(createdStudent.id);
+      return createdStudent.id;
+    }
+
+    if (!isEditing && persistedStudentId) {
+      setSubmissionStage("saving-student");
+      await studentService.updateStudent(persistedStudentId, payload);
+      return persistedStudentId;
+    }
+
+    if (isEditing) {
+      setSubmissionStage("saving-student");
+      const updatedStudent = await studentService.updateStudent(initialStudentId!, payload);
+      setPersistedStudentId(updatedStudent.id ?? initialStudentId!);
+      return updatedStudent.id ?? initialStudentId!;
+    }
+
+    return persistedStudentId;
+  };
+
+  const assignRoomToStudent = async (studentId: number) => {
+    if (selectedRoomId === "") {
+      throw new Error("Debe seleccionar un cuarto antes de continuar.");
+    }
+
+    const roomId = Number(selectedRoomId);
+    const roomHasChanged = currentRoomId !== roomId;
+
+    if (isEditing && currentAssignmentId && roomHasChanged) {
+      setSubmissionStage("releasing-room");
+      await accommodationService.releaseAssignment(currentAssignmentId);
+      setCurrentAssignmentId(null);
+    }
+
+    if (!isEditing || roomHasChanged || currentRoomId === null) {
+      setSubmissionStage("assigning-room");
+      await accommodationService.createAssignment({
+        student: studentId,
+        room: roomId,
+        assigned_date: new Date().toISOString().slice(0, 10),
+      });
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!isEditing) {
+    if (!isEditing && !persistedStudentId) {
       if (!username || !password || !email) {
         toast.warning("Faltan datos de cuenta", { description: "Por favor, complete usuario, contraseña y correo." });
         return;
@@ -173,62 +381,48 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       }
     }
 
-    setLoading(true);
-    try {
-      const payload: Partial<StudentCreateRequest> = {
-        first_name,
-        last_name,
-        ci,
-        student_id: ci, // Generated from CI
-        gender,
-        birth_date: extractBirthDate(ci),
-        province,
-        municipality,
-        address,
-        phone,
-        emergency_phone,
-        group: groupId ? Number(groupId) : 1, // Mocked fallback because group was replaced visually by "Edificio"
-        academic_performance,
-        illnesses,
-        medications,
-        disciplinary_process,
-        is_militant,
-        is_cadet_minint,
-        is_cadet_far,
-      };
+    if (selectedRoomId === "") {
+      toast.warning("Falta el cuarto", {
+        description: "Debe seleccionar el cuarto donde quedará ubicado el estudiante.",
+      });
+      return;
+    }
 
-      if (!isEditing) {
-        payload.username = username;
-        payload.password = password;
-        payload.email = email;
-        await studentService.createStudent(payload as StudentCreateRequest);
-      } else {
-        if (email) payload.email = email;
-        await studentService.updateStudent(initialStudentId!, payload);
+    try {
+      const studentId = await createOrUpdateStudent();
+
+      if (studentId) {
+        await assignRoomToStudent(studentId);
       }
 
       toast.success(isEditing ? "Estudiante actualizado" : "Estudiante creado", {
-        description: "La información se ha guardado correctamente.",
+        description: "La información y la asignación de cuarto se completaron correctamente.",
       });
       router.push("/dashboard");
-    } catch (e: any) {
-      console.error("Error submitting student", e);
+    } catch (error) {
+      console.error("Error submitting student", error);
+
       let errorMsg = "Verifique su conexión y los datos ingresados.";
-      if (e.data?.error?.message) {
-         errorMsg = e.data.error.message;
-      } else if (e.data?.message) {
-         errorMsg = e.data.message;
-      } else if (e.status === 400) {
-         errorMsg = "Existen errores de validación (Ej. Credenciales o Carné ya registrados).";
-      } else if (e.status === 500) {
-         errorMsg = "Ocurrió un error interno en el servidor. Puede que existan datos duplicados en el registro o campos corruptos.";
+      if (error instanceof Error && error.message) {
+        errorMsg = error.message;
+      } else if (error && typeof error === "object" && "data" in error) {
+        const typedError = error as { status?: number; data?: { error?: { message?: string }; message?: string } };
+        if (typedError.data?.error?.message) {
+          errorMsg = typedError.data.error.message;
+        } else if (typedError.data?.message) {
+          errorMsg = typedError.data.message;
+        } else if (typedError.status === 400) {
+          errorMsg = "Existen errores de validación. Revise el estudiante o el cuarto seleccionado.";
+        } else if (typedError.status === 500) {
+          errorMsg = "Ocurrió un error interno en el servidor durante el guardado o la asignación.";
+        }
       }
 
       toast.error("Ocurrió un error al guardar", {
         description: errorMsg,
       });
     } finally {
-      setLoading(false);
+      setSubmissionStage("idle");
     }
   };
 
@@ -389,24 +583,32 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   </select>
                 </div>
 
-                {/* Edificio & Cuarto (Dummy inputs for UI match) */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Edificio</label>
-                  <select className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer">
-                    <option value="">Seleccionar Edificio</option>
-                    <option value="U1">Edificio U1</option>
-                    <option value="U2">Edificio U2</option>
-                    <option value="B">Residencia Masculina B</option>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto <span className="text-[var(--color-error)]">*</span></label>
+                  <select
+                    required
+                    value={selectedRoomId}
+                    onChange={(e) => setSelectedRoomId(e.target.value ? Number(e.target.value) : "")}
+                    disabled={roomsLoading && roomOptions.length === 0}
+                    className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="">{roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"}</option>
+                    {roomOptions.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {getRoomLabel(room)}
+                      </option>
+                    ))}
                   </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto</label>
-                  <select className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold appearance-none cursor-pointer">
-                    <option value="">Seleccionar Cuarto</option>
-                    <option value="101">101 (2 plazas)</option>
-                    <option value="104">104 (1 plaza)</option>
-                    <option value="205">205 (3 plazas)</option>
-                  </select>
+                  <p className="text-xs text-[var(--color-outline)] px-1">
+                    {roomsLoading
+                      ? "La lista se está cargando desde la API."
+                      : "Solo se muestran cuartos activos y con disponibilidad."}
+                  </p>
+                  {shouldShowCurrentRoom && currentRoomSnapshot ? (
+                    <p className="text-xs text-[var(--color-primary-dark)] px-1 font-semibold">
+                      Cuarto actual: {getRoomLabel(currentRoomSnapshot)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -593,17 +795,45 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
             ) : (
               <Button 
                 variant="default"
-                disabled={loading}
+                disabled={submissionStage !== "idle"}
                 onClick={handleSubmit}
                 type="button"
               >
-                {loading ? "Guardando..." : "Finalizar y Guardar"}
+                {submissionStage !== "idle" ? "Procesando..." : "Finalizar y Guardar"}
                 <span className="material-symbols-outlined text-lg">check_circle</span>
               </Button>
             )}
           </div>
         </div>
       </div>
+
+      <BottomSheet open={submissionStage !== "idle"} onClose={() => undefined} maxWidthClassName="max-w-sm">
+        <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
+          <div className="bg-[var(--color-primary-selected)] p-6 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-[var(--color-surface-container-lowest)] flex items-center justify-center shrink-0 shadow-[var(--shadow-primary-btn)]">
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-extrabold text-[var(--color-primary-dark)] leading-tight">{submissionLabel}</h3>
+              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                No cierres esta ventana mientras termina el proceso.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="rounded-xl bg-[var(--color-surface-container-low)] p-4">
+              <p className="text-sm font-semibold text-[var(--color-on-surface)]">{submissionDetail}</p>
+              <p className="mt-1 text-xs text-[var(--color-outline)] uppercase tracking-wider font-bold">
+                {isEditing ? "Edición y reasignación" : "Creación y alojamiento"}
+              </p>
+            </div>
+            <div className="h-2 rounded-full bg-[var(--color-surface-container-high)] overflow-hidden">
+              <div className="h-full w-1/2 animate-pulse bg-[var(--color-primary)]" />
+            </div>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

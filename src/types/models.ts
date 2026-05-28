@@ -47,6 +47,8 @@ export interface Room {
   capacity: number;
   is_active: boolean;
   occupancy?: number;
+  current_occupancy?: number;
+  available_spots?: number;
   is_full?: boolean;
 }
 
@@ -180,8 +182,11 @@ export interface RoomAssignment {
   id: number;
   student: Student | number;
   room: Room | number;
-  start_date: string;
-  end_date?: string;
+  assigned_date?: string;
+  released_date?: string | null;
+  assigned_by?: string | number | { id: number; username?: string };
+  start_date?: string;
+  end_date?: string | null;
   is_active: boolean;
 }
 

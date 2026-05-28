@@ -1,6 +1,12 @@
 import { fetchClient } from "@/lib/fetchClient";
 import { RoomAssignment, RoomDuty, PaginatedResponse } from "@/types/models";
 
+export interface RoomAssignmentCreatePayload {
+  student: number;
+  room: number;
+  assigned_date: string;
+}
+
 export const accommodationService = {
   // --- Asignaciones de Cuartos ---
   getAssignments: (filters?: { student?: number; room?: number; is_active?: boolean; page?: number }): Promise<PaginatedResponse<RoomAssignment>> => {
@@ -52,7 +58,7 @@ export const accommodationService = {
     };
   },
   
-  createAssignment: (data: Omit<RoomAssignment, "id" | "is_active">): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
+  createAssignment: (data: RoomAssignmentCreatePayload): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
   
   releaseAssignment: (id: number): Promise<void> => fetchClient(`/api/v1/asignaciones/${id}/liberar/`, { method: "POST" }),
 

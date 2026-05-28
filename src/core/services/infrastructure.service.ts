@@ -1,6 +1,11 @@
 import { fetchClient } from "@/lib/fetchClient";
 import { Room, Wing, Building, Site, PaginatedResponse } from "@/types/models";
 
+const isRoomAvailable = (room: Room) => {
+  const currentOccupancy = room.current_occupancy ?? room.occupancy ?? 0;
+  return room.is_active && !room.is_full && currentOccupancy < room.capacity;
+};
+
 export const infrastructureService = {
   // Sedes
   getSites: (): Promise<PaginatedResponse<Site>> => fetchClient("/api/v1/sedes/"),
@@ -40,8 +45,43 @@ export const infrastructureService = {
     const qs = params.toString();
     return fetchClient(`/api/v1/cuartos/${qs ? `?${qs}` : ""}`);
   },
-  getActiveRooms: (): Promise<PaginatedResponse<Room>> => fetchClient("/api/v1/cuartos/activas/"),
+  getActiveRooms: (): Promise<PaginatedResponse<Room>> => infrastructureService.getRooms({ is_active: true }),
   getRoomById: (id: number): Promise<Room> => fetchClient(`/api/v1/cuartos/${id}/`),
+  getAllActiveRooms: async (): Promise<PaginatedResponse<Room>> => {
+    const firstPage = await infrastructureService.getRooms({ is_active: true });
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const pageSize = firstPage.results.length || 20;
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        infrastructureService.getRooms({ is_active: true, page })
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
+  getAvailableRooms: async (): Promise<PaginatedResponse<Room>> => {
+    const activeRooms = await infrastructureService.getAllActiveRooms();
+    const availableRooms = activeRooms.results.filter(isRoomAvailable);
+
+    return {
+      ...activeRooms,
+      count: availableRooms.length,
+      next: null,
+      previous: null,
+      results: availableRooms,
+    };
+  },
   createRoom: (data: Omit<Room, "id">): Promise<Room> => fetchClient("/api/v1/cuartos/", { method: "POST", body: JSON.stringify(data) }),
   updateRoom: (id: number, data: Partial<Room>): Promise<Room> => fetchClient(`/api/v1/cuartos/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteRoom: (id: number): Promise<void> => fetchClient(`/api/v1/cuartos/${id}/`, { method: "DELETE" }),
