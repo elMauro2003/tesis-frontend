@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { studentService } from "@/core/services/student.service";
 import { Student } from "@/types/models";
@@ -100,7 +101,7 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Observaciones adicionales</label>
-              <textarea className="w-full bg-[var(--color-surface-container-low)] rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-red-600/20 outline-none placeholder:text-[var(--color-outline)]" placeholder="Detalles opcionales..." rows={2} />
+              <Textarea className="bg-[var(--color-surface-container-low)] text-sm placeholder:text-[var(--color-outline)]" placeholder="Detalles opcionales..." rows={2} />
             </div>
           </div>
         </div>

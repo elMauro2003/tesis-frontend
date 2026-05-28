@@ -64,7 +64,7 @@ export interface StudentCreateRequest {
   student_id: string;
   birth_date: string;
   gender: string;
-  group: number;
+  group?: number;
   address?: string;
   province?: string;
   municipality?: string;

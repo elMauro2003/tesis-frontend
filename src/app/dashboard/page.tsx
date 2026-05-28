@@ -11,6 +11,7 @@ import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CareerOption = { id: number; name: string; faculty?: any };
@@ -348,8 +349,8 @@ export default function DashboardPage() {
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
             <span className="material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">search</span>
           </div>
-          <input 
-            className="w-full bg-surface-container-low border-none rounded-xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline text-on-surface outline-none" 
+          <Input 
+            className="bg-surface-container-low rounded-xl py-4 pl-12 pr-4 text-sm placeholder:text-outline text-on-surface outline-none h-14" 
             placeholder="Buscar estudiante por nombre o Carné de Identidad..." 
             type="text" 
             value={search}

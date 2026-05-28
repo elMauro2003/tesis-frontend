@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { evaluationService } from "@/core/services/evaluation.service";
 import { Student } from "@/types/models";
 // import { toast } from "sonner"; // If they use sonner, wait I don't know, let's omit if not sure
@@ -90,30 +92,15 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Nombre Completo</label>
-              <input 
-                type="text" 
-                className="w-full bg-[var(--color-surface-container-low)] border-none rounded-lg py-2.5 px-4 text-sm text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" 
-                disabled 
-                value={fullName} 
-              />
+              <Input type="text" className="bg-[var(--color-surface-container-low)] text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" disabled value={fullName} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Edificio</label>
-              <input 
-                type="text" 
-                className="w-full bg-[var(--color-surface-container-low)] border-none rounded-lg py-2.5 px-4 text-sm text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" 
-                disabled 
-                value={buildingLabel} 
-              />
+              <Input type="text" className="bg-[var(--color-surface-container-low)] text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" disabled value={buildingLabel} />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Cuarto</label>
-              <input 
-                type="text" 
-                className="w-full bg-[var(--color-surface-container-low)] border-none rounded-lg py-2.5 px-4 text-sm text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" 
-                disabled 
-                value={roomLabel} 
-              />
+              <Input type="text" className="bg-[var(--color-surface-container-low)] text-[var(--color-on-surface-variant)] font-medium cursor-not-allowed" disabled value={roomLabel} />
             </div>
           </div>
 
@@ -135,23 +122,12 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Fecha</label>
-                <input 
-                  type="date" 
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg py-2.5 px-4 text-sm text-[var(--color-on-surface)] font-medium focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all outline-none"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
+                <Input type="date" className="bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-medium" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Comentario Evaluativo</label>
-              <textarea 
-                className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl py-3 px-4 text-sm text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all resize-none outline-none" 
-                placeholder="Redacte los detalles..." 
-                rows={4}
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-              />
+              <Textarea className="bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)]" placeholder="Redacte los detalles..." rows={4} value={comments} onChange={(e) => setComments(e.target.value)} />
             </div>
           </div>
         </div>

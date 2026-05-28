@@ -21,11 +21,11 @@ import {
   Faculty,
   Career,
   AcademicYear as CareerYear,
-  Group,
   Room
 } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -33,6 +33,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface StudentFormWizardProps {
@@ -92,13 +94,11 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [facultyId, setFacultyId] = useState<number | "">("");
   const [careerId, setCareerId] = useState<number | "">("");
   const [careerYearId, setCareerYearId] = useState<number | "">("");
-  const [groupId, setGroupId] = useState<number | "">("");
   const [academic_performance, setAcademicPerformance] = useState("");
 
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [careers, setCareers] = useState<Career[]>([]);
   const [careerYears, setCareerYears] = useState<CareerYear[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<number | "">("");
@@ -163,15 +163,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   }, [careerId]);
 
   useEffect(() => {
-    if (careerYearId) {
-      academicService.getGroups(Number(careerYearId)).then(res => setGroups(res.results)).catch(console.error);
-    } else {
-      setGroups([]);
-      setGroupId("");
-    }
-  }, [careerYearId]);
-
-  useEffect(() => {
     if (!province) {
       if (municipality) {
         setMunicipality("");
@@ -231,14 +222,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           setPhone(student.phone || "");
           setEmergencyPhone(student.emergency_phone || "");
 
-          if (student.group) {
-              setGroupId(student.group.id);
-              // In a real flow, we'd back-populate facultyId, careerId etc. By saving groupId it might be enough to submit
-              // But to show in UI we need them all
-              // Just manually set them if possible from the nested object
-              // E.g., student.group.career_year.career... wait people.types.ts only shows up to career
-          }
-          
           setAcademicPerformance(student.academic_performance || "");
           
           setIllnesses(student.illnesses || "");
@@ -349,7 +332,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       address,
       phone,
       emergency_phone,
-      group: Number(groupId),
       academic_performance,
       illnesses,
       medications,
@@ -358,10 +340,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       is_cadet_minint,
       is_cadet_far,
     };
-    
-    if (!groupId) {
-      throw new Error("Debe seleccionar un grupo académico válido antes de guardar.");
-    }
 
     if (!isEditing && !persistedStudentId) {
       payload.username = username;
@@ -523,17 +501,17 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 1 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Nombres <span className="text-[var(--color-error)]">*</span></label>
-                  <input required value={first_name} onChange={e => setFirstName(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. Juan Carlos"/>
+                  <Input required value={first_name} onChange={e => setFirstName(e.target.value)} type="text" placeholder="Ej. Juan Carlos" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Apellidos <span className="text-[var(--color-error)]">*</span></label>
-                  <input required value={last_name} onChange={e => setLastName(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. Pérez García"/>
+                  <Input required value={last_name} onChange={e => setLastName(e.target.value)} type="text" placeholder="Ej. Pérez García" />
                 </div>
 
                 {/* Row 2 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carné de Identidad <span className="text-[var(--color-error)]">*</span></label>
-                  <input required value={ci} onChange={e => setCi(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. 01051512345"/>
+                  <Input required value={ci} onChange={e => setCi(e.target.value)} type="text" placeholder="Ej. 01051512345" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sexo <span className="text-[var(--color-error)]">*</span></label>
@@ -583,7 +561,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 {/* Row 4 */}
                 <div className="col-span-1 md:col-span-2 space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Dirección Particular</label>
-                  <input value={address} onChange={e => setAddress(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Calle, Número, Reparto..."/>
+                  <Input value={address} onChange={e => setAddress(e.target.value)} type="text" placeholder="Calle, Número, Reparto..." />
                 </div>
                 
                 {/* Row 5 */}
@@ -591,14 +569,14 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono Móvil</label>
                   <div className="relative flex items-center">
                     <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">call</span>
-                    <input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="+53 51234567"/>
+                    <Input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="pl-12" placeholder="+53 51234567" />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono de Contacto (Familiar)</label>
                   <div className="relative flex items-center">
                     <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">home_iot_device</span>
-                    <input value={emergency_phone} onChange={e => setEmergencyPhone(e.target.value)} type="tel" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. 42123456"/>
+                    <Input value={emergency_phone} onChange={e => setEmergencyPhone(e.target.value)} type="tel" className="pl-12" placeholder="Ej. 42123456" />
                   </div>
                 </div>
               </div>
@@ -649,19 +627,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                     <SelectContent>
                       {careerYears.map((y) => (
                         <SelectItem key={y.id} value={String(y.id)}>Año {y.year_number ?? y.year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Grupo <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required disabled={!careerYearId} value={groupId === "" ? "" : String(groupId)} onValueChange={(value) => setGroupId(value ? Number(value) : "")}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold shadow-none h-[52px] disabled:opacity-50">
-                      <SelectValue placeholder={careerYearId ? "Seleccionar Grupo" : "Selecciona primero el año académico"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={String(group.id)}>{group.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -721,11 +686,11 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Enfermedades que padece</label>
-                  <textarea value={illnesses} onChange={e => setIllnesses(e.target.value)} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal min-h-[100px]" placeholder="Ej. Asma, Hipertensión..."></textarea>
+                  <Textarea value={illnesses} onChange={e => setIllnesses(e.target.value)} placeholder="Ej. Asma, Hipertensión..." />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Medicamentos que consume</label>
-                  <textarea value={medications} onChange={e => setMedications(e.target.value)} className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal min-h-[100px]" placeholder="Tratamientos actuales..."></textarea>
+                  <Textarea value={medications} onChange={e => setMedications(e.target.value)} placeholder="Tratamientos actuales..." />
                 </div>
               </div>
               
@@ -751,10 +716,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       <span className="font-bold text-[var(--color-on-surface)]">Militante de la UJC/PCC</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Organización Política</span>
                     </div>
-                    <div className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={is_militant} onChange={e => setIsMilitant(e.target.checked)} />
-                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                    </div>
+                    <Switch checked={is_militant} onCheckedChange={setIsMilitant} />
                   </label>
                   {/* MININT */}
                   <label className={`group flex items-center justify-between p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_minint ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
@@ -762,10 +724,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       <span className="font-bold text-[var(--color-on-surface)]">Cadete MININT</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Min. del Interior</span>
                     </div>
-                    <div className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={is_cadet_minint} onChange={e => setIsCadetMinint(e.target.checked)} />
-                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                    </div>
+                    <Switch checked={is_cadet_minint} onCheckedChange={setIsCadetMinint} />
                   </label>
                   {/* FAR */}
                   <label className={`group flex items-center justify-between p-4 bg-[var(--color-surface-container-high)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-container-highest)] transition-colors ${is_cadet_far ? '!bg-[var(--color-primary-selected)] ring-2 ring-[var(--color-primary)]/40' : ''}`}>
@@ -773,10 +732,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       <span className="font-bold text-[var(--color-on-surface)]">Cadete FAR</span>
                       <span className="text-[10px] text-[var(--color-outline)] uppercase">Min. Fuerzas Armadas</span>
                     </div>
-                    <div className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={is_cadet_far} onChange={e => setIsCadetFar(e.target.checked)} />
-                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
-                    </div>
+                    <Switch checked={is_cadet_far} onCheckedChange={setIsCadetFar} />
                   </label>
                 </div>
               </div>
@@ -794,7 +750,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       </div>
                       <div className="relative flex items-center">
                         <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">person</span>
-                        <input required value={username} onChange={e => setUsername(e.target.value)} type="text" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="Ej. jperez"/>
+                        <Input required value={username} onChange={e => setUsername(e.target.value)} type="text" className="pl-12" placeholder="Ej. jperez" />
                       </div>
                     </div>
 
@@ -804,7 +760,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                       </div>
                       <div className="relative flex items-center">
                         <span className="material-symbols-outlined absolute left-4 text-[var(--color-outline)] text-lg">key</span>
-                        <input required value={password} onChange={e => setPassword(e.target.value)} type="password" className="w-full bg-[var(--color-surface-container-high)] border-none rounded-lg p-3.5 pl-12 text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)]/40 transition-all font-bold placeholder:font-normal" placeholder="••••••••"/>
+                          <Input required value={password} onChange={e => setPassword(e.target.value)} type="password" className="pl-12" placeholder="••••••••" />
                       </div>
                     </div>
                   </div>
