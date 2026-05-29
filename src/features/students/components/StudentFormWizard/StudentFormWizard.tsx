@@ -346,21 +346,13 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   useEffect(() => {
     if (!selectedSiteId) {
       setBuildings([]);
-      setSelectedBuildingId("");
       setWings([]);
-      setSelectedWingId("");
       setRooms([]);
-      setSelectedRoomId("");
       return;
     }
 
     let cancelled = false;
     setBuildingsLoading(true);
-    setSelectedBuildingId("");
-    setWings([]);
-    setSelectedWingId("");
-    setRooms([]);
-    setSelectedRoomId("");
 
     infrastructureService.getBuildings(Number(selectedSiteId))
       .then((response) => {
@@ -388,17 +380,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   useEffect(() => {
     if (!selectedBuildingId) {
       setWings([]);
-      setSelectedWingId("");
       setRooms([]);
-      setSelectedRoomId("");
       return;
     }
 
     let cancelled = false;
     setWingsLoading(true);
-    setSelectedWingId("");
-    setRooms([]);
-    setSelectedRoomId("");
 
     infrastructureService.getWings(Number(selectedBuildingId))
       .then((response) => {
@@ -426,14 +413,12 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   useEffect(() => {
     if (!selectedWingId) {
       setRooms([]);
-      setSelectedRoomId("");
       return;
     }
 
     let cancelled = false;
     setRoomsLoading(true);
     setRooms([]);
-    setSelectedRoomId("");
 
     infrastructureService.getAllRooms({ wing: Number(selectedWingId), is_active: true })
       .then((response) => {
@@ -501,6 +486,83 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           setIsCadetMinint(!!student.is_cadet_minint);
           setIsCadetFar(!!student.is_cadet_far);
 
+          const hydrateAcademicSelection = async () => {
+            let resolvedCareerYearId: number | null = null;
+            let resolvedCareerId: number | null = null;
+            let resolvedFacultyId: number | null = null;
+
+            const detailCareerYear = student.group_detail?.career_year_detail;
+            if (detailCareerYear?.id) {
+              resolvedCareerYearId = Number(detailCareerYear.id);
+            }
+
+            if (detailCareerYear?.career) {
+              resolvedCareerId = Number(detailCareerYear.career);
+            }
+
+            const groupCareerYear = student.group && typeof student.group === "object"
+              ? student.group.career_year
+              : null;
+
+            if (!resolvedCareerYearId && typeof groupCareerYear === "number") {
+              resolvedCareerYearId = groupCareerYear;
+            }
+
+            if (!resolvedCareerYearId && groupCareerYear && typeof groupCareerYear === "object" && "id" in groupCareerYear) {
+              const maybeId = Number((groupCareerYear as { id?: number }).id);
+              if (!Number.isNaN(maybeId) && maybeId > 0) {
+                resolvedCareerYearId = maybeId;
+              }
+            }
+
+            if (!resolvedCareerId && groupCareerYear && typeof groupCareerYear === "object") {
+              const careerValue = (groupCareerYear as { career?: number | { id?: number } }).career;
+              if (typeof careerValue === "number") {
+                resolvedCareerId = careerValue;
+              } else if (careerValue && typeof careerValue === "object" && typeof careerValue.id === "number") {
+                resolvedCareerId = careerValue.id;
+              }
+            }
+
+            if (!resolvedCareerId && resolvedCareerYearId) {
+              try {
+                const academicYear = await academicService.getAcademicYearById(resolvedCareerYearId);
+                if (typeof academicYear.career === "number") {
+                  resolvedCareerId = academicYear.career;
+                } else if (academicYear.career && typeof academicYear.career === "object" && typeof academicYear.career.id === "number") {
+                  resolvedCareerId = academicYear.career.id;
+                }
+              } catch (error) {
+                console.error("No se pudo resolver la carrera desde el año académico", error);
+              }
+            }
+
+            if (resolvedCareerId) {
+              try {
+                const career = await academicService.getCareerById(resolvedCareerId);
+                if (typeof career.faculty === "number") {
+                  resolvedFacultyId = career.faculty;
+                } else if (career.faculty && typeof career.faculty === "object" && typeof career.faculty.id === "number") {
+                  resolvedFacultyId = career.faculty.id;
+                }
+              } catch (error) {
+                console.error("No se pudo resolver la facultad desde la carrera", error);
+              }
+            }
+
+            if (resolvedFacultyId) {
+              setFacultyId(resolvedFacultyId);
+            }
+            if (resolvedCareerId) {
+              setCareerId(resolvedCareerId);
+            }
+            if (resolvedCareerYearId) {
+              setCareerYearId(resolvedCareerYearId);
+            }
+          };
+
+          await hydrateAcademicSelection();
+
           const roomIdFromStudent = getRoomIdFromStudent(student);
 
           if (roomIdFromStudent) {
@@ -508,38 +570,85 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
             setSelectedRoomId(roomIdFromStudent);
           }
 
+          const hydrateLocationFromRoomId = async (roomId: number) => {
+            const room = await infrastructureService.getRoomById(roomId);
+
+            let wingObject: Wing | null = room.wing && typeof room.wing === "object"
+              ? (room.wing as Wing)
+              : null;
+
+            if (!wingObject && typeof room.wing === "number") {
+              wingObject = await infrastructureService.getWingById(room.wing);
+            }
+
+            let buildingObject: Building | null = wingObject && wingObject.building && typeof wingObject.building === "object"
+              ? (wingObject.building as Building)
+              : null;
+
+            if (!buildingObject && wingObject && typeof wingObject.building === "number") {
+              buildingObject = await infrastructureService.getBuildingById(wingObject.building);
+            }
+
+            let siteObject: Site | null = buildingObject && buildingObject.site && typeof buildingObject.site === "object"
+              ? (buildingObject.site as Site)
+              : null;
+
+            if (!siteObject && buildingObject && typeof buildingObject.site === "number") {
+              siteObject = await infrastructureService.getSiteById(buildingObject.site);
+            }
+
+            const normalizedBuilding: Building | null = buildingObject
+              ? { ...buildingObject, site: siteObject ?? buildingObject.site }
+              : null;
+            const normalizedWing: Wing | null = wingObject
+              ? { ...wingObject, building: normalizedBuilding ?? wingObject.building }
+              : null;
+            const normalizedRoom: Room = normalizedWing
+              ? { ...room, wing: normalizedWing }
+              : room;
+
+            setCurrentRoomId(normalizedRoom.id);
+            setCurrentRoomSnapshot(normalizedRoom);
+            setSelectedRoomId(normalizedRoom.id);
+
+            if (siteObject?.id) {
+              setSelectedSiteId(siteObject.id);
+            }
+            if (normalizedBuilding?.id) {
+              setSelectedBuildingId(normalizedBuilding.id);
+            }
+            if (normalizedWing?.id) {
+              setSelectedWingId(normalizedWing.id);
+            }
+          };
+
           try {
-            const currentRoomPromise = studentService.getStudentCurrentRoom(initialStudentId);
-            const assignmentPromise = roomIdFromStudent
-              ? Promise.resolve(null)
-              : accommodationService.getAssignments({ student: initialStudentId, is_active: true, page: 1 });
-
-            const [currentRoom, assignmentResponse] = await Promise.all([currentRoomPromise, assignmentPromise]);
-
-            setCurrentRoomId(currentRoom.id);
-            setCurrentRoomSnapshot(currentRoom);
-            setSelectedRoomId((previousRoomId) => previousRoomId || currentRoom.id);
-
-            const site = getRoomSite(currentRoom);
-            const building = getRoomBuilding(currentRoom);
-            const wing = currentRoom.wing && typeof currentRoom.wing === 'object' ? currentRoom.wing : null;
-
-            if (site?.id) {
-              setSelectedSiteId(site.id);
-            }
-            if (building?.id) {
-              setSelectedBuildingId(building.id);
-            }
-            if (wing?.id) {
-              setSelectedWingId(wing.id);
-            }
-
-            if (assignmentResponse && assignmentResponse.results.length > 0) {
-              setCurrentAssignmentId(assignmentResponse.results[0].id);
-            }
-
             if (student.current_room_info?.assignment_id) {
               setCurrentAssignmentId(student.current_room_info.assignment_id);
+            }
+
+            const assignmentResponse = roomIdFromStudent
+              ? null
+              : await accommodationService.getAssignments({ student: initialStudentId, is_active: true, page: 1 });
+
+            if (roomIdFromStudent) {
+              await hydrateLocationFromRoomId(roomIdFromStudent);
+            } else {
+              let resolvedRoomId: number | null = null;
+
+              const currentRoom = await studentService.getStudentCurrentRoom(initialStudentId);
+              setCurrentRoomId(currentRoom.id);
+              setCurrentRoomSnapshot(currentRoom);
+              setSelectedRoomId((previousRoomId) => previousRoomId || currentRoom.id);
+              resolvedRoomId = currentRoom.id;
+
+              if (!student.current_room_info?.assignment_id && assignmentResponse && assignmentResponse.results.length > 0) {
+                setCurrentAssignmentId(assignmentResponse.results[0].id);
+              }
+
+              if (resolvedRoomId) {
+                await hydrateLocationFromRoomId(resolvedRoomId);
+              }
             }
           } catch (assignmentError) {
             if (!((assignmentError as { status?: number }).status === 404)) {
@@ -629,6 +738,33 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const selectedRoomSummary = selectedRoomId
     ? roomOptions.find((room) => room.id === selectedRoomId) ?? currentRoomSnapshot
     : currentRoomSnapshot;
+
+  const handleSiteChange = (value: string) => {
+    const nextSiteId = value ? Number(value) : "";
+    setSelectedSiteId(nextSiteId);
+    setSelectedBuildingId("");
+    setSelectedWingId("");
+    setSelectedRoomId("");
+    setBuildings([]);
+    setWings([]);
+    setRooms([]);
+  };
+
+  const handleBuildingChange = (value: string) => {
+    const nextBuildingId = value ? Number(value) : "";
+    setSelectedBuildingId(nextBuildingId);
+    setSelectedWingId("");
+    setSelectedRoomId("");
+    setWings([]);
+    setRooms([]);
+  };
+
+  const handleWingChange = (value: string) => {
+    const nextWingId = value ? Number(value) : "";
+    setSelectedWingId(nextWingId);
+    setSelectedRoomId("");
+    setRooms([]);
+  };
 
   const locationPath = [locationLabels.siteLabel, locationLabels.buildingLabel, locationLabels.wingLabel].filter(Boolean).join(" · ");
   const locationRoomLabel = selectedRoomSummary ? `Cuarto ${selectedRoomSummary.number}` : "";
@@ -722,7 +858,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       ci,
       student_id: ci,
       gender,
-      birth_date: extractBirthDate(ci),
+      birth_date: birth_date || extractBirthDate(ci),
       career: Number(careerId),
       year: yearToSend !== undefined ? Number(yearToSend) : undefined,
       group: DEFAULT_STUDENT_GROUP_ID,
@@ -1171,7 +1307,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sede</label>
-                      <Select value={selectedSiteId === "" ? "" : String(selectedSiteId)} onValueChange={(value) => setSelectedSiteId(value ? Number(value) : "")}>
+                      <Select value={selectedSiteId === "" ? "" : String(selectedSiteId)} onValueChange={handleSiteChange}>
                         <SelectTrigger id="site_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                           <SelectValue placeholder={sitesLoading ? "Cargando sedes..." : "Seleccionar Sede"} />
                         </SelectTrigger>
@@ -1185,7 +1321,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Edificio</label>
-                      <Select disabled={!selectedSiteId || buildingsLoading || buildings.length === 0} value={selectedBuildingId === "" ? "" : String(selectedBuildingId)} onValueChange={(value) => setSelectedBuildingId(value ? Number(value) : "")}>
+                      <Select disabled={!selectedSiteId || buildingsLoading || buildings.length === 0} value={selectedBuildingId === "" ? "" : String(selectedBuildingId)} onValueChange={handleBuildingChange}>
                         <SelectTrigger id="building_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                           <SelectValue placeholder={!selectedSiteId ? "Seleccione primero una sede" : buildingsLoading ? "Cargando edificios..." : "Seleccionar Edificio"} />
                         </SelectTrigger>
@@ -1199,7 +1335,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Ala</label>
-                      <Select disabled={!selectedBuildingId || wingsLoading || wings.length === 0} value={selectedWingId === "" ? "" : String(selectedWingId)} onValueChange={(value) => setSelectedWingId(value ? Number(value) : "")}>
+                      <Select disabled={!selectedBuildingId || wingsLoading || wings.length === 0} value={selectedWingId === "" ? "" : String(selectedWingId)} onValueChange={handleWingChange}>
                         <SelectTrigger id="wing_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
                           <SelectValue placeholder={!selectedBuildingId ? "Seleccione primero un edificio" : wingsLoading ? "Cargando alas..." : "Seleccionar Ala"} />
                         </SelectTrigger>
