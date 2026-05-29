@@ -45,10 +45,8 @@ export const infrastructureService = {
     const qs = params.toString();
     return fetchClient(`/api/v1/cuartos/${qs ? `?${qs}` : ""}`);
   },
-  getActiveRooms: (): Promise<PaginatedResponse<Room>> => infrastructureService.getRooms({ is_active: true }),
-  getRoomById: (id: number): Promise<Room> => fetchClient(`/api/v1/cuartos/${id}/`),
-  getAllActiveRooms: async (): Promise<PaginatedResponse<Room>> => {
-    const firstPage = await infrastructureService.getRooms({ is_active: true });
+  getAllRooms: async (filters?: { wing?: number; is_active?: boolean }): Promise<PaginatedResponse<Room>> => {
+    const firstPage = await infrastructureService.getRooms(filters);
 
     if (!firstPage.next) {
       return firstPage;
@@ -58,7 +56,7 @@ export const infrastructureService = {
     const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
     const remainingPages = await Promise.all(
       Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
-        infrastructureService.getRooms({ is_active: true, page })
+        infrastructureService.getRooms({ ...filters, page })
       )
     );
 
@@ -70,8 +68,13 @@ export const infrastructureService = {
       ],
     };
   },
+  getActiveRooms: (): Promise<PaginatedResponse<Room>> => infrastructureService.getRooms({ is_active: true }),
+  getRoomById: (id: number): Promise<Room> => fetchClient(`/api/v1/cuartos/${id}/`),
+  getAllActiveRooms: async (): Promise<PaginatedResponse<Room>> => {
+    return infrastructureService.getAllRooms({ is_active: true });
+  },
   getAvailableRooms: async (): Promise<PaginatedResponse<Room>> => {
-    const activeRooms = await infrastructureService.getAllActiveRooms();
+    const activeRooms = await infrastructureService.getAllRooms({ is_active: true });
     const availableRooms = activeRooms.results.filter(isRoomAvailable);
 
     return {

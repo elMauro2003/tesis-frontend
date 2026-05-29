@@ -58,6 +58,8 @@ const extractHumanErrorMessage = (payload: unknown): string | null => {
   return null;
 };
 
+const GENERIC_400_MESSAGE = "Los datos enviados no son válidos. Revisa los campos e inténtalo de nuevo.";
+
 export class FetchError extends Error {
   constructor(
     public status: number,
@@ -133,8 +135,14 @@ export const fetchClient = async <T>(
       errorData = null;
     }
 
-    const humanMessage = extractHumanErrorMessage(errorData) || "Ocurrió un error al procesar la solicitud. Intente nuevamente.";
-    throw new FetchError(response.status, humanMessage, errorData);
+    const extractedMessage = extractHumanErrorMessage(errorData);
+    const normalizedMessage = response.status === 400
+      ? (extractedMessage && extractedMessage !== "Los datos proporcionados no son válidos." && extractedMessage !== "Bad Request"
+          ? extractedMessage
+          : GENERIC_400_MESSAGE)
+      : (extractedMessage || "Ocurrió un error al procesar la solicitud. Intente nuevamente.");
+
+    throw new FetchError(response.status, normalizedMessage, errorData);
   }
 
   // 204 No Content has no body

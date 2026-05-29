@@ -23,6 +23,9 @@ import {
   Faculty,
   Career,
   AcademicYear as CareerYear,
+  Site,
+  Building,
+  Wing,
   Room
 } from "@/types/models";
 import { Button } from "@/components/ui/button";
@@ -69,12 +72,34 @@ const getRoomIdFromStudent = (student: Student) => {
   return typeof roomId === "number" ? roomId : null;
 };
 
+const getRoomWingId = (room: Room) => {
+  if (room.wing && typeof room.wing === "object") {
+    return typeof room.wing.id === "number" ? room.wing.id : null;
+  }
+  return typeof room.wing === "number" ? room.wing : null;
+};
+
+const getRoomBuilding = (room: Room) => {
+  if (!room.wing || typeof room.wing !== "object") return null;
+  const building = room.wing.building;
+  if (building && typeof building === "object") return building;
+  return null;
+};
+
+const getRoomSite = (room: Room) => {
+  const building = getRoomBuilding(room);
+  if (!building) return null;
+  const site = building.site;
+  if (site && typeof site === "object") return site;
+  return null;
+};
+
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 const DEFAULT_STUDENT_GROUP_ID = 1;
 
 const toRoman = (num?: number | null) => {
   if (!num || num <= 0) return String(num ?? "");
-  const romans = [
+  const romans: Array<[number, string]> = [
     [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
     [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
     [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"],
@@ -92,7 +117,7 @@ const toRoman = (num?: number | null) => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const resolveCreatedStudentId = async (createdStudent: Partial<StudentCreateRequest> & { id?: number }, fallbackUsername?: string, fallbackCi?: string) => {
+const resolveCreatedStudentId = async (createdStudent: Student | (Partial<StudentCreateRequest> & { id?: number }), fallbackUsername?: string, fallbackCi?: string) => {
   if (typeof createdStudent.id === "number") {
     return createdStudent.id;
   }
@@ -103,7 +128,9 @@ const resolveCreatedStudentId = async (createdStudent: Partial<StudentCreateRequ
     for (const term of searchTerms) {
       const response = await studentService.getStudents({ search: term, page: 1, page_size: 20 });
       const exactMatch = response.results.find((student) => {
-        const candidateUsername = student.user && typeof student.user === "object" ? student.user.username : undefined;
+        const candidateUsername = student.user && typeof student.user === "object" && "username" in student.user
+          ? String((student.user as { username?: string }).username ?? "")
+          : undefined;
         return student.ci === term || student.student_id === term || candidateUsername === term;
       });
 
@@ -197,8 +224,18 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [careers, setCareers] = useState<Career[]>([]);
   const [careerYears, setCareerYears] = useState<CareerYear[]>([]);
+  const [careersLoading, setCareersLoading] = useState(false);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [wings, setWings] = useState<Wing[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [sitesLoading, setSitesLoading] = useState(false);
+  const [buildingsLoading, setBuildingsLoading] = useState(false);
+  const [wingsLoading, setWingsLoading] = useState(false);
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [selectedSiteId, setSelectedSiteId] = useState<number | "">("");
+  const [selectedBuildingId, setSelectedBuildingId] = useState<number | "">("");
+  const [selectedWingId, setSelectedWingId] = useState<number | "">("");
   const [selectedRoomId, setSelectedRoomId] = useState<number | "">("");
   const [currentRoomId, setCurrentRoomId] = useState<number | null>(null);
   const [currentRoomSnapshot, setCurrentRoomSnapshot] = useState<Room | null>(null);
@@ -244,8 +281,53 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    setSitesLoading(true);
+    infrastructureService.getSites()
+      .then((response) => {
+        if (!cancelled) {
+          setSites(response.results);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("No se pudieron cargar las sedes", {
+          description: "Revise la conexión con la API e inténtelo nuevamente.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSitesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (facultyId) {
-      academicService.getCareers(Number(facultyId)).then(res => setCareers(res.results)).catch(console.error);
+      let cancelled = false;
+      setCareersLoading(true);
+
+      academicService.getCareers(Number(facultyId))
+        .then(res => {
+          if (!cancelled) {
+            setCareers(res.results);
+          }
+        })
+        .catch(console.error)
+        .finally(() => {
+          if (!cancelled) {
+            setCareersLoading(false);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
     } else {
       setCareers([]);
       setCareerId("");
@@ -262,6 +344,121 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   }, [careerId]);
 
   useEffect(() => {
+    if (!selectedSiteId) {
+      setBuildings([]);
+      setSelectedBuildingId("");
+      setWings([]);
+      setSelectedWingId("");
+      setRooms([]);
+      setSelectedRoomId("");
+      return;
+    }
+
+    let cancelled = false;
+    setBuildingsLoading(true);
+    setSelectedBuildingId("");
+    setWings([]);
+    setSelectedWingId("");
+    setRooms([]);
+    setSelectedRoomId("");
+
+    infrastructureService.getBuildings(Number(selectedSiteId))
+      .then((response) => {
+        if (!cancelled) {
+          setBuildings(response.results);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("No se pudieron cargar los edificios", {
+          description: "Seleccione otra sede o intente nuevamente.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setBuildingsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSiteId]);
+
+  useEffect(() => {
+    if (!selectedBuildingId) {
+      setWings([]);
+      setSelectedWingId("");
+      setRooms([]);
+      setSelectedRoomId("");
+      return;
+    }
+
+    let cancelled = false;
+    setWingsLoading(true);
+    setSelectedWingId("");
+    setRooms([]);
+    setSelectedRoomId("");
+
+    infrastructureService.getWings(Number(selectedBuildingId))
+      .then((response) => {
+        if (!cancelled) {
+          setWings(response.results);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("No se pudieron cargar las alas", {
+          description: "Seleccione otro edificio o intente nuevamente.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setWingsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBuildingId]);
+
+  useEffect(() => {
+    if (!selectedWingId) {
+      setRooms([]);
+      setSelectedRoomId("");
+      return;
+    }
+
+    let cancelled = false;
+    setRoomsLoading(true);
+    setRooms([]);
+    setSelectedRoomId("");
+
+    infrastructureService.getAllRooms({ wing: Number(selectedWingId), is_active: true })
+      .then((response) => {
+        if (!cancelled) {
+          setRooms(response.results.filter(isRoomSelectable));
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("No se pudieron cargar los cuartos", {
+          description: "Revise la conexión o la disponibilidad del edificio y el ala seleccionados.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRoomsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedWingId]);
+
+  useEffect(() => {
     if (!province) {
       if (municipality) {
         setMunicipality("");
@@ -274,32 +471,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       setMunicipality("");
     }
   }, [province]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setRoomsLoading(true);
-    infrastructureService.getAvailableRooms()
-      .then((response) => {
-        if (cancelled) return;
-        setRooms(response.results.filter(isRoomSelectable));
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error("No se pudieron cargar los cuartos", {
-          description: "Revise su conexión o la disponibilidad de la API e inténtelo nuevamente.",
-        });
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setRoomsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Load Edit Data
   useEffect(() => {
@@ -349,6 +520,20 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
             setCurrentRoomSnapshot(currentRoom);
             setSelectedRoomId((previousRoomId) => previousRoomId || currentRoom.id);
 
+            const site = getRoomSite(currentRoom);
+            const building = getRoomBuilding(currentRoom);
+            const wing = currentRoom.wing && typeof currentRoom.wing === 'object' ? currentRoom.wing : null;
+
+            if (site?.id) {
+              setSelectedSiteId(site.id);
+            }
+            if (building?.id) {
+              setSelectedBuildingId(building.id);
+            }
+            if (wing?.id) {
+              setSelectedWingId(wing.id);
+            }
+
             if (assignmentResponse && assignmentResponse.results.length > 0) {
               setCurrentAssignmentId(assignmentResponse.results[0].id);
             }
@@ -370,6 +555,19 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         });
     }
   }, [initialStudentId]);
+
+  useEffect(() => {
+    if (!currentRoomSnapshot) return;
+
+    const wing = currentRoomSnapshot.wing && typeof currentRoomSnapshot.wing === 'object' ? currentRoomSnapshot.wing : null;
+    const building = wing?.building && typeof wing.building === 'object' ? wing.building : null;
+    const site = building?.site && typeof building.site === 'object' ? building.site : null;
+
+    if (site?.id) setSelectedSiteId(site.id);
+    if (building?.id) setSelectedBuildingId(building.id);
+    if (wing?.id) setSelectedWingId(wing.id);
+    if (currentRoomSnapshot.id) setSelectedRoomId(currentRoomSnapshot.id);
+  }, [currentRoomSnapshot]);
 
   // Helpers to mock removed fields from UI
   const extractBirthDate = (ciString: string) => {
@@ -417,6 +615,91 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       : "Estamos conectando al estudiante con el cuarto seleccionado.";
 
   const shouldShowCurrentRoom = Boolean(isEditing && currentRoomSnapshot);
+  const hasAnyLocationSelection = Boolean(selectedSiteId || selectedBuildingId || selectedWingId || selectedRoomId !== "");
+  const hasCompleteLocationSelection = Boolean(selectedSiteId && selectedBuildingId && selectedWingId && selectedRoomId !== "");
+
+  const locationLabels = useMemo(() => {
+    const siteLabel = selectedSiteId && sites.find((site) => site.id === selectedSiteId)?.name ? sites.find((site) => site.id === selectedSiteId)?.name : null;
+    const buildingLabel = selectedBuildingId && buildings.find((building) => building.id === selectedBuildingId)?.name ? buildings.find((building) => building.id === selectedBuildingId)?.name : null;
+    const wingLabel = selectedWingId && wings.find((wing) => wing.id === selectedWingId)?.name ? wings.find((wing) => wing.id === selectedWingId)?.name : null;
+
+    return { siteLabel, buildingLabel, wingLabel };
+  }, [selectedSiteId, selectedBuildingId, selectedWingId, sites, buildings, wings]);
+
+  const selectedRoomSummary = selectedRoomId
+    ? roomOptions.find((room) => room.id === selectedRoomId) ?? currentRoomSnapshot
+    : currentRoomSnapshot;
+
+  const locationPath = [locationLabels.siteLabel, locationLabels.buildingLabel, locationLabels.wingLabel].filter(Boolean).join(" · ");
+  const locationRoomLabel = selectedRoomSummary ? `Cuarto ${selectedRoomSummary.number}` : "";
+  const locationSummaryText = locationPath || locationRoomLabel
+    ? `Ubicación elegida: ${locationPath}${locationPath && locationRoomLabel ? " · " : ""}${locationRoomLabel}`
+    : "Ubicación opcional";
+
+  const collectValidationIssues = (
+    value: unknown,
+    path: string[] = [],
+    issues: { key: string; message: string }[] = []
+  ): { key: string; message: string }[] => {
+    if (typeof value === "string") {
+      const message = value.trim();
+      if (message) {
+        issues.push({ key: path[path.length - 1] || "general", message });
+      }
+      return issues;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === "string") {
+          const message = item.trim();
+          if (message) {
+            issues.push({ key: path.join(".") || "general", message });
+          }
+        } else if (item && typeof item === "object") {
+          collectValidationIssues(item, path, issues);
+        }
+      });
+
+      return issues;
+    }
+
+    if (!value || typeof value !== "object") {
+      return issues;
+    }
+
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      const nextPath = [...path, key];
+
+      if (typeof nestedValue === "string") {
+        const message = nestedValue.trim();
+        if (message) {
+          issues.push({ key: nextPath.join("."), message });
+        }
+        continue;
+      }
+
+      if (Array.isArray(nestedValue)) {
+        nestedValue.forEach((item) => {
+          if (typeof item === "string") {
+            const message = item.trim();
+            if (message) {
+              issues.push({ key: nextPath.join("."), message });
+            }
+          } else if (item && typeof item === "object") {
+            collectValidationIssues(item, nextPath, issues);
+          }
+        });
+        continue;
+      }
+
+      if (nestedValue && typeof nestedValue === "object") {
+        collectValidationIssues(nestedValue, nextPath, issues);
+      }
+    }
+
+    return issues;
+  };
 
   const createOrUpdateStudent = async () => {
     // Validate that selected careerYear belongs to selected career
@@ -499,10 +782,13 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
     const previousRoomId = currentRoomId;
 
     try {
+      let roomChanged = false;
+
       if (isEditing && currentAssignmentId && roomHasChanged) {
         setSubmissionStage("releasing-room");
         await accommodationService.releaseAssignment(currentAssignmentId);
         setCurrentAssignmentId(null);
+        roomChanged = true;
       }
 
       if (!isEditing || roomHasChanged || currentRoomId === null) {
@@ -515,16 +801,20 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
         setCurrentRoomId(roomId);
         setCurrentAssignmentId(assignment.id ?? null);
+        roomChanged = true;
       }
+
+      return roomChanged;
     } catch (roomError) {
       if (isEditing && roomHasChanged && previousAssignmentId && previousRoomId !== null) {
         try {
-          await accommodationService.createAssignment({
+          const restoredAssignment = await accommodationService.createAssignment({
             student: studentId,
             room: previousRoomId,
             assigned_date: new Date().toISOString().slice(0, 10),
           });
           setCurrentRoomId(previousRoomId);
+          setCurrentAssignmentId(restoredAssignment.id ?? previousAssignmentId);
         } catch (rollbackError) {
           console.error("No se pudo restaurar el cuarto anterior", rollbackError);
         }
@@ -546,9 +836,15 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       }
     }
 
-    if (selectedRoomId === "") {
-      toast.warning("Falta el cuarto", {
-        description: "Debe seleccionar el cuarto donde quedará ubicado el estudiante.",
+    if (hasAnyLocationSelection && !hasCompleteLocationSelection) {
+      const missingLocationFields: string[] = [];
+      if (!selectedSiteId) missingLocationFields.push("Sede");
+      if (!selectedBuildingId) missingLocationFields.push("Edificio");
+      if (!selectedWingId) missingLocationFields.push("Ala");
+      if (selectedRoomId === "") missingLocationFields.push("Cuarto");
+
+      toast.warning("Ubicación incompleta", {
+        description: `Puede guardar sin ubicación o completar: ${missingLocationFields.join(", ")}.`,
       });
       return;
     }
@@ -562,12 +858,17 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
       const studentId = await createOrUpdateStudent();
       createdStudentId = studentId ?? null;
 
-      if (studentId) {
-        await assignRoomToStudent(studentId);
+      const shouldAssignRoom = hasCompleteLocationSelection;
+      let roomAssigned = false;
+
+      if (studentId && shouldAssignRoom) {
+        roomAssigned = await assignRoomToStudent(studentId);
       }
 
       toast.success(isEditing ? "Estudiante actualizado" : "Estudiante creado", {
-        description: "La información y la asignación de cuarto se completaron correctamente.",
+        description: shouldAssignRoom
+          ? "La información y la asignación de cuarto se completaron correctamente."
+          : "La información se guardó correctamente. Podrá asignar un cuarto más adelante desde Cuartos.",
       });
 
       await Promise.all([
@@ -575,7 +876,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         queryClient.invalidateQueries({ queryKey: ["students-visible-details"] }),
         queryClient.invalidateQueries({ queryKey: ["student-suggestions"] }),
         queryClient.invalidateQueries({ queryKey: ["students"] }),
-        queryClient.invalidateQueries({ queryKey: ["active-assignments"] }),
+        ...(roomAssigned ? [queryClient.invalidateQueries({ queryKey: ["active-assignments"] })] : []),
       ]);
 
       router.push("/dashboard");
@@ -602,32 +903,37 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
           title = "Autenticación requerida";
           description = "No se pudo verificar su sesión. Inicie sesión nuevamente.";
         } else if (fe.status === 400 && fe.data) {
-          // Try to extract field-level validation details
           const details = (fe.data?.error && fe.data.error.details) || fe.data?.details || fe.data;
-          if (details && typeof details === "object") {
-            const items: { key: string; message: string }[] = [];
-            for (const [key, val] of Object.entries(details)) {
-              if (Array.isArray(val)) {
-                items.push({ key, message: val.join(", ") });
-              } else if (typeof val === "string") {
-                items.push({ key, message: val });
-              } else if (typeof val === "object") {
-                const nested = Object.values(val).flatMap(v => Array.isArray(v) ? v : [String(v)]);
-                items.push({ key, message: nested.join(", ") });
-              }
+          const items = collectValidationIssues(details);
+          const normalizedItems = items.map((item) => {
+            const keyLower = item.key.toLowerCase();
+            const messageLower = item.message.toLowerCase();
+            const mentionsUsername = keyLower.includes("username") || messageLower.includes("username") || messageLower.includes("nombre de usuario");
+            const isTakenMessage =
+              messageLower.includes("taken") ||
+              messageLower.includes("ya existe") ||
+              messageLower.includes("existe") ||
+              messageLower.includes("disponible") ||
+              messageLower.includes("unique") ||
+              messageLower.includes("unico") ||
+              messageLower.includes("único") ||
+              messageLower.includes("duplic");
+
+            if (mentionsUsername && isTakenMessage) {
+              return { key: "username", message: "El username ya está tomado" };
             }
 
-            if (items.length > 0) {
-              title = "Errores de validación";
-              description = items.map(i => `${i.key}: ${i.message}`).join("; ");
-              // Show modal with detailed field errors
-              setValidationErrors(items);
-              shouldShowValidationModal = true;
-            } else if (fe.message) {
-              description = fe.message;
-            }
-          } else if (fe.message) {
-            description = fe.message;
+            return item;
+          });
+
+          if (normalizedItems.length > 0) {
+            title = "Errores de validación";
+            description = normalizedItems.map((item) => `${item.key}: ${item.message}`).join("; ");
+            setValidationErrors(normalizedItems);
+            shouldShowValidationModal = true;
+          } else {
+            title = "Datos inválidos";
+            description = fe.message || "No se pudo guardar el estudiante porque hay campos con información inválida. Revise los datos e inténtelo nuevamente.";
           }
         } else if (fe.status >= 500) {
           title = "Error del servidor";
@@ -699,7 +1005,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                {/* Row 1 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Nombres <span className="text-[var(--color-error)]">*</span></label>
                   <Input id="first_name" required value={first_name} onChange={e => setFirstName(e.target.value)} type="text" placeholder="Ej. Juan Carlos" />
@@ -709,7 +1014,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   <Input id="last_name" required value={last_name} onChange={e => setLastName(e.target.value)} type="text" placeholder="Ej. Pérez García" />
                 </div>
 
-                {/* Row 2 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carné de Identidad <span className="text-[var(--color-error)]">*</span></label>
                   <Input id="ci" required value={ci} onChange={e => setCi(digitsOnly(e.target.value))} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 01051512345" />
@@ -727,7 +1031,6 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   </Select>
                 </div>
 
-                {/* Row 3 */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Provincia</label>
                   <Select value={province} onValueChange={setProvince}>
@@ -759,13 +1062,11 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
                   </Select>
                 </div>
 
-                {/* Row 4 */}
                 <div className="col-span-1 md:col-span-2 space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Dirección Particular</label>
                   <Input id="address" value={address} onChange={e => setAddress(e.target.value)} type="text" placeholder="Calle, Número, Reparto..." />
                 </div>
-                
-                {/* Row 5 */}
+
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Teléfono Móvil</label>
                   <Input id="phone" value={phone} onChange={e => setPhone(digitsOnly(e.target.value))} type="tel" inputMode="numeric" pattern="[0-9]*" placeholder="Ej. 51234567" />
@@ -780,93 +1081,160 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
           {step === 2 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-               <div className="mb-4 border-b border-[var(--color-outline-variant)]/40 pb-4">
-                <h3 className="text-lg font-bold text-[var(--color-on-surface)] flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[var(--color-primary)]">school</span>
-                  Información Académica
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Facultad <span className="text-[var(--color-error)]">*</span></label>
-                    <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
-                    <SelectTrigger id="faculty_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                      <SelectValue placeholder="Seleccionar Facultad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {faculties.map((f) => (
-                        <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carrera <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required disabled={!facultyId} value={careerId === "" ? "" : String(careerId)} onValueChange={(value) => setCareerId(value ? Number(value) : "")}>
-                    <SelectTrigger id="career_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                      <SelectValue placeholder="Seleccionar Carrera" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {careers.map((c) => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Año Académico <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required disabled={!careerId} value={careerYearId === "" ? "" : String(careerYearId)} onValueChange={(value) => setCareerYearId(value ? Number(value) : "")}>
-                    <SelectTrigger id="career_year_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                      <SelectValue placeholder="Seleccionar Año" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {careerYears.map((y) => (
-                        <SelectItem key={y.id} value={String(y.id)}>{`Año ${toRoman(y.year_number ?? y.year)}`}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Aprovechamiento Docente</label>
-                  <Select value={academic_performance} onValueChange={setAcademicPerformance}>
-                    <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                      <SelectValue placeholder="No Defindo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Excelente">Excelente</SelectItem>
-                      <SelectItem value="Bien">Bien</SelectItem>
-                      <SelectItem value="Regular">Regular</SelectItem>
-                      <SelectItem value="Mal">Mal</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] overflow-hidden">
+                <div className="p-6 flex items-start gap-4 bg-[var(--color-surface-container-low)]">
+                  <div className="w-12 h-12 rounded-full bg-[var(--color-primary-selected)] flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+                    <span className="material-symbols-outlined">school</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-base font-bold text-[var(--color-primary-dark)]">Información Académica</h4>
+                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
+                      Completa los datos académicos en el orden correcto para mantener la relación entre facultad, carrera y año.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto <span className="text-[var(--color-error)]">*</span></label>
-                  <Select required value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "") } disabled={roomsLoading && roomOptions.length === 0}>
-                    <SelectTrigger id="room_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                      <SelectValue placeholder={roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roomOptions.map((room) => (
-                        <SelectItem key={room.id} value={String(room.id)}>
-                          {getRoomLabel(room)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-[var(--color-outline)] px-1">
-                    {roomsLoading
-                      ? "La lista se está cargando desde la API."
-                      : "Solo se muestran cuartos activos y con disponibilidad."}
-                  </p>
-                  {shouldShowCurrentRoom && currentRoomSnapshot ? (
-                    <p className="text-xs text-[var(--color-primary-dark)] px-1 font-semibold">
-                      Cuarto actual: {getRoomLabel(currentRoomSnapshot)}
-                    </p>
-                  ) : null}
+                <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Facultad <span className="text-[var(--color-error)]">*</span></label>
+                    <Select required value={facultyId === "" ? "" : String(facultyId)} onValueChange={(value) => setFacultyId(value ? Number(value) : "")}>
+                      <SelectTrigger id="faculty_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                        <SelectValue placeholder="Seleccionar Facultad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {faculties.map((f) => (
+                          <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Aprovechamiento Docente</label>
+                    <Select value={academic_performance} onValueChange={setAcademicPerformance}>
+                      <SelectTrigger className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                        <SelectValue placeholder="No definido" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Excelente">Excelente</SelectItem>
+                        <SelectItem value="Bien">Bien</SelectItem>
+                        <SelectItem value="Regular">Regular</SelectItem>
+                        <SelectItem value="Mal">Mal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Carrera <span className="text-[var(--color-error)]">*</span></label>
+                    <Select required disabled={!facultyId} value={careerId === "" ? "" : String(careerId)} onValueChange={(value) => setCareerId(value ? Number(value) : "")}>
+                      <SelectTrigger id="career_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                        <SelectValue placeholder={!facultyId ? "Seleccione primero una facultad" : careersLoading ? "Cargando carreras..." : "Seleccionar Carrera"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {careers.map((career) => (
+                          <SelectItem key={career.id} value={String(career.id)}>{career.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Año Académico <span className="text-[var(--color-error)]">*</span></label>
+                    <Select required disabled={!careerId} value={careerYearId === "" ? "" : String(careerYearId)} onValueChange={(value) => setCareerYearId(value ? Number(value) : "")}>
+                      <SelectTrigger id="career_year_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                        <SelectValue placeholder="Seleccionar Año" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {careerYears.map((y) => (
+                          <SelectItem key={y.id} value={String(y.id)}>{`Año ${toRoman(y.year_number ?? y.year)}`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              </section>
+
+              <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] overflow-hidden">
+                <div className="p-6 flex items-start gap-4 bg-[var(--color-surface-container-low)]">
+                  <div className="w-12 h-12 rounded-full bg-[var(--color-primary-selected)] flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+                    <span className="material-symbols-outlined">home</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-base font-bold text-[var(--color-primary-dark)]">Ubicación</h4>
+                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
+                      Esta asignación es opcional por ahora. Si no eliges un cuarto, podrás hacerlo después desde la sección de Cuartos.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 md:p-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Sede</label>
+                      <Select value={selectedSiteId === "" ? "" : String(selectedSiteId)} onValueChange={(value) => setSelectedSiteId(value ? Number(value) : "")}>
+                        <SelectTrigger id="site_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                          <SelectValue placeholder={sitesLoading ? "Cargando sedes..." : "Seleccionar Sede"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sites.map((site) => (
+                            <SelectItem key={site.id} value={String(site.id)}>{site.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Edificio</label>
+                      <Select disabled={!selectedSiteId || buildingsLoading || buildings.length === 0} value={selectedBuildingId === "" ? "" : String(selectedBuildingId)} onValueChange={(value) => setSelectedBuildingId(value ? Number(value) : "")}>
+                        <SelectTrigger id="building_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                          <SelectValue placeholder={!selectedSiteId ? "Seleccione primero una sede" : buildingsLoading ? "Cargando edificios..." : "Seleccionar Edificio"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {buildings.map((building) => (
+                            <SelectItem key={building.id} value={String(building.id)}>{building.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Ala</label>
+                      <Select disabled={!selectedBuildingId || wingsLoading || wings.length === 0} value={selectedWingId === "" ? "" : String(selectedWingId)} onValueChange={(value) => setSelectedWingId(value ? Number(value) : "")}>
+                        <SelectTrigger id="wing_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                          <SelectValue placeholder={!selectedBuildingId ? "Seleccione primero un edificio" : wingsLoading ? "Cargando alas..." : "Seleccionar Ala"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {wings.map((wing) => (
+                            <SelectItem key={wing.id} value={String(wing.id)}>{wing.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase tracking-wider text-[var(--color-outline)] font-bold px-1">Cuarto</label>
+                      <Select value={selectedRoomId === "" ? "" : String(selectedRoomId)} onValueChange={(value) => setSelectedRoomId(value ? Number(value) : "")} disabled={!selectedWingId || (roomsLoading && roomOptions.length === 0)}>
+                        <SelectTrigger id="room_select" className="w-full bg-[var(--color-surface-container-highest)] border-0 rounded-md px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none h-11 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+                          <SelectValue placeholder={!selectedWingId ? "Seleccione primero un ala" : roomsLoading ? "Cargando cuartos disponibles..." : "Seleccionar Cuarto"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomOptions.map((room) => (
+                            <SelectItem key={room.id} value={String(room.id)}>
+                              {getRoomLabel(room)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-[var(--color-outline-variant)]/20 flex items-center justify-between gap-4">
+                    <p className="min-w-0 flex-1 text-[10px] text-[var(--color-outline)] uppercase tracking-[0.18em] font-bold leading-none truncate">
+                      {locationSummaryText}
+                    </p>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
@@ -1075,20 +1443,57 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         </div>
       </BottomSheet>
       <BottomSheet open={!!validationErrors} onClose={() => setValidationErrors(null)} maxWidthClassName="max-w-lg">
-        <div className="p-6">
-          <h3 className="text-lg font-bold">Errores de validación</h3>
-          <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">Corrige los siguientes campos e inténtalo de nuevo:</p>
-          <ul className="mt-4 list-disc pl-5 space-y-2 text-sm">
+        <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
+          <div className="border-b border-[var(--color-primary)]/10 bg-[linear-gradient(180deg,var(--color-primary-selected)_0%,var(--color-surface-container-lowest)_100%)] p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center text-[var(--color-primary)]">
+                  <span className="material-symbols-outlined">info</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]">Validación</p>
+                  <h3 className="mt-1 text-lg font-bold text-[var(--color-primary-dark)]">Corrige los campos marcados</h3>
+                  <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">Pulsa cualquier error para saltar directamente al campo correspondiente.</p>
+                </div>
+              </div>
+              <div className="shrink-0 rounded-full bg-[var(--color-surface-container-lowest)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]/10">
+                {validationErrors?.length ?? 0} errores
+              </div>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6 space-y-3 bg-[var(--color-surface-container-lowest)]">
             {validationErrors?.map((item, idx) => (
-              <li key={idx} className="break-words">
-                <button onClick={() => focusField(item.key)} className="text-left w-full hover:underline">
-                  <strong className="uppercase text-[10px] tracking-wider mr-2">{item.key}</strong>: {item.message}
-                </button>
-              </li>
+              <button
+                key={idx}
+                onClick={() => focusField(item.key)}
+                className="group w-full cursor-pointer rounded-2xl border border-[var(--color-primary)]/10 bg-[var(--color-surface-container-low)] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--color-primary)]/20 hover:bg-[var(--color-primary-selected)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 h-10 w-1.5 shrink-0 rounded-full bg-[var(--color-primary)] transition-all group-hover:w-2"></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 items-center rounded-full bg-[var(--color-primary-selected)] px-2.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--color-primary)]">
+                        {item.key}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-outline)]">
+                        #{idx + 1}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm leading-relaxed text-[var(--color-on-surface)] break-words">
+                      {item.message}
+                    </div>
+                  </div>
+                  <div className="mt-1 shrink-0 text-[var(--color-primary)] opacity-80 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100">
+                    <span className="material-symbols-outlined text-[18px] leading-none">north_east</span>
+                  </div>
+                </div>
+              </button>
             ))}
-          </ul>
-          <div className="mt-6 flex justify-end">
-            <Button variant="outline" onClick={() => setValidationErrors(null)}>Cerrar</Button>
+          </div>
+          <div className="flex items-center justify-end border-t border-[var(--color-outline-variant)]/20 bg-[var(--color-surface-container-lowest)] p-6">
+            <Button variant="outline" onClick={() => setValidationErrors(null)} className="cursor-pointer border-[var(--color-primary)]/15 text-[var(--color-primary-dark)] hover:bg-[var(--color-primary-selected)]">
+              Cerrar
+            </Button>
           </div>
         </div>
       </BottomSheet>
