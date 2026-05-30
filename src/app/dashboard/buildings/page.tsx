@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Site } from "@/types/models";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,22 @@ export default function BuildingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState<number | "all">("all");
+  const [count, setCount] = useState<number>(0);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [page, setPage] = useState<number>(1);
 
-  const load = async (siteId?: number) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const load = async (opts?: { siteId?: number; page?: number; page_size?: number }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await infrastructureService.getBuildings(siteId);
+      const res = await infrastructureService.getBuildings({ siteId: opts?.siteId, page: opts?.page, page_size: opts?.page_size });
       setBuildings(res.results ?? []);
+      setCount(res.count ?? 0);
+      setPage(opts?.page ?? 1);
+      setPageSize(opts?.page_size ?? pageSize);
     } catch (err: any) {
       setError(err?.message || "Error cargando edificios");
     } finally {
@@ -38,7 +48,16 @@ export default function BuildingsPage() {
       } catch (err) {
         // ignore — site selector can be empty
       }
-      await load();
+      // Read initial query params
+      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const qPage = Number(sp.get("page") || searchParams?.get("page") || "1");
+      const qPageSize = Number(sp.get("page_size") || searchParams?.get("page_size") || "10");
+      const qSite = sp.get("site") || searchParams?.get("site");
+      const siteId = qSite ? Number(qSite) : undefined;
+      setPage(qPage);
+      setPageSize(qPageSize);
+      setSiteFilter(siteId ?? "all");
+      await load({ siteId, page: qPage, page_size: qPageSize });
     };
 
     init();
@@ -49,12 +68,15 @@ export default function BuildingsPage() {
   }, []);
 
   useEffect(() => {
-    if (siteFilter === "all") {
-      load();
-    } else {
-      load(siteFilter as number);
-    }
-  }, [siteFilter]);
+    // sync url when siteFilter/page/pageSize change (but not search)
+    const params = new URLSearchParams();
+    if (siteFilter !== "all") params.set("site", String(siteFilter));
+    if (page) params.set("page", String(page));
+    if (pageSize) params.set("page_size", String(pageSize));
+    const qs = params.toString();
+    router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    load({ siteId: siteFilter === "all" ? undefined : (siteFilter as number), page, page_size: pageSize });
+  }, [siteFilter, page, pageSize]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -171,7 +193,23 @@ export default function BuildingsPage() {
 
         <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
           <div className="text-sm font-medium text-on-surface-variant">Mostrando {filtered.length} edificios</div>
-          <div></div>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            <div className="text-sm text-on-surface-variant">Página {page} • {Math.max(1, Math.ceil(count / pageSize))}</div>
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+              disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <span className="material-symbols-outlined text-lg">chevron_right</span>
+            </button>
+          </div>
         </footer>
       </section>
     </div>

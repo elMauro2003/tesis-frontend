@@ -10,9 +10,13 @@ export const infrastructureService = {
   deleteSite: (id: number): Promise<void> => fetchClient(`/api/v1/sedes/${id}/`, { method: "DELETE" }),
   
   // Edificios
-  getBuildings: (siteId?: number): Promise<PaginatedResponse<Building>> => {
-    const query = siteId ? `?site=${siteId}` : "";
-    return fetchClient(`/api/v1/edificios/${query}`);
+  getBuildings: (opts?: { siteId?: number; page?: number; page_size?: number }): Promise<PaginatedResponse<Building>> => {
+    const params = new URLSearchParams();
+    if (opts?.siteId) params.append("site", String(opts.siteId));
+    if (opts?.page) params.append("page", String(opts.page));
+    if (opts?.page_size) params.append("page_size", String(opts.page_size));
+    const qs = params.toString();
+    return fetchClient(`/api/v1/edificios/${qs ? `?${qs}` : ""}`);
   },
   getBuildingById: (id: number): Promise<Building> => fetchClient(`/api/v1/edificios/${id}/`),
   createBuilding: (data: Omit<Building, "id">): Promise<Building> => fetchClient("/api/v1/edificios/", { method: "POST", body: JSON.stringify(data) }),
