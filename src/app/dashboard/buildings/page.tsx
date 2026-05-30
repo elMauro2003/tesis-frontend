@@ -16,6 +16,8 @@ export default function BuildingsPage() {
   const [count, setCount] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(10);
   const [page, setPage] = useState<number>(1);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +31,8 @@ export default function BuildingsPage() {
       setCount(res.count ?? 0);
       setPage(opts?.page ?? 1);
       setPageSize(opts?.page_size ?? pageSize);
+      setNextUrl(res.next ?? null);
+      setPrevUrl(res.previous ?? null);
     } catch (err: any) {
       setError(err?.message || "Error cargando edificios");
     } finally {
@@ -68,15 +72,57 @@ export default function BuildingsPage() {
   }, []);
 
   useEffect(() => {
-    // sync url when siteFilter/page/pageSize change (but not search)
+    // sync url when siteFilter/page/pageSize change (preserve search)
     const params = new URLSearchParams();
     if (siteFilter !== "all") params.set("site", String(siteFilter));
     if (page) params.set("page", String(page));
     if (pageSize) params.set("page_size", String(pageSize));
+    if (search) params.set("search", search);
     const qs = params.toString();
     router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
     load({ siteId: siteFilter === "all" ? undefined : (siteFilter as number), page, page_size: pageSize });
   }, [siteFilter, page, pageSize]);
+
+  // debounce updating URL for search and preserve it
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (search) params.set("search", search);
+      else params.delete("search");
+      // when search changes, reset to page 1
+      params.set("page", "1");
+      router.replace(`${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+      setPage(1);
+      load({ siteId: siteFilter === "all" ? undefined : (siteFilter as number), page: 1, page_size: pageSize });
+    }, 450);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const parsePageFromUrl = (url: string | null): number | undefined => {
+    if (!url) return undefined;
+    try {
+      const u = new URL(url, typeof window !== "undefined" ? window.location.origin : undefined);
+      const p = u.searchParams.get("page");
+      return p ? Number(p) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const goToNext = () => {
+    const p = parsePageFromUrl(nextUrl);
+    if (p) setPage(p);
+    else setPage((c) => c + 1);
+  };
+
+  const goToPrev = () => {
+    const p = parsePageFromUrl(prevUrl);
+    if (p) setPage(p);
+    else setPage((c) => Math.max(1, c - 1));
+  };
+
+  const goToFirst = () => setPage(1);
+  const goToLast = () => setPage(Math.max(1, Math.ceil(count / pageSize)));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -193,22 +239,55 @@ export default function BuildingsPage() {
 
         <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
           <div className="text-sm font-medium text-on-surface-variant">Mostrando {filtered.length} edificios</div>
-          <div className="flex items-center gap-2">
-            <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+                disabled={page <= 1}
+                onClick={goToFirst}
+              >
+                <span className="material-symbols-outlined text-lg">first_page</span>
+              </button>
+              <button
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+                disabled={page <= 1}
+                onClick={goToPrev}
+              >
+                <span className="material-symbols-outlined text-lg">chevron_left</span>
+              </button>
+            </div>
+
             <div className="text-sm text-on-surface-variant">Página {page} • {Math.max(1, Math.ceil(count / pageSize))}</div>
-            <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-              disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
-            </button>
+
+            <div className="flex items-center gap-1">
+              <button
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+                disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
+                onClick={goToNext}
+              >
+                <span className="material-symbols-outlined text-lg">chevron_right</span>
+              </button>
+              <button
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
+                disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
+                onClick={goToLast}
+              >
+                <span className="material-symbols-outlined text-lg">last_page</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-on-surface-variant">Mostrar:</label>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="bg-surface-container-low rounded-lg px-3 py-1 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
           </div>
         </footer>
       </section>
