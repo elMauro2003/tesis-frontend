@@ -9,6 +9,29 @@ const isRoomAvailable = (room: Room) => {
 export const infrastructureService = {
   // Sedes
   getSites: (): Promise<PaginatedResponse<Site>> => fetchClient("/api/v1/sedes/"),
+  getAllSites: async (): Promise<PaginatedResponse<Site>> => {
+    const firstPage = await infrastructureService.getSites();
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const pageSize = firstPage.results.length || 20;
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        fetchClient<PaginatedResponse<Site>>(`/api/v1/sedes/?page=${page}`)
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
   getSiteById: (id: number): Promise<Site> => fetchClient(`/api/v1/sedes/${id}/`),
   createSite: (data: Omit<Site, "id">): Promise<Site> => fetchClient("/api/v1/sedes/", { method: "POST", body: JSON.stringify(data) }),
   updateSite: (id: number, data: Partial<Site>): Promise<Site> => fetchClient(`/api/v1/sedes/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),

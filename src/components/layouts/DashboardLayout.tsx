@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface DashboardLayoutProps {
@@ -10,6 +11,29 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuthStore();
+  const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      return pathname === '/dashboard' || pathname.startsWith('/dashboard/estudiantes');
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const navLinkClassName = (href: string) => {
+    const active = isActive(href);
+
+    return active
+      ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--color-primary-selected)] text-primary border-l-4 border-primary transition-all group'
+      : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--color-on-surface-variant)] hover:bg-surface-container-low transition-all group';
+  };
+
+  const navIconClassName = (href: string) => {
+    return isActive(href)
+      ? 'material-symbols-outlined text-primary'
+      : 'material-symbols-outlined text-outline group-hover:text-primary';
+  };
 
   return (
     <div className="bg-background text-on-surface min-h-screen font-body w-full">
@@ -26,33 +50,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
         
         <nav className="flex-1 space-y-1">
-          <Link href="/dashboard/reports" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-            <span className="material-symbols-outlined text-outline group-hover:text-primary">analytics</span>
+          <Link href="/dashboard/reports" className={navLinkClassName('/dashboard/reports')}>
+            <span className={navIconClassName('/dashboard/reports')}>analytics</span>
             <span className="font-medium text-sm">Reports</span>
           </Link>
-          <Link href="/dashboard/sedes" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-            <span className="material-symbols-outlined text-outline group-hover:text-primary">location_city</span>
+          <Link href="/dashboard/sedes" className={navLinkClassName('/dashboard/sedes')}>
+            <span className={navIconClassName('/dashboard/sedes')}>location_city</span>
             <span className="font-medium text-sm">Sedes</span>
           </Link>
-          <Link href="/dashboard/edificios" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-             <span className="material-symbols-outlined text-outline group-hover:text-primary">domain</span>
+          <Link href="/dashboard/edificios" className={navLinkClassName('/dashboard/edificios')}>
+             <span className={navIconClassName('/dashboard/edificios')}>domain</span>
              <span className="font-medium text-sm">Edificios</span>
           </Link>
-          <Link href="/dashboard/cuartos" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-             <span className="material-symbols-outlined text-outline group-hover:text-primary">bed</span>
+          <Link href="/dashboard/cuartos" className={navLinkClassName('/dashboard/cuartos')}>
+             <span className={navIconClassName('/dashboard/cuartos')}>bed</span>
              <span className="font-medium text-sm">Cuartos</span>
           </Link>
-          {/* Active Navigation Link for Estudiantes */}
-          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--color-primary-selected)] text-primary border-l-4 border-primary transition-all group">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
+          <Link href="/dashboard" className={navLinkClassName('/dashboard')}>
+            <span className={navIconClassName('/dashboard')} style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
             <span className="font-semibold text-sm">Estudiantes</span>
           </Link>
-          <Link href="/dashboard/quejas" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-            <span className="material-symbols-outlined text-outline group-hover:text-primary">emergency_home</span>
+          <Link href="/dashboard/quejas" className={navLinkClassName('/dashboard/quejas')}>
+            <span className={navIconClassName('/dashboard/quejas')}>emergency_home</span>
             <span className="font-medium text-sm">Quejas</span>
           </Link>
-          <Link href="/dashboard/anuncios" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-            <span className="material-symbols-outlined text-outline group-hover:text-primary">campaign</span>
+          <Link href="/dashboard/anuncios" className={navLinkClassName('/dashboard/anuncios')}>
+            <span className={navIconClassName('/dashboard/anuncios')}>campaign</span>
             <span className="font-medium text-sm">Anuncios</span>
           </Link>
         </nav>
