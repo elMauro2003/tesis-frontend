@@ -1,7 +1,11 @@
 export interface Site {
   id: number;
   name: string;
-  address: string;
+  address?: string | null;
+  description?: string | null;
+  building_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Building {

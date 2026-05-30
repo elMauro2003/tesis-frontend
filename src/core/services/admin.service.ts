@@ -2,12 +2,34 @@ import { fetchClient } from "@/lib/fetchClient";
 import { User, Role } from "@/types/auth";
 import { PaginatedResponse } from "@/types/models";
 
+export interface GetUsersFilters {
+  search?: string;
+  page?: number;
+  page_size?: number;
+  ordering?: string;
+}
+
+const buildQueryString = (filters: GetUsersFilters = {}) => {
+  const params = new URLSearchParams();
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") {
+      params.append(key, String(value));
+    }
+  });
+
+  return params.toString();
+};
+
 export const adminService = {
   // Roles
   getRoles: (): Promise<Role[]> => fetchClient("/api/v1/roles/"),
 
   // Users
-  getUsers: (): Promise<PaginatedResponse<User>> => fetchClient("/api/v1/usuarios/"),
+  getUsers: (filters: GetUsersFilters = {}): Promise<PaginatedResponse<User>> => {
+    const queryString = buildQueryString(filters);
+    return fetchClient<PaginatedResponse<User>>(`/api/v1/auth/usuarios/${queryString ? `?${queryString}` : ""}`);
+  },
   
   getUserById: (id: number): Promise<User> => fetchClient(`/api/v1/usuarios/${id}/`),
   

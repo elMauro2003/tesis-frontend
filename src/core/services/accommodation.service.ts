@@ -1,6 +1,12 @@
 import { fetchClient } from "@/lib/fetchClient";
 import { RoomAssignment, RoomDuty, PaginatedResponse } from "@/types/models";
 
+export interface RoomAssignmentCreatePayload {
+  student: number;
+  room: number;
+  assigned_date: string;
+}
+
 export const accommodationService = {
   // --- Asignaciones de Cuartos ---
   getAssignments: (filters?: { student?: number; room?: number; is_active?: boolean; page?: number }): Promise<PaginatedResponse<RoomAssignment>> => {
@@ -16,9 +22,43 @@ export const accommodationService = {
 
   getAssignmentById: (id: number): Promise<RoomAssignment> => fetchClient(`/api/v1/asignaciones/${id}/`),
   
-  getActiveAssignments: (): Promise<PaginatedResponse<RoomAssignment>> => fetchClient("/api/v1/asignaciones/activas/"),
+  getActiveAssignments: (): Promise<PaginatedResponse<RoomAssignment> | RoomAssignment[]> => fetchClient("/api/v1/asignaciones/activas/"),
+
+  getAllActiveAssignments: async (): Promise<PaginatedResponse<RoomAssignment>> => {
+    const response = await accommodationService.getActiveAssignments();
+
+    if (Array.isArray(response)) {
+      return {
+        count: response.length,
+        next: null,
+        previous: null,
+        results: response,
+      };
+    }
+
+    const firstPage = response;
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const pageSize = firstPage.results.length || 20;
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        accommodationService.getAssignments({ is_active: true, page })
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
   
-  createAssignment: (data: Omit<RoomAssignment, "id" | "is_active">): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
+  createAssignment: (data: RoomAssignmentCreatePayload): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
   
   releaseAssignment: (id: number): Promise<void> => fetchClient(`/api/v1/asignaciones/${id}/liberar/`, { method: "POST" }),
 

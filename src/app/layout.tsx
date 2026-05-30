@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Inter } from "next/font/google";
 import "../styles/globals.css";
 import { AppProviders } from "@/providers/AppProviders";
+import { Toaster } from "@/components/ui/sonner";
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -19,12 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${manrope.variable} h-full antialiased`}>
+    <html lang="es" className={`${manrope.variable} ${inter.variable} h-full antialiased`}>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col font-body selection:bg-primary-fixed selection:text-primary">
         <AppProviders>{children}</AppProviders>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

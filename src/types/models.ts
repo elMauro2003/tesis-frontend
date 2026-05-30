@@ -13,6 +13,7 @@ export interface Career {
 export interface AcademicYear {
   id: number;
   year_number: number;
+  year?: number;
   career: Career | number;
 }
 
@@ -26,6 +27,11 @@ export interface Group {
 export interface Site {
   id: number;
   name: string;
+  address?: string | null;
+  description?: string | null;
+  building_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Building {
@@ -47,18 +53,110 @@ export interface Room {
   capacity: number;
   is_active: boolean;
   occupancy?: number;
+  current_occupancy?: number;
+  available_spots?: number;
   is_full?: boolean;
 }
 
 // Gestión de Personas
+export interface StudentCreateRequest {
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  password?: string;
+  ci: string;
+  student_id: string;
+  birth_date: string;
+  gender: string;
+  career?: number;
+  year?: number;
+  group?: number;
+  address?: string;
+  province?: string;
+  municipality?: string;
+  phone?: string;
+  emergency_phone?: string;
+  illnesses?: string;
+  medications?: string;
+  is_militant?: boolean;
+  is_cadet_minint?: boolean;
+  is_cadet_far?: boolean;
+  academic_performance?: string;
+  disciplinary_process?: string;
+}
+
 export interface Student {
   id: number;
-  user_id?: number;
-  first_name: string;
-  last_name: string;
-  gender: 'M' | 'F';
+  ci: string;
+  student_id: string;
+  full_name: string;
+  birth_date: string;
+  gender: string;
+  created_at?: string;
+  province?: string;
+  municipality?: string;
+  illnesses?: string;
+  medications?: string;
+  is_cadet_minint?: boolean;
+  is_cadet_far?: boolean;
+  academic_performance?: string;
+  disciplinary_process?: string;
+  group: {
+    id: number;
+    name: string;
+    career_year: {
+      year: number;
+      career: {
+        id: number;
+        name: string;
+      };
+    };
+  };
+  group_name?: string;
+  address?: string;
+  phone?: string;
+  emergency_phone?: string;
+  // Detailed shapes returned by the detail endpoints
+  group_detail?: {
+    id: number;
+    name: string;
+    career_year: number;
+    career_year_detail?: {
+      id: number;
+      career: number;
+      career_name: string;
+      year: number;
+      year_display?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+    created_at?: string;
+    updated_at?: string;
+  };
+  age?: number;
   is_militant: boolean;
-  group: Group | number;
+  current_room?: {
+    number?: string;
+    wing?: string;
+    building?: string;
+  } | null;
+  // Alternative detail shape provided by detail endpoint
+  current_room_info?: {
+    assignment_id?: number;
+    room_id?: number;
+    room_number?: string;
+    wing?: string;
+    building?: string;
+    assigned_date?: string;
+  } | null;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  } | number;
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface Teacher {
@@ -92,8 +190,11 @@ export interface RoomAssignment {
   id: number;
   student: Student | number;
   room: Room | number;
-  start_date: string;
-  end_date?: string;
+  assigned_date?: string;
+  released_date?: string | null;
+  assigned_by?: string | number | { id: number; username?: string };
+  start_date?: string;
+  end_date?: string | null;
   is_active: boolean;
 }
 

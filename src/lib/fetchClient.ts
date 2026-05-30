@@ -1,6 +1,65 @@
 import { AuthTokens } from "@/types/auth";
 import { API_URL } from "@/configs/env";
 
+const extractHumanErrorMessage = (payload: unknown): string | null => {
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const preferredKeys = ["message", "detail", "error"];
+
+  for (const key of preferredKeys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+    if (value && typeof value === "object") {
+      const nestedMessage = extractHumanErrorMessage(value);
+      if (nestedMessage) {
+        return nestedMessage;
+      }
+    }
+  }
+
+  const nonFieldErrors = record.non_field_errors;
+  if (Array.isArray(nonFieldErrors)) {
+    const firstString = nonFieldErrors.find((item): item is string => typeof item === "string" && item.trim().length > 0);
+    if (firstString) {
+      return firstString.trim();
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+
+    if (Array.isArray(value)) {
+      const firstString = value.find((item): item is string => typeof item === "string" && item.trim().length > 0);
+      if (firstString) {
+        return firstString.trim();
+      }
+    }
+
+    if (value && typeof value === "object") {
+      const nestedMessage = extractHumanErrorMessage(value);
+      if (nestedMessage) {
+        return nestedMessage;
+      }
+    }
+  }
+
+  return null;
+};
+
+const GENERIC_400_MESSAGE = "Los datos enviados no son válidos. Revisa los campos e inténtalo de nuevo.";
+
 export class FetchError extends Error {
   constructor(
     public status: number,
@@ -75,7 +134,15 @@ export const fetchClient = async <T>(
     } catch {
       errorData = null;
     }
-    throw new FetchError(response.status, response.statusText, errorData);
+
+    const extractedMessage = extractHumanErrorMessage(errorData);
+    const normalizedMessage = response.status === 400
+      ? (extractedMessage && extractedMessage !== "Los datos proporcionados no son válidos." && extractedMessage !== "Bad Request"
+          ? extractedMessage
+          : GENERIC_400_MESSAGE)
+      : (extractedMessage || "Ocurrió un error al procesar la solicitud. Intente nuevamente.");
+
+    throw new FetchError(response.status, normalizedMessage, errorData);
   }
 
   // 204 No Content has no body
