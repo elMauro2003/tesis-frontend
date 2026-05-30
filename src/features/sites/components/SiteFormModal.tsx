@@ -134,22 +134,22 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
   return (
     <BottomSheet open={open} onClose={onClose} maxWidthClassName="max-w-lg">
       <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
-        <div className="bg-blue-50 p-6 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-600">
-            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>location_city</span>
+        <div className="bg-[var(--color-surface-container-lowest)] p-6 flex items-start gap-4 border-b border-[var(--color-outline-variant)]/15">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-selected)] flex items-center justify-center shrink-0 text-[var(--color-primary)]">
+            <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>add_business</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-extrabold text-blue-900 leading-tight">{title}</h3>
-            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">{subtitle}</p>
+            <h3 className="text-xl font-extrabold text-[var(--color-primary-dark)] leading-tight font-headline">{title}</h3>
+            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)] leading-relaxed">{subtitle}</p>
           </div>
           <button type="button" className="text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer" onClick={onClose} aria-label="Cerrar modal">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider px-1">Nombre de la sede</label>
+            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Nombre oficial de la sede</label>
             <Input
               value={values.name}
               onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
@@ -159,7 +159,7 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider px-1">Dirección / Ubicación</label>
+            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Dirección física</label>
             <Input
               value={values.address}
               onChange={(event) => setValues((current) => ({ ...current, address: event.target.value }))}
@@ -169,7 +169,7 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider px-1">Descripción</label>
+            <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Descripción</label>
             <Textarea
               value={values.description}
               onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
@@ -180,11 +180,11 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
           </div>
         </div>
 
-        <footer className="border-t border-[var(--color-outline-variant)]/15 p-6 flex justify-end items-center gap-3 bg-[var(--color-surface-container-lowest)]">
+        <footer className="border-t border-[var(--color-outline-variant)]/15 p-5 flex justify-end items-center gap-3 bg-[var(--color-surface-container-low)]">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] transition-all cursor-pointer"
             disabled={isPending}
           >
             Cancelar
@@ -193,7 +193,7 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
             type="button"
             onClick={handleSubmit}
             disabled={isPending}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-[var(--color-on-primary)] bg-[var(--color-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-on-primary-fixed-variant)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-[var(--color-on-primary)] bg-[var(--color-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-on-primary-fixed-variant)] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">save</span>
             {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear sede"}

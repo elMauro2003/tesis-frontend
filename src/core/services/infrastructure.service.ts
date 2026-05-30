@@ -42,6 +42,29 @@ export const infrastructureService = {
     const query = siteId ? `?site=${siteId}` : "";
     return fetchClient(`/api/v1/edificios/${query}`);
   },
+  getAllBuildings: async (siteId?: number): Promise<PaginatedResponse<Building>> => {
+    const firstPage = await infrastructureService.getBuildings(siteId);
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const pageSize = firstPage.results.length || 20;
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        fetchClient<PaginatedResponse<Building>>(`/api/v1/edificios/?${siteId ? `site=${siteId}&` : ""}page=${page}`)
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
   getBuildingById: (id: number): Promise<Building> => fetchClient(`/api/v1/edificios/${id}/`),
   createBuilding: (data: Omit<Building, "id">): Promise<Building> => fetchClient("/api/v1/edificios/", { method: "POST", body: JSON.stringify(data) }),
   updateBuilding: (id: number, data: Partial<Building>): Promise<Building> => fetchClient(`/api/v1/edificios/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -51,6 +74,29 @@ export const infrastructureService = {
   getWings: (buildingId?: number): Promise<PaginatedResponse<Wing>> => {
     const query = buildingId ? `?building=${buildingId}` : "";
     return fetchClient(`/api/v1/alas/${query}`);
+  },
+  getAllWings: async (buildingId?: number): Promise<PaginatedResponse<Wing>> => {
+    const firstPage = await infrastructureService.getWings(buildingId);
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const pageSize = firstPage.results.length || 20;
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        fetchClient<PaginatedResponse<Wing>>(`/api/v1/alas/?${buildingId ? `building=${buildingId}&` : ""}page=${page}`)
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
   },
   getWingById: (id: number): Promise<Wing> => fetchClient(`/api/v1/alas/${id}/`),
   createWing: (data: Omit<Wing, "id">): Promise<Wing> => fetchClient("/api/v1/alas/", { method: "POST", body: JSON.stringify(data) }),
