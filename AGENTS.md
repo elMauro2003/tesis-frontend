@@ -17,6 +17,8 @@ These rules are mandatory for all future work in this repository.
 - Destructive actions must use the destructive style.
 - Success or positive actions should use the success style when needed.
 - Avoid mixing the same action type with different colors or hover states across features.
+- Primary CTAs and active segmented filters must keep a solid non-white background on hover; prefer brightness, shadow, or border adjustments over swapping to light surfaces.
+- Reuse shared button/filter components for add actions and segmented states instead of custom hover classes per page.
 
 ## Layout Standards
 

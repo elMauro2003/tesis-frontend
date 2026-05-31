@@ -25,11 +25,12 @@ export function DashboardSegmentedFilter({ value, onValueChange, options, classN
             key={option.value}
             type="button"
             onClick={() => onValueChange(option.value)}
+            aria-pressed={active}
             className={cn(
-              "rounded-xl px-5 py-2 text-sm font-semibold transition-all cursor-pointer",
+              "rounded-xl px-5 py-2 text-sm font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-fixed",
               active
-                ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)]"
-                : "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-lowest)] hover:text-[var(--color-on-surface)]"
+                ? "border border-transparent bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:brightness-95 hover:shadow-[0_12px_24px_rgba(0,55,176,0.22)]"
+                : "border border-transparent text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-lowest)] hover:text-[var(--color-on-surface)]"
             )}
           >
             {option.label}
