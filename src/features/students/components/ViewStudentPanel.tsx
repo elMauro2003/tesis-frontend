@@ -188,7 +188,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[var(--color-surface)]">
           {/* Contacto y Origen */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Contacto y Origen</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div className="col-span-2">
@@ -211,7 +211,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           </section>
 
           {/* Academia y Ubicación */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Academia y Ubicación</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div>
@@ -242,7 +242,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           </section>
 
           {/* Salud y Perfil */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Salud y Perfil</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div>

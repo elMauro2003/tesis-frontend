@@ -110,7 +110,7 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Evaluación</label>
                 <Select value={grade} onValueChange={setGrade}>
-                  <SelectTrigger className="w-full bg-[var(--color-surface-container-lowest)] border-none rounded-lg text-sm text-[var(--color-on-surface)] font-medium shadow-none h-11">
+                  <SelectTrigger className="w-full h-11 rounded-lg bg-[var(--color-surface-container-lowest)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                     <SelectValue placeholder="Seleccionar evaluación" />
                   </SelectTrigger>
                   <SelectContent>

@@ -7,22 +7,92 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
 import { DeleteStudentModal } from "@/features/students/components/DeleteStudentModal";
 import { EvaluateStudentModal } from "@/features/students/components/EvaluateStudentModal";
-import { RoomAssignment, Student } from "@/types/models";
+import { AcademicYear, Building, Career, Faculty, Group, Room, RoomAssignment, Student, Wing } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
+import { infrastructureService } from '@/core/services/infrastructure.service';
+import { academicService } from '@/core/services/academic.service';
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
+import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { SearchField } from "@/components/shared/SearchField";
 
-type CareerOption = { id: number; name: string; faculty?: any };
-type GroupOption = { id: number; name: string; career_year?: { career?: { id: number } } | number };
+type PaginatedList<T> = {
+  results?: T[];
+  next?: string | null;
+};
+
+type AnyRecord = Record<string, unknown>;
+
+const getNumericId = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) return Number(value);
+  if (value && typeof value === 'object' && 'id' in value) return getNumericId((value as AnyRecord).id);
+  return null;
+};
+
+const getGroupCareerId = (group: unknown): number | null => {
+  if (!group || typeof group !== 'object') return null;
+
+  const careerYearCandidate = (group as AnyRecord).career_year_detail ?? (group as AnyRecord).career_year ?? null;
+  if (!careerYearCandidate) return null;
+
+  const careerCandidate = typeof careerYearCandidate === 'object'
+    ? (careerYearCandidate as AnyRecord).career ?? null
+    : null;
+
+  return getNumericId(careerCandidate) ?? getNumericId(careerYearCandidate);
+};
+
+const getFacultyIdFromCareer = (career: unknown): number | null => {
+  if (!career || typeof career !== 'object') return null;
+  return getNumericId((career as AnyRecord).faculty ?? (career as AnyRecord).faculty_id ?? null);
+};
+
+const getStudentGroupLike = (student: Student) => ((student as unknown) as AnyRecord).group_detail ?? ((student as unknown) as AnyRecord).group ?? null;
 
 const getAssignmentStudentId = (assignment: RoomAssignment): number | null => {
   if (typeof assignment.student === 'number') return assignment.student;
   return assignment.student?.id ?? null;
+};
+
+const toLowerText = (value: unknown) => typeof value === 'string' ? value.toLowerCase() : '';
+
+const getRoomWingLike = (room: unknown) => {
+  if (!room || typeof room !== 'object') return null;
+  return (room as AnyRecord).wing ?? null;
+};
+
+const getWingBuildingLike = (wing: unknown) => {
+  if (!wing || typeof wing !== 'object') return null;
+  return (wing as AnyRecord).building ?? null;
+};
+
+const toRelativeEndpoint = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
+};
+
+const fetchAllPages = async <T,>(endpoint: string): Promise<T[]> => {
+  const results: T[] = [];
+  let nextEndpoint: string | null = endpoint;
+  let safetyCounter = 0;
+
+  while (nextEndpoint && safetyCounter < 20) {
+    const response: PaginatedList<T> = await fetchClient(nextEndpoint);
+    results.push(...(response.results ?? []));
+    nextEndpoint = response.next ? toRelativeEndpoint(response.next) : null;
+    safetyCounter += 1;
+  }
+
+  return results;
 };
 
 export default function DashboardPage() {
@@ -42,20 +112,25 @@ export default function DashboardPage() {
   const [isMilitant, setIsMilitant] = useState<boolean | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<'all' | 'with_room' | 'without_room'>('all');
 
-  const [careers, setCareers] = useState<CareerOption[]>([]);
-  const [faculties, setFaculties] = useState<Array<{id:number;name:string}>>([]);
-  const [buildings, setBuildings] = useState<Array<{id:number;name:string}>>([]);
-  const [groups, setGroups] = useState<GroupOption[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [wings, setWings] = useState<Wing[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
   const PAGE_SIZE = 10;
 
+  const needsAssignments = buildingId !== 'all' || locationFilter !== 'all';
+
   const activeAssignmentsQuery = useQuery({
     queryKey: ['active-assignments'],
     queryFn: () => accommodationService.getAllActiveAssignments(),
-    enabled: locationFilter !== 'all',
+    enabled: needsAssignments,
     staleTime: 60 * 1000,
   });
 
@@ -81,15 +156,12 @@ export default function DashboardPage() {
     queryKey: [
       'students-all',
       debouncedSearch,
-      facultyId,
-      buildingId,
       gender,
       isMilitant,
     ],
     queryFn: () => studentService.getAllStudents({
       page_size: 100,
       search: debouncedSearch,
-      // Faculty is filtered locally, building locally if no api support,
       gender: gender === 'all' ? undefined : gender,
       is_militant: isMilitant === 'all' ? undefined : isMilitant,
     }),
@@ -97,65 +169,132 @@ export default function DashboardPage() {
   });
 
   const allStudents = studentsQuery.data?.results ?? [];
-  // Helper to normalize student.group into a Group-like object from groups (if needed)
-  const resolveStudentGroup = (student: Student) => {
-    const grp = (student as any).group;
-    if (!grp) return null;
-    // already object with career_year
-    if (typeof grp === 'object' && grp.career_year) return grp;
-    // if group is numeric id
-    if (typeof grp === 'number') return groups.find(g => g.id === grp) as any || null;
-    // if group is string name, try to find by name
-    if (typeof grp === 'string') return groups.find(g => g.name === grp) as any || null;
+  const groupById = useMemo(() => new Map(groups.map((group) => [group.id, group])), [groups]);
+  const academicYearById = useMemo(() => new Map(academicYears.map((year) => [year.id, year])), [academicYears]);
+  const careerById = useMemo(() => new Map(careers.map((career) => [career.id, career])), [careers]);
+  const facultyById = useMemo(() => new Map(faculties.map((faculty) => [faculty.id, faculty])), [faculties]);
+  const wingById = useMemo(() => new Map(wings.map((wing) => [wing.id, wing])), [wings]);
+  const roomById = useMemo(() => new Map(rooms.map((room) => [room.id, room])), [rooms]);
+  const roomBySignature = useMemo(() => {
+    const map = new Map<string, Room>();
+
+    for (const room of rooms) {
+      const wing = getRoomWingLike(room);
+      const wingKey = getNumericId(wing) ?? toLowerText(wing && typeof wing === 'object' ? (wing as AnyRecord).name : wing);
+      map.set(`${String(room.number).toLowerCase()}|${wingKey}`, room);
+    }
+
+    return map;
+  }, [rooms]);
+
+  const resolveCareerIdFromStudent = useMemo(() => {
+    return (student: Student): number | null => {
+      const directGroup = getStudentGroupLike(student);
+      const directCareerId = getGroupCareerId(directGroup);
+      if (directCareerId !== null) return directCareerId;
+
+      const groupId = getNumericId(((student as unknown) as AnyRecord).group);
+      if (groupId !== null) {
+        const group = groupById.get(groupId);
+        if (group) {
+          const academicYearId = getNumericId(group.career_year);
+          if (academicYearId !== null) {
+            const academicYear = academicYearById.get(academicYearId);
+            if (academicYear) {
+              const careerId = getNumericId(academicYear.career);
+              if (careerId !== null) return careerId;
+            }
+          }
+        }
+      }
+
+      return null;
+    };
+  }, [groupById, academicYearById]);
+
+  const resolveFacultyIdFromStudent = useMemo(() => {
+    return (student: Student): number | null => {
+      const careerId = resolveCareerIdFromStudent(student);
+      if (careerId === null) return null;
+
+      const career = careerById.get(careerId);
+      if (!career) return null;
+
+      return getFacultyIdFromCareer(career);
+    };
+  }, [careerById, resolveCareerIdFromStudent]);
+
+  const resolveRoomFromAssignment = (assignmentRoom: Room | number | null | undefined) => {
+    const roomId = getNumericId(assignmentRoom);
+    if (roomId !== null && roomById.has(roomId)) {
+      return roomById.get(roomId) ?? null;
+    }
+
+    if (assignmentRoom && typeof assignmentRoom === 'object') {
+      const signatureWing = getRoomWingLike(assignmentRoom);
+      const signatureWingKey = getNumericId(signatureWing) ?? toLowerText(signatureWing && typeof signatureWing === 'object' ? ((signatureWing as unknown) as AnyRecord).name : signatureWing);
+      const signatureNumber = ((assignmentRoom as unknown) as AnyRecord).number;
+      if (typeof signatureNumber === 'string' || typeof signatureNumber === 'number') {
+        const room = roomBySignature.get(`${String(signatureNumber).toLowerCase()}|${signatureWingKey}`);
+        if (room) return room;
+
+        return rooms.find((candidate) => {
+          const candidateWing = getRoomWingLike(candidate);
+          const candidateWingKey = getNumericId(candidateWing) ?? toLowerText(candidateWing && typeof candidateWing === 'object' ? ((candidateWing as unknown) as AnyRecord).name : candidateWing);
+          return String(candidate.number).toLowerCase() === String(signatureNumber).toLowerCase() && candidateWingKey === signatureWingKey;
+        }) ?? null;
+      }
+    }
+
     return null;
   };
 
-  const facultyFilteredStudents = useMemo(() => {
-      if (facultyId === 'all') return allStudents;
-      return allStudents.filter((student) => {
-        const g = resolveStudentGroup(student);
-        if (!g?.career_year) return false;
-        let cId = null;
-        if (typeof g.career_year.career === 'object' && g.career_year.career) {
-          cId = g.career_year.career.id;
-        } else if (typeof g.career_year.career === 'number') {
-          cId = g.career_year.career;
-        }
-        if (cId === null) return false;
-        const careerObj = careers.find(c => c.id === cId);
-        const fId = careerObj ? careerObj.faculty : null;
-        const actualFId = typeof fId === 'object' && fId !== null ? fId.id : fId;
-        return actualFId === facultyId;
-      });
-    }, [allStudents, facultyId, careers, groups]);
+  const assignmentByStudentId = useMemo(() => {
+    const map = new Map<number, RoomAssignment>();
+    for (const assignment of activeAssignmentsQuery.data?.results ?? []) {
+      const studentId = getAssignmentStudentId(assignment);
+      if (studentId !== null) {
+        map.set(studentId, assignment);
+      }
+    }
+    return map;
+  }, [activeAssignmentsQuery.data]);
 
-    const buildingFilteredStudents = useMemo(() => {
-      if (buildingId === 'all') return facultyFilteredStudents;
-      return facultyFilteredStudents.filter((student) => {
-         // handle paginated response or array
-         const rawData = activeAssignmentsQuery.data;
-         const assignments = Array.isArray(rawData) ? rawData : (rawData?.results || []);
-         const assign = assignments.find((a: any) => getAssignmentStudentId(a) === student.id);
-         if (!assign || !assign.room) return false;
-         
-         const roomObj = typeof assign.room === 'object' ? assign.room : null;
-         if (roomObj && typeof roomObj.wing === 'object') {
-             const b = typeof roomObj.wing.building === 'object' ? roomObj.wing.building.id : roomObj.wing.building;
-             return b === buildingId;
-         }
-         return false;
-      });
-    }, [facultyFilteredStudents, buildingId, activeAssignmentsQuery.data]);
+  const facultyFilteredStudents = useMemo(() => {
+    if (facultyId === 'all') return allStudents;
+    return allStudents.filter((student) => resolveFacultyIdFromStudent(student) === facultyId);
+  }, [allStudents, facultyId, resolveFacultyIdFromStudent]);
+
+  const buildingFilteredStudents = useMemo(() => {
+    if (buildingId === 'all') return facultyFilteredStudents;
+
+    return facultyFilteredStudents.filter((student) => {
+      const assignment = assignmentByStudentId.get(student.id);
+      if (!assignment) return false;
+
+      const room = resolveRoomFromAssignment(assignment.room);
+      if (!room) return false;
+
+      const wingLike = getRoomWingLike(room);
+      const wingId = getNumericId(wingLike);
+      const wing = wingId !== null ? wingById.get(wingId) ?? null : null;
+      const building = wing ? getWingBuildingLike(wing.building) : getWingBuildingLike(wingLike);
+      const buildingResolvedId = getNumericId(building);
+
+      return buildingResolvedId === buildingId;
+    });
+  }, [facultyFilteredStudents, buildingId, assignmentByStudentId, wingById, rooms, roomById, roomBySignature]);
 
     const locationFilteredStudents = useMemo(() => {
       if (locationFilter === 'all') return buildingFilteredStudents;
+
       return buildingFilteredStudents.filter((student: any) => {
-        const hasRoom = typeof student.has_room === 'boolean' 
-             ? student.has_room 
-             : assignedStudentIds.has(student.id);
+        const hasRoom = typeof student.has_room === 'boolean'
+          ? student.has_room
+          : assignmentByStudentId.has(student.id) || assignedStudentIds.has(student.id);
         return locationFilter === 'with_room' ? hasRoom : !hasRoom;
       });
-    }, [buildingFilteredStudents, assignedStudentIds, locationFilter]);
+    }, [buildingFilteredStudents, assignedStudentIds, locationFilter, assignmentByStudentId]);
 
     const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -227,34 +366,43 @@ export default function DashboardPage() {
   const isLoading = studentsQuery.isLoading || (locationFilter !== 'all' && activeAssignmentsQuery.isLoading);
   const isError = studentsQuery.isError || activeAssignmentsQuery.isError;
   const error = (studentsQuery.error || activeAssignmentsQuery.error) as Error | null;
+  const hasStudentFilters = facultyId !== 'all' || buildingId !== 'all' || gender !== 'all' || isMilitant !== 'all' || locationFilter !== 'all' || search.trim().length > 0;
 
   // For handling input with simple debounce
   const handleSearch = (value: string) => {
     setSearch(value);
   };
   
-  // Fetch careers and groups for filters
+  // Fetch careers and buildings for filters
   useEffect(() => {
     let mounted = true;
-    fetchClient('/api/v1/carreras/')
-      .then((res: any) => { if (!mounted) return; setCareers(res.results || res); })
-      .catch(() => {})
-    ;
+    academicService.getFaculties()
+      .then((response) => { if (!mounted) return; setFaculties(response.results ?? []); })
+      .catch(() => {});
 
-    fetchClient('/api/v1/facultades/')
-      .then((res: any) => { if (!mounted) return; setFaculties(res.results || res); })
-      .catch(() => {})
-    ;
+    fetchAllPages<Career>('/api/v1/carreras/')
+      .then((items) => { if (!mounted) return; setCareers(items); })
+      .catch(() => {});
 
-    fetchClient('/api/v1/grupos/')
-      .then((res: any) => { if (!mounted) return; setGroups(res.results || res); })
-      .catch(() => {})
-    ;
+    fetchAllPages<Group>('/api/v1/grupos/')
+      .then((items) => { if (!mounted) return; setGroups(items); })
+      .catch(() => {});
 
-    fetchClient('/api/v1/edificios/')
-      .then((res: any) => { if (!mounted) return; setBuildings(res.results || res); })
-      .catch(() => {})
-    ;
+    fetchAllPages<AcademicYear>('/api/v1/anios-academicos/')
+      .then((items) => { if (!mounted) return; setAcademicYears(items); })
+      .catch(() => {});
+
+    infrastructureService.getAllBuildings()
+      .then((res) => { if (!mounted) return; setBuildings(res.results ?? []); })
+      .catch(() => {});
+
+    infrastructureService.getAllWings()
+      .then((res) => { if (!mounted) return; setWings(res.results ?? []); })
+      .catch(() => {});
+
+    infrastructureService.getAllRooms()
+      .then((res) => { if (!mounted) return; setRooms(res.results ?? []); })
+      .catch(() => {});
 
     return () => { mounted = false; };
   }, []);
@@ -461,8 +609,31 @@ export default function DashboardPage() {
                 </tr>
               ) : paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">
-                    No se encontraron estudiantes
+                  <td colSpan={5} className="px-6 py-10">
+                      <TableEmptyState
+                        colSpan={5}
+                        title={hasStudentFilters ? "Sin resultados" : "Aún no hay estudiantes"}
+                        description={hasStudentFilters
+                          ? "No hay estudiantes que coincidan con los filtros actuales. Prueba limpiar la facultad, el edificio o la búsqueda para ver más resultados."
+                          : "Cuando existan registros, aparecerán aquí con sus datos académicos y acciones rápidas."}
+                        icon={hasStudentFilters ? "filter_alt_off" : "school"}
+                        secondaryAction={hasStudentFilters ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearch("");
+                              setFacultyId("all");
+                              setBuildingId("all");
+                              setGender("all");
+                              setIsMilitant("all");
+                              setLocationFilter("all");
+                            }}
+                            className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-lowest)] px-4 py-2 text-sm font-semibold text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container-low)]"
+                          >
+                            Limpiar filtros
+                          </button>
+                        ) : null}
+                      />
                   </td>
                 </tr>
               ) : (

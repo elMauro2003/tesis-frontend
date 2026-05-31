@@ -8,6 +8,7 @@ import { Building, Room, Site, Wing } from "@/types/models";
 import { DeleteSiteModal } from "@/features/sites/components/DeleteSiteModal";
 import { SiteFormModal } from "@/features/sites/components/SiteFormModal";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
+import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
 
 const formatCount = (value: number) => new Intl.NumberFormat("es-ES").format(value);
 
@@ -215,25 +216,15 @@ export function SitesManagement() {
               No fue posible cargar las sedes en este momento. Intente nuevamente.
             </div>
           ) : filteredSites.length === 0 ? (
-            <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-selected)] text-primary">
-                <span className="material-symbols-outlined text-2xl">location_city</span>
-              </div>
-              <h3 className="mt-4 text-lg font-bold text-[var(--color-primary-dark)]">No hay sedes para mostrar</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-on-surface-variant)]">
-                {search.trim()
+              <DashboardEmptyState
+                title={search.trim() ? "Sin resultados" : "No hay sedes para mostrar"}
+                description={search.trim()
                   ? "Ajuste el texto de búsqueda o limpie el filtro para ver más resultados."
                   : "Cree la primera sede para comenzar a estructurar la distribución territorial."}
-              </p>
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] transition-all hover:bg-[var(--color-on-primary-fixed-variant)] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-lg">add</span>
-                Añadir sede
-              </button>
-            </div>
+                icon={search.trim() ? "filter_alt_off" : "location_city"}
+                actionLabel="Añadir sede"
+                onAction={openCreateModal}
+              />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {filteredSites.map((site) => {

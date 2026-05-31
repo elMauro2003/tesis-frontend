@@ -87,7 +87,7 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Motivo de la baja</label>
               <Select defaultValue="Graduación">
-                <SelectTrigger className="w-full bg-[var(--color-surface-container-low)] rounded-lg text-sm font-medium text-[var(--color-on-surface)] shadow-none h-10">
+                <SelectTrigger className="w-full h-10 rounded-lg bg-[var(--color-surface-container-low)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                   <SelectValue placeholder="Seleccionar motivo" />
                 </SelectTrigger>
                 <SelectContent>

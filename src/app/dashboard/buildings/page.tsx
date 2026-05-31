@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
+import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { SearchField } from "@/components/shared/SearchField";
 import { useRouter, useSearchParams } from "next/navigation";
 import { infrastructureService } from "@/core/services/infrastructure.service";
@@ -187,11 +189,14 @@ export default function BuildingsPage() {
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-sm text-on-surface-variant">
-                    No hay edificios para mostrar.
-                  </td>
-                </tr>
+                <TableEmptyState
+                  colSpan={3}
+                  title={search.trim() || siteFilter !== "all" ? "Sin resultados" : "Aún no hay edificios"}
+                  description={search.trim() || siteFilter !== "all"
+                    ? "No encontramos edificios que coincidan con el filtro actual. Prueba limpiar la sede o la búsqueda."
+                    : "Cuando existan edificios registrados, se mostrarán aquí con sus datos y acciones rápidas."}
+                  icon={search.trim() || siteFilter !== "all" ? "filter_alt_off" : "domain"}
+                />
               ) : (
                 filtered.map((b) => (
                   <tr key={b.id} className="hover:bg-surface-container-low transition-colors group">

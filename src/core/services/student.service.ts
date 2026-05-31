@@ -13,6 +13,7 @@ export interface GetStudentsFilters {
 // Extend filters with optional server-side room filter if supported
 export interface ExtendedGetStudentsFilters extends GetStudentsFilters {
   has_room?: boolean;
+  faculty?: number;
 }
 
 export const studentService = {
