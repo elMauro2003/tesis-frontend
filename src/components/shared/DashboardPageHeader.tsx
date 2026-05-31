@@ -14,6 +14,7 @@ interface DashboardPageHeaderProps {
   actionIcon?: string;
   topBadge?: string;
   extraAction?: ReactNode;
+  searchComponent?: ReactNode;
 }
 
 export function DashboardPageHeader({
@@ -62,18 +63,22 @@ export function DashboardPageHeader({
       </header>
 
       <section className="space-y-6">
-        <div className="relative group">
-          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors">
-            <span className="material-symbols-outlined text-xl">search</span>
-          </span>
-          <Input
-            className="h-14 rounded-xl bg-[var(--color-surface-container-low)] pl-12 pr-4 text-sm text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] shadow-none outline-none transition-all focus-visible:bg-[var(--color-surface-container-highest)]"
-            placeholder={searchPlaceholder}
-            type="text"
-            value={searchValue}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </div>
+        {searchComponent ? (
+          searchComponent
+        ) : (
+          <div className="relative group">
+            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors">
+              <span className="material-symbols-outlined text-xl">search</span>
+            </span>
+            <Input
+              className="h-14 rounded-xl bg-[var(--color-surface-container-low)] pl-12 pr-4 text-sm text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] shadow-none outline-none transition-all focus-visible:bg-[var(--color-surface-container-highest)]"
+              placeholder={searchPlaceholder}
+              type="text"
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

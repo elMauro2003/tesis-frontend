@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
+import { SearchField } from "@/components/shared/SearchField";
 import { useRouter, useSearchParams } from "next/navigation";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Site } from "@/types/models";
@@ -131,34 +133,22 @@ export default function BuildingsPage() {
   }, [buildings, search]);
 
   return (
-    <div>
-      <header className="mb-8 flex items-center justify-between">
-        <h2 className="text-3xl font-headline font-extrabold tracking-tight text-primary-container">Edificios</h2>
-        <div className="flex items-center gap-3">
-          <Button variant="default" size="default">
-            <span className="material-symbols-outlined">add</span>
-            <span>Añadir Edificio</span>
-          </Button>
-        </div>
-      </header>
-
-      <section className="space-y-4 mb-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-outline">search</span>
-          </div>
-          <input
-            className="w-full bg-surface-container-low border-none rounded-xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-            placeholder="Buscar edificio por nombre..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative">
+    <div className="w-full px-8 py-4">
+      <DashboardPageHeader
+        title="Edificios"
+        description="Administre los edificios vinculados a cada sede institucional."
+        topBadge="Infraestructura"
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Buscar edificio..."
+        actionLabel="Añadir edificio"
+        actionIcon="add"
+        onAction={() => {}}
+        searchComponent={<SearchField value={search} onChange={setSearch} placeholder="Buscar edificio por nombre..." />}
+        extraAction={(
+          <div className="w-64">
             <select
-              className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors"
+              className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors w-full"
               value={siteFilter === "all" ? "all" : String(siteFilter)}
               onChange={(e) => setSiteFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
             >
@@ -169,10 +159,9 @@ export default function BuildingsPage() {
                 </option>
               ))}
             </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline">expand_more</span>
           </div>
-        </div>
-      </section>
+        )}
+      />
 
       <section className="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="overflow-x-auto">

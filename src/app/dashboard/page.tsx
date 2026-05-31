@@ -12,6 +12,7 @@ import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
 import { Input } from "@/components/ui/input";
+import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CareerOption = { id: number; name: string; faculty?: any };
@@ -321,47 +322,65 @@ export default function DashboardPage() {
   };
 
   return (
-    <>
-      <header className="mb-10 flex items-center justify-between">
-        <h2 className="text-4xl font-headline font-extrabold tracking-tight text-[var(--color-primary-dark)]">Estudiantes</h2>
-        <div className="flex items-center gap-4">
-          {/* Primary CTA */}
-          <Link href="/dashboard/estudiantes/nueva" className="flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer">
-            <span className="material-symbols-outlined text-lg">person_add</span>
-            <span>Añadir Estudiante</span>
-          </Link>
-          
-          <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container transition-colors relative cursor-pointer">
-            <span className="material-symbols-outlined font-normal text-on-surface-variant">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface-container-lowest"></span>
-          </button>
-          
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high ring-2 ring-surface-container-lowest shadow-sm overflow-hidden text-primary font-bold cursor-default">
-            {user ? `${user.username?.[0] || 'U'}`.toUpperCase() : 'U'}
+    <div className="w-full px-8 py-4">
+      <DashboardPageHeader
+        title="Estudiantes"
+        description="Lista y administra estudiantes activos y sus asignaciones dentro del sistema." 
+        topBadge="Personas"
+        searchValue={search}
+        onSearchChange={handleSearch}
+        searchPlaceholder="Buscar estudiante por nombre o Carné de Identidad..."
+        actionLabel="Añadir Estudiante"
+        actionIcon="person_add"
+        onAction={() => {}}
+        searchComponent={(
+          <div ref={searchContainerRef} className="relative">
+            <Input
+              className="bg-surface-container-low rounded-xl py-4 pl-12 pr-4 text-sm placeholder:text-outline text-on-surface outline-none h-14"
+              placeholder="Buscar estudiante por nombre o Carné de Identidad..."
+              type="text"
+              value={search}
+              onChange={handleSearch}
+              onFocus={() => setIsSearchFocused(true)}
+              onKeyDown={handleInputKeyDown}
+              aria-autocomplete="list"
+              aria-expanded={isSearchFocused && search.trim().length >= 2}
+              aria-controls="student-suggestions-listbox"
+              aria-activedescendant={activeSuggestion >= 0 && suggestions[activeSuggestion] ? `student-suggestion-${suggestions[activeSuggestion].id}` : undefined}
+            />
+            {/* Suggestions dropdown */}
+            {isSearchFocused && search.trim().length >= 2 && (
+              <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50 overflow-hidden">
+                {suggestionsQuery.isFetching ? (
+                  Array.from({ length: 4 }).map((_, idx) => (
+                    <div key={`suggestion-skeleton-${idx}`} className="px-4 py-3 animate-pulse">
+                      <div className="h-4 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
+                    </div>
+                  ))
+                ) : suggestions.length > 0 ? (
+                  suggestions.map((s, idx) => (
+                    <button
+                      key={s.id}
+                      id={`student-suggestion-${s.id}`}
+                      role="option"
+                      aria-selected={activeSuggestion === idx}
+                      onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setIsSearchFocused(false); setActiveSuggestion(-1); setSearch('');}}
+                      className={`w-full text-left px-4 py-3 transition-colors ${activeSuggestion === idx ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-on-surface">{s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim()}</span>
+                        <span className="text-xs text-on-surface-variant">{s.ci} · {s.student_id}</span>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-on-surface-variant">No se encontraron coincidencias</div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      </header>
-
-      {/* Search and Filter Bar */}
-      <section className="space-y-6 mb-8">
-        {/* Top Row Search */}
-        <div ref={searchContainerRef} className="relative group">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">search</span>
-          </div>
-          <Input 
-            className="bg-surface-container-low rounded-xl py-4 pl-12 pr-4 text-sm placeholder:text-outline text-on-surface outline-none h-14" 
-            placeholder="Buscar estudiante por nombre o Carné de Identidad..." 
-            type="text" 
-            value={search}
-            onChange={handleSearch}
-            onFocus={() => setIsSearchFocused(true)}
-            onKeyDown={handleInputKeyDown}
-            aria-autocomplete="list"
-            aria-expanded={isSearchFocused && search.trim().length >= 2}
-            aria-controls="student-suggestions-listbox"
-            aria-activedescendant={activeSuggestion >= 0 && suggestions[activeSuggestion] ? `student-suggestion-${suggestions[activeSuggestion].id}` : undefined}
-          />
+        )}
+      />
           {/* Suggestions dropdown */}
           {isSearchFocused && search.trim().length >= 2 && (
             <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50 overflow-hidden">
