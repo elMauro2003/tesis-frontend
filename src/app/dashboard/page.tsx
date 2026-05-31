@@ -11,10 +11,11 @@ import { RoomAssignment, Student } from "@/types/models";
 import { fetchClient } from '@/lib/fetchClient';
 import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
-import { Input } from "@/components/ui/input";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
+import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
+import { SearchField } from "@/components/shared/SearchField";
 
 type CareerOption = { id: number; name: string; faculty?: any };
 type GroupOption = { id: number; name: string; career_year?: { career?: { id: number } } | number };
@@ -228,8 +229,8 @@ export default function DashboardPage() {
   const error = (studentsQuery.error || activeAssignmentsQuery.error) as Error | null;
 
   // For handling input with simple debounce
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+  const handleSearch = (value: string) => {
+    setSearch(value);
   };
   
   // Fetch careers and groups for filters
@@ -335,11 +336,10 @@ export default function DashboardPage() {
         actionIcon="person_add"
         onAction={() => {}}
         searchComponent={(
-          <div ref={searchContainerRef} className="relative">
-            <Input
-              className="bg-surface-container-low rounded-xl py-4 pl-12 pr-4 text-sm placeholder:text-outline text-on-surface outline-none h-14"
+          <div ref={searchContainerRef} className="relative w-full">
+            <SearchField
+              wrapperClassName="w-full"
               placeholder="Buscar estudiante por nombre o Carné de Identidad..."
-              type="text"
               value={search}
               onChange={handleSearch}
               onFocus={() => setIsSearchFocused(true)}
@@ -351,7 +351,7 @@ export default function DashboardPage() {
             />
             {/* Suggestions dropdown */}
             {isSearchFocused && search.trim().length >= 2 && (
-              <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50 overflow-hidden">
+              <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-[var(--shadow-ambient)] z-50 overflow-hidden border border-[var(--color-outline-variant)]/20">
                 {suggestionsQuery.isFetching ? (
                   Array.from({ length: 4 }).map((_, idx) => (
                     <div key={`suggestion-skeleton-${idx}`} className="px-4 py-3 animate-pulse">
@@ -386,41 +386,39 @@ export default function DashboardPage() {
       <DashboardFiltersBar
         left={(
           <>
-            <div className="w-[220px]">
-              <Select value={facultyId === 'all' ? 'all' : String(facultyId)} onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todas las Facultades" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las Facultades</SelectItem>
-                  {faculties.map((f) => (
-                    <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <DashboardFilterSelect
+              className="w-full sm:w-[220px]"
+              value={facultyId === 'all' ? 'all' : String(facultyId)}
+              onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}
+              placeholder="Todas las Facultades"
+              options={[
+                { value: 'all', label: 'Todas las Facultades' },
+                ...faculties.map((f) => ({ value: String(f.id), label: f.name })),
+              ]}
+            />
 
-            <div className="w-[220px]">
-              <Select value={buildingId === 'all' ? 'all' : String(buildingId)} onValueChange={(value) => setBuildingId(value === 'all' ? 'all' : Number(value))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Todos los Edificios" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los Edificios</SelectItem>
-                  {buildings.map((b) => (
-                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <DashboardFilterSelect
+              className="w-full sm:w-[220px]"
+              value={buildingId === 'all' ? 'all' : String(buildingId)}
+              onValueChange={(value) => setBuildingId(value === 'all' ? 'all' : Number(value))}
+              placeholder="Todos los Edificios"
+              options={[
+                { value: 'all', label: 'Todos los Edificios' },
+                ...buildings.map((b) => ({ value: String(b.id), label: b.name })),
+              ]}
+            />
           </>
         )}
         right={(
-          <div className="bg-surface-container-low p-1 rounded-xl flex items-center gap-1">
-            <button onClick={() => setLocationFilter('all')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Todos</button>
-            <button onClick={() => setLocationFilter('with_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='with_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Con Cuarto</button>
-            <button onClick={() => setLocationFilter('without_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='without_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Sin ubicación</button>
-          </div>
+          <DashboardSegmentedFilter
+            value={locationFilter}
+            onValueChange={(value) => setLocationFilter(value as typeof locationFilter)}
+            options={[
+              { value: 'all', label: 'Todos' },
+              { value: 'with_room', label: 'Con Cuarto' },
+              { value: 'without_room', label: 'Sin ubicación' },
+            ]}
+          />
         )}
       />
 
