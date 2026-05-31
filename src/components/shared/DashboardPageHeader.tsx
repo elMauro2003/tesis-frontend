@@ -53,7 +53,7 @@ export function DashboardPageHeader({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {extraAction}
-          <Button type="button" variant="default" onClick={onAction} className="cursor-pointer">
+          <Button type="button" variant="add" onClick={onAction} className="cursor-pointer">
             <span className="material-symbols-outlined text-lg">{actionIcon}</span>
             {actionLabel}
           </Button>

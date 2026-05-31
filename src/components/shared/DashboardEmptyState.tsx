@@ -32,7 +32,7 @@ export function DashboardEmptyState({
       {(actionLabel && onAction) || secondaryAction ? (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {actionLabel && onAction ? (
-            <Button type="button" onClick={onAction}>
+            <Button type="button" variant="add" onClick={onAction}>
               <span className="material-symbols-outlined text-lg">add</span>
               {actionLabel}
             </Button>

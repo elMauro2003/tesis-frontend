@@ -10,13 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+          "border border-transparent bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:brightness-95 hover:shadow-[0_12px_24px_rgba(0,55,176,0.22)] rounded-lg",
         primary:
-          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+          "border border-transparent bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:brightness-95 hover:shadow-[0_12px_24px_rgba(0,55,176,0.22)] rounded-lg",
         confirm:
-          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+          "border border-transparent bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:brightness-95 hover:shadow-[0_12px_24px_rgba(0,55,176,0.22)] rounded-lg",
         add:
-          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+          "border border-transparent bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:brightness-95 hover:shadow-[0_12px_24px_rgba(0,55,176,0.22)] rounded-lg",
         destructive:
           "bg-[var(--color-error)] text-white shadow-sm hover:bg-[#a31515]",
         danger:
