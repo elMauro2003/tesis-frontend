@@ -354,7 +354,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
     let cancelled = false;
     setBuildingsLoading(true);
 
-    infrastructureService.getBuildings(Number(selectedSiteId))
+    infrastructureService.getBuildings({ siteId: Number(selectedSiteId) })
       .then((response) => {
         if (!cancelled) {
           setBuildings(response.results);
