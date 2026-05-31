@@ -2,11 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
+import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { SearchField } from "@/components/shared/SearchField";
 import { useRouter, useSearchParams } from "next/navigation";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Site } from "@/types/models";
-import { Button } from "@/components/ui/button";
 
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -145,10 +145,13 @@ export default function BuildingsPage() {
         actionIcon="add"
         onAction={() => {}}
         searchComponent={<SearchField value={search} onChange={setSearch} placeholder="Buscar edificio por nombre..." />}
-        extraAction={(
-          <div className="w-64">
+      />
+
+      <DashboardFiltersBar
+        left={(
+          <div className="w-full sm:w-64">
             <select
-              className="appearance-none bg-surface-container-low border-none rounded-lg py-2 pl-4 pr-10 text-sm font-medium text-on-surface-variant cursor-pointer hover:bg-surface-container-high transition-colors w-full"
+              className="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm font-medium text-on-surface-variant transition-colors hover:border-primary hover:bg-surface-container-low"
               value={siteFilter === "all" ? "all" : String(siteFilter)}
               onChange={(e) => setSiteFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
             >

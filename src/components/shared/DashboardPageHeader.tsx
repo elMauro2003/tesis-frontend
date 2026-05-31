@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface DashboardPageHeaderProps {
   title: string;
@@ -52,14 +53,10 @@ export function DashboardPageHeader({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {extraAction}
-          <button
-            type="button"
-            onClick={onAction}
-            className="inline-flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer"
-          >
+          <Button type="button" variant="default" onClick={onAction} className="cursor-pointer">
             <span className="material-symbols-outlined text-lg">{actionIcon}</span>
             {actionLabel}
-          </button>
+          </Button>
         </div>
       </header>
 

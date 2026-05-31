@@ -11,14 +11,28 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+        primary:
+          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+        confirm:
+          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
+        add:
+          "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] rounded-lg",
         destructive:
-          "bg-[var(--color-error)] text-white shadow-sm hover:opacity-90",
+          "bg-[var(--color-error)] text-white shadow-sm hover:bg-[#a31515]",
+        danger:
+          "bg-[var(--color-error)] text-white shadow-sm hover:bg-[#a31515]",
         outline:
-          "border-ghost bg-[var(--color-surface-container-lowest)] hover:bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)]",
+          "border-ghost bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] hover:text-[var(--color-primary-dark)]",
+        neutral:
+          "border-ghost bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] hover:text-[var(--color-primary-dark)]",
+        cancel:
+          "border-ghost bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] hover:text-[var(--color-primary-dark)]",
         secondary:
-          "bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] hover:bg-opacity-80",
-        ghost: "hover:bg-[var(--color-surface-container-low)] hover:text-[var(--color-primary)]",
-        link: "text-[var(--color-primary)] underline-offset-4 hover:underline",
+          "bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-primary-dark)]",
+        success:
+          "bg-[var(--color-success)] text-white shadow-sm hover:bg-[#15803d]",
+        ghost: "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] hover:text-[var(--color-primary-dark)]",
+        link: "text-[var(--color-primary)] underline-offset-4 hover:text-[var(--color-primary-dark)] hover:underline",
       },
       size: {
         default: "h-11 px-6 py-2", /* Taller touch targets based on premium feel */

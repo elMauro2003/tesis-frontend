@@ -13,6 +13,7 @@ import { studentService } from '@/core/services/student.service';
 import { accommodationService } from '@/core/services/accommodation.service';
 import { Input } from "@/components/ui/input";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
+import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CareerOption = { id: number; name: string; faculty?: any };
@@ -382,10 +383,9 @@ export default function DashboardPage() {
         )}
       />
 
-      <section className="space-y-6 mb-8">
-        {/* Bottom Row Filters */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <DashboardFiltersBar
+        left={(
+          <>
             <div className="w-[220px]">
               <Select value={facultyId === 'all' ? 'all' : String(facultyId)} onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}>
                 <SelectTrigger className="w-full">
@@ -413,16 +413,16 @@ export default function DashboardPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Segmented Control */}
+          </>
+        )}
+        right={(
           <div className="bg-surface-container-low p-1 rounded-xl flex items-center gap-1">
             <button onClick={() => setLocationFilter('all')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='all' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Todos</button>
             <button onClick={() => setLocationFilter('with_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='with_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Con Cuarto</button>
             <button onClick={() => setLocationFilter('without_room')} className={`px-6 py-2 text-sm font-medium rounded-lg ${locationFilter==='without_room' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'} transition-colors cursor-pointer`}>Sin ubicación</button>
           </div>
-        </div>
-      </section>
+        )}
+      />
 
       {/* Student Table */}
       <section className="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
