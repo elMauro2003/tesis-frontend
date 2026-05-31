@@ -578,6 +578,6 @@ export default function DashboardPage() {
         open={selectedStudentToEvaluateId !== null}
         onClose={() => setSelectedStudentToEvaluateId(null)}
       />
-    </>
+    </div>
   );
 }
