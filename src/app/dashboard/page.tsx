@@ -59,6 +59,11 @@ const getAssignmentStudentId = (assignment: RoomAssignment): number | null => {
   return assignment.student?.id ?? null;
 };
 
+const getAssignmentRoomDetailText = (assignment: RoomAssignment): string => {
+  const roomDetail = ((assignment as unknown) as AnyRecord).room_detail;
+  return typeof roomDetail === 'string' ? roomDetail.toLowerCase() : '';
+};
+
 const toLowerText = (value: unknown) => typeof value === 'string' ? value.toLowerCase() : '';
 
 const getRoomWingLike = (room: unknown) => {
@@ -272,6 +277,14 @@ export default function DashboardPage() {
       const assignment = assignmentByStudentId.get(student.id);
       if (!assignment) return false;
 
+      const roomDetailText = getAssignmentRoomDetailText(assignment);
+      if (roomDetailText) {
+        const selectedBuilding = buildings.find((building) => building.id === buildingId);
+        if (selectedBuilding) {
+          return roomDetailText.includes(selectedBuilding.name.toLowerCase());
+        }
+      }
+
       const room = resolveRoomFromAssignment(assignment.room);
       if (!room) return false;
 
@@ -283,7 +296,7 @@ export default function DashboardPage() {
 
       return buildingResolvedId === buildingId;
     });
-  }, [facultyFilteredStudents, buildingId, assignmentByStudentId, wingById, rooms, roomById, roomBySignature]);
+  }, [facultyFilteredStudents, buildingId, assignmentByStudentId, buildings, wingById, rooms, roomById, roomBySignature]);
 
     const locationFilteredStudents = useMemo(() => {
       if (locationFilter === 'all') return buildingFilteredStudents;
@@ -608,34 +621,30 @@ export default function DashboardPage() {
                   </td>
                 </tr>
               ) : paginatedStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10">
-                      <TableEmptyState
-                        colSpan={5}
-                        title={hasStudentFilters ? "Sin resultados" : "Aún no hay estudiantes"}
-                        description={hasStudentFilters
-                          ? "No hay estudiantes que coincidan con los filtros actuales. Prueba limpiar la facultad, el edificio o la búsqueda para ver más resultados."
-                          : "Cuando existan registros, aparecerán aquí con sus datos académicos y acciones rápidas."}
-                        icon={hasStudentFilters ? "filter_alt_off" : "school"}
-                        secondaryAction={hasStudentFilters ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSearch("");
-                              setFacultyId("all");
-                              setBuildingId("all");
-                              setGender("all");
-                              setIsMilitant("all");
-                              setLocationFilter("all");
-                            }}
-                            className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-lowest)] px-4 py-2 text-sm font-semibold text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container-low)]"
-                          >
-                            Limpiar filtros
-                          </button>
-                        ) : null}
-                      />
-                  </td>
-                </tr>
+                <TableEmptyState
+                  colSpan={5}
+                  title={hasStudentFilters ? "Sin resultados" : "Aún no hay estudiantes"}
+                  description={hasStudentFilters
+                    ? "No hay estudiantes que coincidan con los filtros actuales. Prueba limpiar la facultad, el edificio o la búsqueda para ver más resultados."
+                    : "Cuando existan registros, aparecerán aquí con sus datos académicos y acciones rápidas."}
+                  icon={hasStudentFilters ? "filter_alt_off" : "school"}
+                  secondaryAction={hasStudentFilters ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("");
+                        setFacultyId("all");
+                        setBuildingId("all");
+                        setGender("all");
+                        setIsMilitant("all");
+                        setLocationFilter("all");
+                      }}
+                      className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-lowest)] px-4 py-2 text-sm font-semibold text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container-low)]"
+                    >
+                      Limpiar filtros
+                    </button>
+                  ) : null}
+                />
               ) : (
                 paginatedStudents.map((student: Student) => {
                   // Prefer detailed version if we fetched it for the visible rows
