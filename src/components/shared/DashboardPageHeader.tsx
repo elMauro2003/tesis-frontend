@@ -28,6 +28,7 @@ export function DashboardPageHeader({
   actionIcon = "add",
   topBadge,
   extraAction,
+  searchComponent,
 }: DashboardPageHeaderProps) {
   return (
     <div className="mb-10 space-y-6">
