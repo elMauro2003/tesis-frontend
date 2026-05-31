@@ -3,7 +3,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 
-interface SearchFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface SearchFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
