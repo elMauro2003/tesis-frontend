@@ -1,8 +1,8 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/shared/SearchField";
 
 interface DashboardPageHeaderProps {
   title: string;
@@ -64,18 +64,11 @@ export function DashboardPageHeader({
         {searchComponent ? (
           searchComponent
         ) : (
-          <div className="relative group">
-            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors">
-              <span className="material-symbols-outlined text-xl">search</span>
-            </span>
-            <Input
-              className="h-14 rounded-xl bg-[var(--color-surface-container-low)] pl-12 pr-4 text-sm text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] shadow-none outline-none transition-all focus-visible:bg-[var(--color-surface-container-highest)]"
-              placeholder={searchPlaceholder}
-              type="text"
-              value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
-            />
-          </div>
+          <SearchField
+            value={searchValue}
+            onChange={onSearchChange}
+            placeholder={searchPlaceholder}
+          />
         )}
       </section>
     </div>

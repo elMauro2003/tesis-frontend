@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
+import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { SearchField } from "@/components/shared/SearchField";
 import { useRouter, useSearchParams } from "next/navigation";
 import { infrastructureService } from "@/core/services/infrastructure.service";
@@ -149,20 +150,16 @@ export default function BuildingsPage() {
 
       <DashboardFiltersBar
         left={(
-          <div className="w-full sm:w-64">
-            <select
-              className="w-full appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm font-medium text-on-surface-variant transition-colors hover:border-primary hover:bg-surface-container-low"
-              value={siteFilter === "all" ? "all" : String(siteFilter)}
-              onChange={(e) => setSiteFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-            >
-              <option value="all">Sede: Todas</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <DashboardFilterSelect
+            className="w-full sm:w-72"
+            value={siteFilter === "all" ? "all" : String(siteFilter)}
+            onValueChange={(value) => setSiteFilter(value === "all" ? "all" : Number(value))}
+            placeholder="Sede: Todas"
+            options={[
+              { value: "all", label: "Sede: Todas" },
+              ...sites.map((site) => ({ value: String(site.id), label: site.name })),
+            ]}
+          />
         )}
       />
 
