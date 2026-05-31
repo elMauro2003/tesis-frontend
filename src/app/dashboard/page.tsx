@@ -328,7 +328,7 @@ export default function DashboardPage() {
         description="Lista y administra estudiantes activos y sus asignaciones dentro del sistema." 
         topBadge="Personas"
         searchValue={search}
-        onSearchChange={handleSearch}
+        onSearchChange={setSearch}
         searchPlaceholder="Buscar estudiante por nombre o Carné de Identidad..."
         actionLabel="Añadir Estudiante"
         actionIcon="person_add"
