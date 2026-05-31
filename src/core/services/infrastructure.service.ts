@@ -47,7 +47,7 @@ export const infrastructureService = {
     return fetchClient(`/api/v1/edificios/${qs ? `?${qs}` : ""}`);
   },
   getAllBuildings: async (siteId?: number): Promise<PaginatedResponse<Building>> => {
-    const firstPage = await infrastructureService.getBuildings(siteId);
+    const firstPage = await infrastructureService.getBuildings({ siteId });
 
     if (!firstPage.next) {
       return firstPage;
