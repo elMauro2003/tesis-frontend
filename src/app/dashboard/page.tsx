@@ -381,38 +381,8 @@ export default function DashboardPage() {
           </div>
         )}
       />
-          {/* Suggestions dropdown */}
-          {isSearchFocused && search.trim().length >= 2 && (
-            <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-4 right-4 mt-2 bg-surface-container-lowest rounded-lg shadow-md z-50 overflow-hidden">
-              {suggestionsQuery.isFetching ? (
-                Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={`suggestion-skeleton-${idx}`} className="px-4 py-3 animate-pulse">
-                    <div className="h-4 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
-                  </div>
-                ))
-              ) : suggestions.length > 0 ? (
-                suggestions.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    id={`student-suggestion-${s.id}`}
-                    role="option"
-                    aria-selected={activeSuggestion === idx}
-                    onMouseDown={(e)=>{e.preventDefault(); setSelectedStudentId(s.id); setIsSearchFocused(false); setActiveSuggestion(-1); setSearch('');}}
-                    className={`w-full text-left px-4 py-3 transition-colors ${activeSuggestion === idx ? 'bg-surface-container-high' : 'hover:bg-surface-container-high'}`}
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-semibold text-on-surface">{s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim()}</span>
-                      <span className="text-xs text-on-surface-variant">{s.ci} · {s.student_id}</span>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-sm text-on-surface-variant">No se encontraron coincidencias</div>
-              )}
-            </div>
-          )}
-        </div>
 
+      <section className="space-y-6 mb-8">
         {/* Bottom Row Filters */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
