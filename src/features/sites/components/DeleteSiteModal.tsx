@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Button } from "@/components/ui/button";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Site } from "@/types/models";
@@ -107,22 +108,17 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
         </div>
 
         <footer className="border-t border-[var(--color-outline-variant)]/15 p-6 flex justify-end items-center gap-3 bg-[var(--color-surface-container-lowest)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
-            disabled={deleteMutation.isPending}
-          >
+          <Button type="button" variant="cancel" onClick={onClose} disabled={deleteMutation.isPending}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="danger"
             onClick={() => deleteMutation.mutate()}
             disabled={!site || deleteMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-red-600 shadow-[0_14px_24px_rgba(186,26,26,0.18)] hover:bg-red-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar sede"}
-          </button>
+          </Button>
         </footer>
       </div>
     </BottomSheet>

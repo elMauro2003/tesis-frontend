@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { infrastructureService } from "@/core/services/infrastructure.service";
@@ -181,23 +182,13 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
         </div>
 
         <footer className="border-t border-[var(--color-outline-variant)]/15 p-5 flex justify-end items-center gap-3 bg-[var(--color-surface-container-low)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] transition-all cursor-pointer"
-            disabled={isPending}
-          >
+          <Button type="button" variant="cancel" onClick={onClose} disabled={isPending}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-[var(--color-on-primary)] bg-[var(--color-primary)] shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-on-primary-fixed-variant)] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
+          </Button>
+          <Button type="button" variant="confirm" onClick={handleSubmit} disabled={isPending}>
             <span className="material-symbols-outlined text-lg">save</span>
             {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear sede"}
-          </button>
+          </Button>
         </footer>
       </div>
     </BottomSheet>

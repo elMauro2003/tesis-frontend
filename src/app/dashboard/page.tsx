@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
@@ -102,6 +103,7 @@ const fetchAllPages = async <T,>(endpoint: string): Promise<T[]> => {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -490,6 +492,10 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCreateStudent = () => {
+    router.push("/dashboard/estudiantes/nueva");
+  };
+
   return (
     <div className="w-full px-8 py-4">
       <DashboardPageHeader
@@ -501,7 +507,7 @@ export default function DashboardPage() {
         searchPlaceholder="Buscar estudiante por nombre o Carné de Identidad..."
         actionLabel="Añadir Estudiante"
         actionIcon="person_add"
-        onAction={() => {}}
+        onAction={handleCreateStudent}
         searchComponent={(
           <div ref={searchContainerRef} className="relative w-full">
             <SearchField

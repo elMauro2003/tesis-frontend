@@ -11,6 +11,7 @@ export interface Site {
 export interface Building {
   id: number;
   name: string;
+  gender?: "Varones" | "Hembras" | "Mixto" | null;
   site_id: number;
 }
 

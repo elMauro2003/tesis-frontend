@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
@@ -10,6 +10,7 @@ import { SearchField } from "@/components/shared/SearchField";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Room, Site, Wing } from "@/types/models";
+import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -72,55 +73,52 @@ export default function BuildingsPage() {
   const [siteFilter, setSiteFilter] = useState<number | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
 
   const router = useRouter();
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadData = useCallback(async (options?: { resetFilters?: boolean }) => {
+    setLoading(true);
+    setError(null);
 
-    const bootstrap = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const initialPage = Number(params.get("page") || "1") || 1;
-      const initialPageSize = Number(params.get("page_size") || `${DEFAULT_PAGE_SIZE}`) || DEFAULT_PAGE_SIZE;
-      const initialSite = params.get("site");
-      const initialSearch = params.get("search") || "";
+    try {
+      const [sitesRes, buildingsRes, wingsRes, roomsRes] = await Promise.all([
+        infrastructureService.getAllSites(),
+        infrastructureService.getAllBuildings(),
+        infrastructureService.getAllWings(),
+        infrastructureService.getAllRooms(),
+      ]);
 
-      setPage(initialPage);
-      setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
-      setSiteFilter(initialSite ? Number(initialSite) : "all");
-      setSearch(initialSearch);
+      setSites(sitesRes.results ?? []);
+      setAllBuildings(buildingsRes.results ?? []);
+      setWings(wingsRes.results ?? []);
+      setRooms(roomsRes.results ?? []);
 
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [sitesRes, buildingsRes, wingsRes, roomsRes] = await Promise.all([
-          infrastructureService.getAllSites(),
-          infrastructureService.getAllBuildings(),
-          infrastructureService.getAllWings(),
-          infrastructureService.getAllRooms(),
-        ]);
-
-        if (cancelled) return;
-
-        setSites(sitesRes.results ?? []);
-        setAllBuildings(buildingsRes.results ?? []);
-        setWings(wingsRes.results ?? []);
-        setRooms(roomsRes.results ?? []);
-      } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : "Error cargando edificios";
-        setError(message);
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (options?.resetFilters) {
+        setPage(1);
       }
-    };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error cargando edificios";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    bootstrap();
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialPage = Number(params.get("page") || "1") || 1;
+    const initialPageSize = Number(params.get("page_size") || `${DEFAULT_PAGE_SIZE}`) || DEFAULT_PAGE_SIZE;
+    const initialSite = params.get("site");
+    const initialSearch = params.get("search") || "";
 
-    return () => {
-      cancelled = true;
-    };
+    setPage(initialPage);
+    setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
+    setSiteFilter(initialSite ? Number(initialSite) : "all");
+    setSearch(initialSearch);
+
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -181,7 +179,7 @@ export default function BuildingsPage() {
     return allBuildings.filter((building) => {
       const siteId = getBuildingSiteId(building);
       const siteLabel = getBuildingSiteLabel(building, sitesById);
-      const target = `${building.name} ${siteLabel} ${(((building as unknown) as AnyRecord).address ?? "")}`.toLowerCase();
+      const target = `${building.name} ${siteLabel} ${building.gender ?? ""}`.toLowerCase();
       const matchesSearch = query.length === 0 || target.includes(query);
       const matchesSite = siteFilter === "all" || siteId === siteFilter;
       return matchesSearch && matchesSite;
@@ -222,6 +220,21 @@ export default function BuildingsPage() {
     setPage(1);
   };
 
+  const handleCreateBuilding = () => {
+    setSelectedBuilding(null);
+    setFormOpen(true);
+  };
+
+  const handleCloseBuildingForm = () => {
+    setFormOpen(false);
+    setSelectedBuilding(null);
+  };
+
+  const handleEditBuilding = (building: Building) => {
+    setSelectedBuilding(building);
+    setFormOpen(true);
+  };
+
   return (
     <div className="w-full px-8 py-4">
       <DashboardPageHeader
@@ -233,7 +246,7 @@ export default function BuildingsPage() {
         searchPlaceholder="Buscar edificio..."
         actionLabel="Añadir edificio"
         actionIcon="add"
-        onAction={() => {}}
+        onAction={handleCreateBuilding}
         searchComponent={<SearchField value={search} onChange={handleSearchChange} placeholder="Buscar edificio por nombre..." />}
       />
 
@@ -318,7 +331,9 @@ export default function BuildingsPage() {
                           </div>
                           <div>
                             <div className="font-semibold text-[var(--color-on-surface)]">{building.name}</div>
-                            <div className="text-xs text-[var(--color-on-surface-variant)]">{(((building as unknown) as AnyRecord).address ?? "Sin dirección registrada") as string}</div>
+                            <div className="text-xs text-[var(--color-on-surface-variant)]">
+                              {building.gender ? `Tipo: ${building.gender}` : "Tipo de bloque no definido"}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -342,7 +357,7 @@ export default function BuildingsPage() {
                           <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Consultar">
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </button>
-                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Editar">
+                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Editar" onClick={() => handleEditBuilding(building)}>
                             <span className="material-symbols-outlined text-xl">edit</span>
                           </button>
                           <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-error)]" title="Eliminar">
@@ -369,6 +384,14 @@ export default function BuildingsPage() {
           onPageSizeChange={handlePageSizeChange}
         />
       </section>
+
+      <BuildingFormModal
+        building={selectedBuilding}
+        sites={sites}
+        open={formOpen}
+        onClose={handleCloseBuildingForm}
+        onSaved={() => loadData()}
+      />
     </div>
   );
 }
