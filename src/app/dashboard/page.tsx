@@ -19,6 +19,7 @@ import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect
 import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { SearchField } from "@/components/shared/SearchField";
+import { DashboardPagination } from "@/components/shared/DashboardPagination";
 
 type PaginatedList<T> = {
   results?: T[];
@@ -715,28 +716,13 @@ export default function DashboardPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
-          <div className="text-sm font-medium text-on-surface-variant">
-            Página {safePage} de {totalPages}
-          </div>
-          <div className="flex items-center gap-2">
-              <button 
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-              disabled={safePage <= 1}
-              onClick={() => setPage(old => Math.max(1, old - 1))}
-            >
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
-            </button>
-            <button 
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={safePage >= totalPages}
-              onClick={() => setPage(old => Math.min(totalPages, old + 1))}
-            >
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
-            </button>
-          </div>
-        </footer>
+        <DashboardPagination
+          page={safePage}
+          totalPages={totalPages}
+          totalItems={locationFilteredStudents.length}
+          itemLabel="estudiantes"
+          onPageChange={setPage}
+        />
       </section>
 
       {/* Slide-over panel */}

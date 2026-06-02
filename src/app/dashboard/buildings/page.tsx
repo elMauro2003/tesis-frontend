@@ -1,139 +1,226 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
-import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
-import { TableEmptyState } from "@/components/shared/TableEmptyState";
+import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
-import { useRouter, useSearchParams } from "next/navigation";
+import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
-import { Building, Site } from "@/types/models";
+import { Building, Room, Site, Wing } from "@/types/models";
+
+const DEFAULT_PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+type AnyRecord = Record<string, unknown>;
+
+type BuildingMetrics = {
+  roomCount: number;
+  availableSpots: number;
+  capacity: number;
+  occupiedSpots: number;
+  occupancyPercent: number;
+};
+
+const getNumericId = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
+  if (value && typeof value === "object" && "id" in value) return getNumericId((value as AnyRecord).id);
+  return null;
+};
+
+const getBuildingSiteId = (building: Building): number | null => getNumericId(building.site);
+
+const getRoomWingId = (room: Room): number | null => getNumericId(room.wing);
+
+const getRoomAvailability = (room: Room): number => {
+  if (!room.is_active) return 0;
+  if (typeof room.available_spots === "number") return Math.max(0, room.available_spots);
+
+  const occupied = room.current_occupancy ?? room.occupancy ?? 0;
+  return Math.max(0, room.capacity - occupied);
+};
+
+const getBuildingSiteLabel = (building: Building, sitesById: Map<number, Site>): string => {
+  if (typeof building.site === "object" && building.site && "name" in building.site) {
+    return String((building.site as Site).name);
+  }
+
+  const siteName = ((building as unknown) as AnyRecord).site_name;
+  if (typeof siteName === "string" && siteName.trim()) {
+    return siteName;
+  }
+
+  const siteId = getBuildingSiteId(building);
+  if (siteId !== null) {
+    return sitesById.get(siteId)?.name ?? "-";
+  }
+
+  return "-";
+};
 
 export default function BuildingsPage() {
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [allBuildings, setAllBuildings] = useState<Building[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
+  const [wings, setWings] = useState<Wing[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState<number | "all">("all");
-  const [count, setCount] = useState<number>(0);
-  const [pageSize, setPageSize] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
-  const [nextUrl, setNextUrl] = useState<string | null>(null);
-  const [prevUrl, setPrevUrl] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const load = async (opts?: { siteId?: number; page?: number; page_size?: number }) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await infrastructureService.getBuildings({ siteId: opts?.siteId, page: opts?.page, page_size: opts?.page_size });
-      setBuildings(res.results ?? []);
-      setCount(res.count ?? 0);
-      setPage(opts?.page ?? 1);
-      setPageSize(opts?.page_size ?? pageSize);
-      setNextUrl(res.next ?? null);
-      setPrevUrl(res.previous ?? null);
-    } catch (err: any) {
-      setError(err?.message || "Error cargando edificios");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    const init = async () => {
+    const bootstrap = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const initialPage = Number(params.get("page") || "1") || 1;
+      const initialPageSize = Number(params.get("page_size") || `${DEFAULT_PAGE_SIZE}`) || DEFAULT_PAGE_SIZE;
+      const initialSite = params.get("site");
+      const initialSearch = params.get("search") || "";
+
+      setPage(initialPage);
+      setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
+      setSiteFilter(initialSite ? Number(initialSite) : "all");
+      setSearch(initialSearch);
+
       setLoading(true);
+      setError(null);
+
       try {
-        const sitesRes = await infrastructureService.getSites();
-        if (!mounted) return;
+        const [sitesRes, buildingsRes, wingsRes, roomsRes] = await Promise.all([
+          infrastructureService.getAllSites(),
+          infrastructureService.getAllBuildings(),
+          infrastructureService.getAllWings(),
+          infrastructureService.getAllRooms(),
+        ]);
+
+        if (cancelled) return;
+
         setSites(sitesRes.results ?? []);
+        setAllBuildings(buildingsRes.results ?? []);
+        setWings(wingsRes.results ?? []);
+        setRooms(roomsRes.results ?? []);
       } catch (err) {
-        // ignore — site selector can be empty
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Error cargando edificios";
+        setError(message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      // Read initial query params
-      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-      const qPage = Number(sp.get("page") || searchParams?.get("page") || "1");
-      const qPageSize = Number(sp.get("page_size") || searchParams?.get("page_size") || "10");
-      const qSite = sp.get("site") || searchParams?.get("site");
-      const siteId = qSite ? Number(qSite) : undefined;
-      setPage(qPage);
-      setPageSize(qPageSize);
-      setSiteFilter(siteId ?? "all");
-      await load({ siteId, page: qPage, page_size: qPageSize });
     };
 
-    init();
+    bootstrap();
 
     return () => {
-      mounted = false;
+      cancelled = true;
     };
   }, []);
 
   useEffect(() => {
-    // sync url when siteFilter/page/pageSize change (preserve search)
     const params = new URLSearchParams();
+
     if (siteFilter !== "all") params.set("site", String(siteFilter));
-    if (page) params.set("page", String(page));
-    if (pageSize) params.set("page_size", String(pageSize));
-    if (search) params.set("search", search);
+    if (search.trim()) params.set("search", search.trim());
+    if (page > 1) params.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set("page_size", String(pageSize));
+
     const qs = params.toString();
     router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
-    load({ siteId: siteFilter === "all" ? undefined : (siteFilter as number), page, page_size: pageSize });
-  }, [siteFilter, page, pageSize]);
+  }, [siteFilter, search, page, pageSize, router]);
 
-  // debounce updating URL for search and preserve it
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      if (search) params.set("search", search);
-      else params.delete("search");
-      // when search changes, reset to page 1
-      params.set("page", "1");
-      router.replace(`${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`);
-      setPage(1);
-      load({ siteId: siteFilter === "all" ? undefined : (siteFilter as number), page: 1, page_size: pageSize });
-    }, 450);
-    return () => clearTimeout(t);
-  }, [search]);
+  const sitesById = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
+  const wingsById = useMemo(() => new Map(wings.map((wing) => [wing.id, wing])), [wings]);
 
-  const parsePageFromUrl = (url: string | null): number | undefined => {
-    if (!url) return undefined;
-    try {
-      const u = new URL(url, typeof window !== "undefined" ? window.location.origin : undefined);
-      const p = u.searchParams.get("page");
-      return p ? Number(p) : undefined;
-    } catch {
-      return undefined;
+  const metricsByBuilding = useMemo(() => {
+    const map = new Map<number, BuildingMetrics>();
+
+    for (const room of rooms) {
+      const wingId = getRoomWingId(room);
+      if (wingId === null) continue;
+
+      const wing = wingsById.get(wingId);
+      if (!wing) continue;
+
+      const buildingId = getNumericId(wing.building);
+      if (buildingId === null) continue;
+
+      const current = map.get(buildingId) ?? {
+        roomCount: 0,
+        availableSpots: 0,
+        capacity: 0,
+        occupiedSpots: 0,
+        occupancyPercent: 0,
+      };
+
+      const occupied = room.current_occupancy ?? room.occupancy ?? 0;
+      const capacity = room.capacity ?? 0;
+      const availableSpots = getRoomAvailability(room);
+
+      current.roomCount += 1;
+      current.availableSpots += availableSpots;
+      current.capacity += capacity;
+      current.occupiedSpots += occupied;
+      current.occupancyPercent = current.capacity > 0 ? Math.round((current.occupiedSpots / current.capacity) * 100) : 0;
+
+      map.set(buildingId, current);
     }
+
+    return map;
+  }, [rooms, wingsById]);
+
+  const filteredBuildings = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return allBuildings.filter((building) => {
+      const siteId = getBuildingSiteId(building);
+      const siteLabel = getBuildingSiteLabel(building, sitesById);
+      const target = `${building.name} ${siteLabel} ${(((building as unknown) as AnyRecord).address ?? "")}`.toLowerCase();
+      const matchesSearch = query.length === 0 || target.includes(query);
+      const matchesSite = siteFilter === "all" || siteId === siteFilter;
+      return matchesSearch && matchesSite;
+    });
+  }, [allBuildings, search, siteFilter, sitesById]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBuildings.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedBuildings = useMemo(
+    () => filteredBuildings.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filteredBuildings, safePage, pageSize]
+  );
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
   };
 
-  const goToNext = () => {
-    const p = parsePageFromUrl(nextUrl);
-    if (p) setPage(p);
-    else setPage((c) => c + 1);
+  const handleSiteChange = (value: string) => {
+    setSiteFilter(value === "all" ? "all" : Number(value));
+    setPage(1);
   };
 
-  const goToPrev = () => {
-    const p = parsePageFromUrl(prevUrl);
-    if (p) setPage(p);
-    else setPage((c) => Math.max(1, c - 1));
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
   };
 
-  const goToFirst = () => setPage(1);
-  const goToLast = () => setPage(Math.max(1, Math.ceil(count / pageSize)));
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return buildings;
-    return buildings.filter((b) => b.name.toLowerCase().includes(q));
-  }, [buildings, search]);
+  const handleClearFilters = () => {
+    setSearch("");
+    setSiteFilter("all");
+    setPage(1);
+  };
 
   return (
     <div className="w-full px-8 py-4">
@@ -142,12 +229,12 @@ export default function BuildingsPage() {
         description="Administre los edificios vinculados a cada sede institucional."
         topBadge="Infraestructura"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Buscar edificio..."
         actionLabel="Añadir edificio"
         actionIcon="add"
         onAction={() => {}}
-        searchComponent={<SearchField value={search} onChange={setSearch} placeholder="Buscar edificio por nombre..." />}
+        searchComponent={<SearchField value={search} onChange={handleSearchChange} placeholder="Buscar edificio por nombre..." />}
       />
 
       <DashboardFiltersBar
@@ -155,7 +242,7 @@ export default function BuildingsPage() {
           <DashboardFilterSelect
             className="w-full sm:w-72"
             value={siteFilter === "all" ? "all" : String(siteFilter)}
-            onValueChange={(value) => setSiteFilter(value === "all" ? "all" : Number(value))}
+            onValueChange={handleSiteChange}
             placeholder="Sede: Todas"
             options={[
               { value: "all", label: "Sede: Todas" },
@@ -165,125 +252,122 @@ export default function BuildingsPage() {
         )}
       />
 
-      <section className="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
+      <section className="rounded-xl bg-[var(--color-surface-container-lowest)] shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-surface-container-low/50">
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Edificio</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline">Sede</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-outline text-right">Acciones</th>
+              <tr className="bg-[var(--color-surface-container-low)]/50">
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Edificio</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Sede</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Cuartos totales</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Disponibilidad</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)] text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/20">
+            <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-sm text-on-surface-variant">
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[var(--color-on-surface-variant)]">
                     Cargando edificios...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-sm text-destructive">
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[var(--color-error)]">
                     {error}
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : paginatedBuildings.length === 0 ? (
                 <TableEmptyState
-                  colSpan={3}
+                  colSpan={5}
                   title={search.trim() || siteFilter !== "all" ? "Sin resultados" : "Aún no hay edificios"}
                   description={search.trim() || siteFilter !== "all"
                     ? "No encontramos edificios que coincidan con el filtro actual. Prueba limpiar la sede o la búsqueda."
                     : "Cuando existan edificios registrados, se mostrarán aquí con sus datos y acciones rápidas."}
                   icon={search.trim() || siteFilter !== "all" ? "filter_alt_off" : "domain"}
+                  secondaryAction={search.trim() || siteFilter !== "all" ? (
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-lowest)] px-4 py-2 text-sm font-semibold text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container-low)]"
+                    >
+                      Limpiar filtros
+                    </button>
+                  ) : null}
                 />
               ) : (
-                filtered.map((b) => (
-                  <tr key={b.id} className="hover:bg-surface-container-low transition-colors group">
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs">B</div>
-                        <div>
-                          <div className="font-semibold text-on-surface">{b.name}</div>
+                paginatedBuildings.map((building) => {
+                  const metrics = metricsByBuilding.get(building.id) ?? {
+                    roomCount: 0,
+                    availableSpots: 0,
+                    capacity: 0,
+                    occupiedSpots: 0,
+                    occupancyPercent: 0,
+                  };
+                  const siteLabel = getBuildingSiteLabel(building, sitesById);
+                  const availabilityTone = metrics.availableSpots > 0
+                    ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
+                    : "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]";
+
+                  return (
+                    <tr key={building.id} className="group transition-colors hover:bg-[var(--color-surface-container-low)]/70">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-selected)] text-[var(--color-primary)]">
+                            <span className="material-symbols-outlined text-xl">domain</span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[var(--color-on-surface)]">{building.name}</div>
+                            <div className="text-xs text-[var(--color-on-surface-variant)]">{(((building as unknown) as AnyRecord).address ?? "Sin dirección registrada") as string}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="text-sm text-on-surface-variant">{typeof b.site === "number" ? sites.find(s=>s.id===b.site)?.name ?? "-" : (b.site as Site)?.name ?? "-"}</div>
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-outline hover:text-primary transition-colors" title="Consultar">
-                          <span className="material-symbols-outlined text-xl">visibility</span>
-                        </button>
-                        <button className="p-2 text-outline hover:text-primary transition-colors" title="Editar">
-                          <span className="material-symbols-outlined text-xl">edit</span>
-                        </button>
-                        <button className="p-2 text-outline hover:text-destructive transition-colors" title="Eliminar">
-                          <span className="material-symbols-outlined text-xl">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-5 text-sm text-[var(--color-on-surface-variant)]">{siteLabel}</td>
+                      <td className="px-6 py-5">
+                        <div className="text-sm font-semibold text-[var(--color-on-surface)]">{metrics.roomCount} cuartos</div>
+                        <div className="text-xs text-[var(--color-on-surface-variant)]">
+                          {metrics.capacity > 0 ? `${metrics.capacity} plazas de capacidad` : "Sin cuartos cargados"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${availabilityTone}`}>
+                          {metrics.availableSpots} plazas libres
+                        </div>
+                        <div className="mt-2 text-xs text-[var(--color-on-surface-variant)]">
+                          {metrics.capacity > 0 ? `${metrics.occupancyPercent}% ocupación` : "Sin ocupación registrada"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Consultar">
+                            <span className="material-symbols-outlined text-xl">visibility</span>
+                          </button>
+                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Editar">
+                            <span className="material-symbols-outlined text-xl">edit</span>
+                          </button>
+                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-error)]" title="Eliminar">
+                            <span className="material-symbols-outlined text-xl">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        <footer className="px-6 py-4 flex items-center justify-between bg-surface-container-low/30 border-t border-outline-variant/10">
-          <div className="text-sm font-medium text-on-surface-variant">Mostrando {filtered.length} edificios</div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <button
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-                disabled={page <= 1}
-                onClick={goToFirst}
-              >
-                <span className="material-symbols-outlined text-lg">first_page</span>
-              </button>
-              <button
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-outline hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-                disabled={page <= 1}
-                onClick={goToPrev}
-              >
-                <span className="material-symbols-outlined text-lg">chevron_left</span>
-              </button>
-            </div>
-
-            <div className="text-sm text-on-surface-variant">Página {page} • {Math.max(1, Math.ceil(count / pageSize))}</div>
-
-            <div className="flex items-center gap-1">
-              <button
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-                disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
-                onClick={goToNext}
-              >
-                <span className="material-symbols-outlined text-lg">chevron_right</span>
-              </button>
-              <button
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all shadow-sm disabled:opacity-50"
-                disabled={page >= Math.max(1, Math.ceil(count / pageSize))}
-                onClick={goToLast}
-              >
-                <span className="material-symbols-outlined text-lg">last_page</span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-on-surface-variant">Mostrar:</label>
-              <select
-                value={pageSize}
-                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                className="bg-surface-container-low rounded-lg px-3 py-1 text-sm"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-          </div>
-        </footer>
+        <DashboardPagination
+          page={safePage}
+          totalPages={totalPages}
+          totalItems={filteredBuildings.length}
+          itemLabel="edificios"
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </section>
     </div>
   );

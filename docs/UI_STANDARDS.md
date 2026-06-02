@@ -56,7 +56,9 @@ Este documento fija las normas obligatorias para la construcción de vistas en e
 ## Regla 5 — Paginación y listas
 
 - Las tablas deben mostrar estados `loading`, `empty` y `error` usando las mismas clases utilitarias que `sedes`.
-- La paginación debe integrar `page`, `page_size` y usar enlaces devueltos por la API (`next`/`previous`) cuando estén disponibles.
+- La paginación debe usar siempre `DashboardPagination` (`src/components/shared/DashboardPagination.tsx`) como patrón compartido para tablas del sistema.
+- Cuando la vista tenga paginación server-side, integrar `page`, `page_size` y los enlaces devueltos por la API (`next`/`previous`) si están disponibles.
+- Cuando la vista use paginación local sobre un conjunto ya cargado, seguir usando `DashboardPagination` con el mismo footer, botones y selector de filas.
 
 ## Checklist para PRs de UI
 
