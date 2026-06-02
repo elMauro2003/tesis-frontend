@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
 import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
+import { ViewBuildingPanel } from "@/features/buildings/components/ViewBuildingPanel";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -78,7 +79,9 @@ export default function BuildingsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [viewBuilding, setViewBuilding] = useState<Building | null>(null);
 
   const router = useRouter();
 
@@ -285,18 +288,35 @@ export default function BuildingsPage() {
   };
 
   const handleEditBuilding = (building: Building) => {
+    setViewOpen(false);
+    setViewBuilding(null);
     setSelectedBuilding(building);
     setFormOpen(true);
   };
 
   const handleDeleteBuilding = (building: Building) => {
+    setViewOpen(false);
+    setViewBuilding(null);
     setSelectedBuilding(building);
     setDeleteOpen(true);
+  };
+
+  const handleViewBuilding = (building: Building) => {
+    setFormOpen(false);
+    setDeleteOpen(false);
+    setSelectedBuilding(null);
+    setViewBuilding(building);
+    setViewOpen(true);
   };
 
   const handleCloseDeleteBuilding = () => {
     setDeleteOpen(false);
     setSelectedBuilding(null);
+  };
+
+  const handleCloseViewBuilding = () => {
+    setViewOpen(false);
+    setViewBuilding(null);
   };
 
   return (
@@ -424,6 +444,7 @@ export default function BuildingsPage() {
                             size="icon"
                             className="h-9 w-9 cursor-pointer text-[var(--color-outline)] hover:text-[var(--color-primary)]"
                             title="Consultar"
+                            onClick={() => handleViewBuilding(building)}
                           >
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </Button>
@@ -493,6 +514,15 @@ export default function BuildingsPage() {
         open={deleteOpen}
         onClose={handleCloseDeleteBuilding}
         onDeleted={() => loadData()}
+      />
+
+      <ViewBuildingPanel
+        building={viewBuilding}
+        metrics={viewBuilding ? (metricsByBuilding.get(viewBuilding.id) ?? null) : null}
+        wings={wings}
+        rooms={rooms}
+        sites={sites}
+        onClose={handleCloseViewBuilding}
       />
     </div>
   );
