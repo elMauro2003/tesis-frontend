@@ -9,7 +9,7 @@ import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
-import { Building, Room, Site, Wing } from "@/types/models";
+import { Building, BuildingGender, Room, Site, Wing } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
@@ -20,6 +20,12 @@ import { ViewBuildingPanel } from "@/features/buildings/components/ViewBuildingP
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
+const BUILDING_GENDER_OPTIONS: Array<{ value: BuildingGender | "all"; label: string }> = [
+  { value: "all", label: "Tipo de bloque: Todos" },
+  { value: "Varones", label: "Tipo de bloque: Varones" },
+  { value: "Hembras", label: "Tipo de bloque: Hembras" },
+  { value: "Mixto", label: "Tipo de bloque: Mixto" },
+];
 
 type AnyRecord = Record<string, unknown>;
 
@@ -77,6 +83,7 @@ export default function BuildingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState<number | "all">("all");
+  const [buildingTypeFilter, setBuildingTypeFilter] = useState<BuildingGender | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
@@ -124,10 +131,12 @@ export default function BuildingsPage() {
     const initialPageSize = Number(params.get("page_size") || `${DEFAULT_PAGE_SIZE}`) || DEFAULT_PAGE_SIZE;
     const initialSite = params.get("site");
     const initialSearch = params.get("search") || "";
+    const initialGender = params.get("gender");
 
     setPage(initialPage);
     setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
     setSiteFilter(initialSite ? Number(initialSite) : "all");
+    setBuildingTypeFilter(initialGender === "Varones" || initialGender === "Hembras" || initialGender === "Mixto" ? initialGender : "all");
     setSearch(initialSearch);
 
     loadData();
@@ -137,13 +146,14 @@ export default function BuildingsPage() {
     const params = new URLSearchParams();
 
     if (siteFilter !== "all") params.set("site", String(siteFilter));
+    if (buildingTypeFilter !== "all") params.set("gender", buildingTypeFilter);
     if (search.trim()) params.set("search", search.trim());
     if (page > 1) params.set("page", String(page));
     if (pageSize !== DEFAULT_PAGE_SIZE) params.set("page_size", String(pageSize));
 
     const qs = params.toString();
     router.replace(`${window.location.pathname}${qs ? `?${qs}` : ""}`);
-  }, [siteFilter, search, page, pageSize, router]);
+  }, [siteFilter, buildingTypeFilter, search, page, pageSize, router]);
 
   const sitesById = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
   const buildingsById = useMemo(() => new Map(allBuildings.map((building) => [building.id, building])), [allBuildings]);
@@ -245,9 +255,10 @@ export default function BuildingsPage() {
       const target = `${building.name} ${siteLabel} ${building.gender ?? ""}`.toLowerCase();
       const matchesSearch = query.length === 0 || target.includes(query);
       const matchesSite = siteFilter === "all" || siteId === siteFilter;
-      return matchesSearch && matchesSite;
+      const matchesBuildingType = buildingTypeFilter === "all" || building.gender === buildingTypeFilter;
+      return matchesSearch && matchesSite && matchesBuildingType;
     });
-  }, [allBuildings, search, siteFilter, sitesById]);
+  }, [allBuildings, search, siteFilter, buildingTypeFilter, sitesById]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBuildings.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -272,6 +283,11 @@ export default function BuildingsPage() {
     setPage(1);
   };
 
+  const handleBuildingTypeChange = (value: string) => {
+    setBuildingTypeFilter(value === "all" ? "all" : (value as BuildingGender));
+    setPage(1);
+  };
+
   const handlePageSizeChange = (value: number) => {
     setPageSize(value);
     setPage(1);
@@ -280,6 +296,7 @@ export default function BuildingsPage() {
   const handleClearFilters = () => {
     setSearch("");
     setSiteFilter("all");
+    setBuildingTypeFilter("all");
     setPage(1);
   };
 
@@ -380,16 +397,25 @@ export default function BuildingsPage() {
 
       <DashboardFiltersBar
         left={(
-          <DashboardFilterSelect
-            className="w-full sm:w-72"
-            value={siteFilter === "all" ? "all" : String(siteFilter)}
-            onValueChange={handleSiteChange}
-            placeholder="Sede: Todas"
-            options={[
-              { value: "all", label: "Sede: Todas" },
-              ...sites.map((site) => ({ value: String(site.id), label: site.name })),
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <DashboardFilterSelect
+              className="w-full sm:w-72"
+              value={siteFilter === "all" ? "all" : String(siteFilter)}
+              onValueChange={handleSiteChange}
+              placeholder="Sede: Todas"
+              options={[
+                { value: "all", label: "Sede: Todas" },
+                ...sites.map((site) => ({ value: String(site.id), label: site.name })),
+              ]}
+            />
+            <DashboardFilterSelect
+              className="w-full sm:w-72"
+              value={buildingTypeFilter}
+              onValueChange={handleBuildingTypeChange}
+              placeholder="Tipo de bloque: Todos"
+              options={BUILDING_GENDER_OPTIONS}
+            />
+          </div>
         )}
       />
 
@@ -421,12 +447,12 @@ export default function BuildingsPage() {
               ) : paginatedBuildings.length === 0 ? (
                 <TableEmptyState
                   colSpan={5}
-                  title={search.trim() || siteFilter !== "all" ? "Sin resultados" : "Aún no hay edificios"}
-                  description={search.trim() || siteFilter !== "all"
-                    ? "No encontramos edificios que coincidan con el filtro actual. Prueba limpiar la sede o la búsqueda."
+                  title={search.trim() || siteFilter !== "all" || buildingTypeFilter !== "all" ? "Sin resultados" : "Aún no hay edificios"}
+                  description={search.trim() || siteFilter !== "all" || buildingTypeFilter !== "all"
+                    ? "No encontramos edificios que coincidan con el filtro actual. Prueba limpiar la sede, el tipo de bloque o la búsqueda."
                     : "Cuando existan edificios registrados, se mostrarán aquí con sus datos y acciones rápidas."}
-                  icon={search.trim() || siteFilter !== "all" ? "filter_alt_off" : "domain"}
-                  secondaryAction={search.trim() || siteFilter !== "all" ? (
+                  icon={search.trim() || siteFilter !== "all" || buildingTypeFilter !== "all" ? "filter_alt_off" : "domain"}
+                  secondaryAction={search.trim() || siteFilter !== "all" || buildingTypeFilter !== "all" ? (
                     <button
                       type="button"
                       onClick={handleClearFilters}
