@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/utils/helpers/shadcn/index"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-fixed disabled:pointer-events-none disabled:bg-primary-fixed-dim disabled:text-on-surface-variant [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer font-label text-label-caps",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-fixed disabled:bg-[var(--color-surface-container-high)] disabled:text-[var(--color-outline)] disabled:shadow-none disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-container-high)] disabled:hover:text-[var(--color-outline)] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer font-label text-label-caps",
   {
     variants: {
       variant: {

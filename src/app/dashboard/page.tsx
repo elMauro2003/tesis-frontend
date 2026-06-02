@@ -110,6 +110,7 @@ export default function DashboardPage() {
   const [selectedStudentToDeleteId, setSelectedStudentToDeleteId] = useState<number | null>(null);
   const [selectedStudentToEvaluateId, setSelectedStudentToEvaluateId] = useState<number | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
   // Filters
   const [facultyId, setFacultyId] = useState<number | 'all'>('all');
@@ -129,7 +130,7 @@ export default function DashboardPage() {
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState<number>(-1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
   const needsAssignments = buildingId !== 'all' || locationFilter !== 'all';
 
@@ -310,11 +311,11 @@ export default function DashboardPage() {
       });
     }, [buildingFilteredStudents, assignedStudentIds, locationFilter, assignmentByStudentId]);
 
-    const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(locationFilteredStudents.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const paginatedStudents = useMemo(
-    () => locationFilteredStudents.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [locationFilteredStudents, safePage]
+    () => locationFilteredStudents.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [locationFilteredStudents, safePage, pageSize]
   );
 
   // Fetch full student details for the currently visible rows to ensure all relations are loaded
@@ -449,6 +450,10 @@ export default function DashboardPage() {
       setPage(totalPages);
     }
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
   
   // keyboard navigation for suggestions
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -721,7 +726,10 @@ export default function DashboardPage() {
           totalPages={totalPages}
           totalItems={locationFilteredStudents.length}
           itemLabel="estudiantes"
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           onPageChange={setPage}
+          onPageSizeChange={setPageSize}
         />
       </section>
 

@@ -48,9 +48,6 @@ export function DashboardPagination({
     <footer className={`flex flex-col gap-4 border-t border-[var(--color-outline-variant)]/10 bg-[var(--color-surface-container-low)]/30 px-6 py-4 lg:flex-row lg:items-center lg:justify-between ${className}`}>
       <div className="space-y-1">
         <div className="text-sm font-medium text-[var(--color-on-surface-variant)]">{summaryText}</div>
-        <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-outline)]">
-          Paginación compartida
-        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -70,7 +67,7 @@ export function DashboardPagination({
             type="button"
             variant="neutral"
             size="icon"
-            className="rounded-xl"
+            className="rounded-xl disabled:cursor-not-allowed"
             onClick={() => onPageChange(1)}
             disabled={!canGoBack}
             aria-label="Primera página"
@@ -81,7 +78,7 @@ export function DashboardPagination({
             type="button"
             variant="neutral"
             size="icon"
-            className="rounded-xl"
+            className="rounded-xl disabled:cursor-not-allowed"
             onClick={() => onPageChange(Math.max(1, safePage - 1))}
             disabled={!canGoBack}
             aria-label="Página anterior"
@@ -95,7 +92,7 @@ export function DashboardPagination({
             type="button"
             variant="neutral"
             size="icon"
-            className="rounded-xl"
+            className="rounded-xl disabled:cursor-not-allowed"
             onClick={() => onPageChange(Math.min(safeTotalPages, safePage + 1))}
             disabled={!canGoForward}
             aria-label="Página siguiente"
@@ -106,7 +103,7 @@ export function DashboardPagination({
             type="button"
             variant="neutral"
             size="icon"
-            className="rounded-xl"
+            className="rounded-xl disabled:cursor-not-allowed"
             onClick={() => onPageChange(safeTotalPages)}
             disabled={!canGoForward}
             aria-label="Última página"
