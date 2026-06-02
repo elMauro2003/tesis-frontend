@@ -11,6 +11,7 @@ import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Room, Site, Wing } from "@/types/models";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
+import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -74,6 +75,7 @@ export default function BuildingsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
 
   const router = useRouter();
@@ -135,6 +137,56 @@ export default function BuildingsPage() {
 
   const sitesById = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
   const wingsById = useMemo(() => new Map(wings.map((wing) => [wing.id, wing])), [wings]);
+
+  const wingsByBuilding = useMemo(() => {
+    const map = new Map<number, Wing[]>();
+
+    for (const wing of wings) {
+      const buildingId = getNumericId(wing.building);
+      if (buildingId === null) continue;
+
+      const current = map.get(buildingId) ?? [];
+      current.push(wing);
+      map.set(buildingId, current);
+    }
+
+    return map;
+  }, [wings]);
+
+  const roomsByWing = useMemo(() => {
+    const map = new Map<number, Room[]>();
+
+    for (const room of rooms) {
+      const wingId = getRoomWingId(room);
+      if (wingId === null) continue;
+
+      const current = map.get(wingId) ?? [];
+      current.push(room);
+      map.set(wingId, current);
+    }
+
+    return map;
+  }, [rooms]);
+
+  const buildingCascadeById = useMemo(() => {
+    const map = new Map<number, { wingCount: number; roomCount: number }>();
+
+    for (const building of allBuildings) {
+      const buildingWings = wingsByBuilding.get(building.id) ?? [];
+      let roomCount = 0;
+
+      for (const wing of buildingWings) {
+        roomCount += (roomsByWing.get(wing.id) ?? []).length;
+      }
+
+      map.set(building.id, {
+        wingCount: buildingWings.length,
+        roomCount,
+      });
+    }
+
+    return map;
+  }, [allBuildings, wingsByBuilding, roomsByWing]);
 
   const metricsByBuilding = useMemo(() => {
     const map = new Map<number, BuildingMetrics>();
@@ -233,6 +285,16 @@ export default function BuildingsPage() {
   const handleEditBuilding = (building: Building) => {
     setSelectedBuilding(building);
     setFormOpen(true);
+  };
+
+  const handleDeleteBuilding = (building: Building) => {
+    setSelectedBuilding(building);
+    setDeleteOpen(true);
+  };
+
+  const handleCloseDeleteBuilding = () => {
+    setDeleteOpen(false);
+    setSelectedBuilding(null);
   };
 
   return (
@@ -360,7 +422,7 @@ export default function BuildingsPage() {
                           <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Editar" onClick={() => handleEditBuilding(building)}>
                             <span className="material-symbols-outlined text-xl">edit</span>
                           </button>
-                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-error)]" title="Eliminar">
+                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-error)]" title="Eliminar" onClick={() => handleDeleteBuilding(building)}>
                             <span className="material-symbols-outlined text-xl">delete</span>
                           </button>
                         </div>
@@ -391,6 +453,15 @@ export default function BuildingsPage() {
         open={formOpen}
         onClose={handleCloseBuildingForm}
         onSaved={() => loadData()}
+      />
+
+      <DeleteBuildingModal
+        building={selectedBuilding}
+        wingCount={selectedBuilding ? (buildingCascadeById.get(selectedBuilding.id)?.wingCount ?? 0) : 0}
+        roomCount={selectedBuilding ? (buildingCascadeById.get(selectedBuilding.id)?.roomCount ?? 0) : 0}
+        open={deleteOpen}
+        onClose={handleCloseDeleteBuilding}
+        onDeleted={() => loadData()}
       />
     </div>
   );
