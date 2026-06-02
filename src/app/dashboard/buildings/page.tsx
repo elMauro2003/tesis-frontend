@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
 import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
+import { DeleteWingModal } from "@/features/buildings/components/DeleteWingModal";
+import { WingFormModal } from "@/features/buildings/components/WingFormModal";
 import { ViewBuildingPanel } from "@/features/buildings/components/ViewBuildingPanel";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -79,8 +81,11 @@ export default function BuildingsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [wingFormOpen, setWingFormOpen] = useState(false);
+  const [wingDeleteOpen, setWingDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [selectedWing, setSelectedWing] = useState<Wing | null>(null);
   const [viewBuilding, setViewBuilding] = useState<Building | null>(null);
 
   const router = useRouter();
@@ -141,6 +146,7 @@ export default function BuildingsPage() {
   }, [siteFilter, search, page, pageSize, router]);
 
   const sitesById = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
+  const buildingsById = useMemo(() => new Map(allBuildings.map((building) => [building.id, building])), [allBuildings]);
   const wingsById = useMemo(() => new Map(wings.map((wing) => [wing.id, wing])), [wings]);
 
   const wingsByBuilding = useMemo(() => {
@@ -278,6 +284,9 @@ export default function BuildingsPage() {
   };
 
   const handleCreateBuilding = () => {
+    setWingFormOpen(false);
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
     setSelectedBuilding(null);
     setFormOpen(true);
   };
@@ -290,6 +299,9 @@ export default function BuildingsPage() {
   const handleEditBuilding = (building: Building) => {
     setViewOpen(false);
     setViewBuilding(null);
+    setWingFormOpen(false);
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
     setSelectedBuilding(building);
     setFormOpen(true);
   };
@@ -297,8 +309,30 @@ export default function BuildingsPage() {
   const handleDeleteBuilding = (building: Building) => {
     setViewOpen(false);
     setViewBuilding(null);
+    setWingFormOpen(false);
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
     setSelectedBuilding(building);
     setDeleteOpen(true);
+  };
+
+  const handleRegisterWing = (building: Building) => {
+    setViewOpen(false);
+    setViewBuilding(null);
+    setFormOpen(false);
+    setDeleteOpen(false);
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
+    setSelectedBuilding(building);
+    setWingFormOpen(true);
+  };
+
+  const handleDeleteWing = (wing: Wing) => {
+    setFormOpen(false);
+    setDeleteOpen(false);
+    setWingFormOpen(false);
+    setSelectedWing(wing);
+    setWingDeleteOpen(true);
   };
 
   const handleViewBuilding = (building: Building) => {
@@ -312,6 +346,16 @@ export default function BuildingsPage() {
   const handleCloseDeleteBuilding = () => {
     setDeleteOpen(false);
     setSelectedBuilding(null);
+  };
+
+  const handleCloseWingForm = () => {
+    setWingFormOpen(false);
+    setSelectedBuilding(null);
+  };
+
+  const handleCloseDeleteWing = () => {
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
   };
 
   const handleCloseViewBuilding = () => {
@@ -466,7 +510,7 @@ export default function BuildingsPage() {
                                 <span className="material-symbols-outlined text-base">edit</span>
                                 Editar edificio
                               </DropdownMenuItem>
-                              <DropdownMenuItem disabled className="opacity-50">
+                              <DropdownMenuItem onSelect={() => handleRegisterWing(building)}>
                                 <span className="material-symbols-outlined text-base">apartment</span>
                                 Registrar ala
                               </DropdownMenuItem>
@@ -516,12 +560,35 @@ export default function BuildingsPage() {
         onDeleted={() => loadData()}
       />
 
+      <WingFormModal
+        wing={null}
+        building={selectedBuilding}
+        open={wingFormOpen}
+        onClose={handleCloseWingForm}
+        onSaved={() => loadData()}
+      />
+
+      <DeleteWingModal
+        wing={selectedWing}
+        buildingName={selectedWing ? (() => {
+          const wingBuildingId = getNumericId(selectedWing.building);
+          if (wingBuildingId === null) return undefined;
+
+          return buildingsById.get(wingBuildingId)?.name;
+        })() : undefined}
+        roomCount={selectedWing ? (roomsByWing.get(selectedWing.id)?.length ?? 0) : 0}
+        open={wingDeleteOpen}
+        onClose={handleCloseDeleteWing}
+        onDeleted={() => loadData()}
+      />
+
       <ViewBuildingPanel
         building={viewBuilding}
         metrics={viewBuilding ? (metricsByBuilding.get(viewBuilding.id) ?? null) : null}
         wings={wings}
         rooms={rooms}
         sites={sites}
+        onRequestDeleteWing={handleDeleteWing}
         onClose={handleCloseViewBuilding}
       />
     </div>

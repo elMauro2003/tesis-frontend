@@ -153,14 +153,6 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
         
         {/* Header */}
         <header className="bg-[var(--color-surface-container-lowest)] border-b border-[var(--color-outline-variant)]/20 p-6 flex flex-col gap-4 relative">
-          <button 
-            onClick={handleRequestClose}
-            className="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
-            aria-label="Cerrar panel"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-          
           <div className="flex items-center gap-4 mt-2">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"}`}>
               {isLoading ? (

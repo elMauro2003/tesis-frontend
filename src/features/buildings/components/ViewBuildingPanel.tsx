@@ -19,6 +19,7 @@ interface ViewBuildingPanelProps {
   wings: Wing[];
   rooms: Room[];
   sites: Site[];
+  onRequestDeleteWing: (wing: Wing) => void;
   onClose: () => void;
 }
 
@@ -48,7 +49,7 @@ const getBuildingSiteLabel = (building: Building, sitesById: Map<number, Site>):
   return "-";
 };
 
-export function ViewBuildingPanel({ building, metrics, wings, rooms, sites, onClose }: ViewBuildingPanelProps) {
+export function ViewBuildingPanel({ building, metrics, wings, rooms, sites, onRequestDeleteWing, onClose }: ViewBuildingPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -110,14 +111,6 @@ export function ViewBuildingPanel({ building, metrics, wings, rooms, sites, onCl
 
       <div className={`fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-[var(--color-surface-container-lowest)] shadow-2xl flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`} role="dialog" aria-modal="true">
         <header className="bg-[var(--color-surface-container-lowest)] border-b border-[var(--color-outline-variant)]/20 p-6 flex flex-col gap-4 relative">
-          <button
-            onClick={handleRequestClose}
-            className="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
-            aria-label="Cerrar panel"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-
           <div className="flex items-center gap-4 mt-2">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm bg-[var(--color-primary-light)] text-[var(--color-primary)]">
               <span className="material-symbols-outlined text-3xl">domain</span>
@@ -180,6 +173,7 @@ export function ViewBuildingPanel({ building, metrics, wings, rooms, sites, onCl
                     <button
                       key={wing.id}
                       type="button"
+                      onClick={() => onRequestDeleteWing(wing)}
                       className="inline-flex items-center gap-2 rounded-full border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] px-3 py-2 text-sm font-semibold text-[var(--color-on-surface)] transition-colors hover:bg-[var(--color-surface-container-high)] cursor-pointer"
                       title="Quitar ala"
                       aria-label={`Quitar ala ${wing.name}`}
