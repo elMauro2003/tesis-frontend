@@ -10,6 +10,8 @@ import { SearchField } from "@/components/shared/SearchField";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, Room, Site, Wing } from "@/types/models";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
 import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
 
@@ -416,15 +418,44 @@ export default function BuildingsPage() {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Consultar">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 cursor-pointer text-[var(--color-outline)] hover:text-[var(--color-primary)]"
+                            title="Consultar"
+                          >
                             <span className="material-symbols-outlined text-xl">visibility</span>
-                          </button>
-                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-primary)]" title="Editar" onClick={() => handleEditBuilding(building)}>
-                            <span className="material-symbols-outlined text-xl">edit</span>
-                          </button>
-                          <button className="p-2 text-[var(--color-outline)] transition-colors hover:text-[var(--color-error)]" title="Eliminar" onClick={() => handleDeleteBuilding(building)}>
-                            <span className="material-symbols-outlined text-xl">delete</span>
-                          </button>
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 cursor-pointer text-[var(--color-outline)] hover:text-[var(--color-primary)]"
+                                aria-label="Más acciones"
+                              >
+                                <span className="material-symbols-outlined text-xl">more_vert</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="min-w-[13rem]">
+                              <DropdownMenuItem onSelect={() => handleEditBuilding(building)}>
+                                <span className="material-symbols-outlined text-base">edit</span>
+                                Editar edificio
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled className="opacity-50">
+                                <span className="material-symbols-outlined text-base">apartment</span>
+                                Registrar ala
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onSelect={() => handleDeleteBuilding(building)} className="text-[var(--color-error)] focus:text-[var(--color-error)]">
+                                <span className="material-symbols-outlined text-base">delete</span>
+                                Eliminar edificio
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
