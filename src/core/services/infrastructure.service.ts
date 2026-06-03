@@ -6,6 +6,17 @@ const isRoomAvailable = (room: Room) => {
   return room.is_active && !room.is_full && currentOccupancy < room.capacity;
 };
 
+export type RoomListFilters = {
+  search?: string;
+  page?: number;
+  page_size?: number;
+  is_active?: boolean;
+  wing?: number;
+  wing__building?: number;
+  wing__building__site?: number;
+  ordering?: string;
+};
+
 export const infrastructureService = {
   // Sedes
   getSites: (): Promise<PaginatedResponse<Site>> => fetchClient("/api/v1/sedes/"),
@@ -108,16 +119,7 @@ export const infrastructureService = {
   deleteWing: (id: number): Promise<void> => fetchClient(`/api/v1/alas/${id}/`, { method: "DELETE" }),
 
   // Cuartos
-  getRooms: (filters?: {
-    search?: string;
-    page?: number;
-    page_size?: number;
-    is_active?: boolean;
-    wing?: number;
-    wing__building?: number;
-    wing__building__site?: number;
-    ordering?: string;
-  }): Promise<PaginatedResponse<Room>> => {
+  getRooms: (filters?: RoomListFilters): Promise<PaginatedResponse<Room>> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -127,18 +129,18 @@ export const infrastructureService = {
     const qs = params.toString();
     return fetchClient(`/api/v1/cuartos/${qs ? `?${qs}` : ""}`);
   },
-  getAllRooms: async (filters?: { wing?: number; is_active?: boolean }): Promise<PaginatedResponse<Room>> => {
-    const firstPage = await infrastructureService.getRooms(filters);
+  getAllRooms: async (filters?: RoomListFilters): Promise<PaginatedResponse<Room>> => {
+    const pageSize = filters?.page_size ?? 100;
+    const firstPage = await infrastructureService.getRooms({ ...filters, page: 1, page_size: pageSize });
 
     if (!firstPage.next) {
       return firstPage;
     }
 
-    const pageSize = firstPage.results.length || 20;
     const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
     const remainingPages = await Promise.all(
       Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
-        infrastructureService.getRooms({ ...filters, page })
+        infrastructureService.getRooms({ ...filters, page, page_size: pageSize })
       )
     );
 
@@ -146,7 +148,7 @@ export const infrastructureService = {
       ...firstPage,
       results: [
         ...firstPage.results,
-        ...remainingPages.flatMap((page) => page.results),
+        ...remainingPages.flatMap((p) => p.results),
       ],
     };
   },

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
@@ -9,7 +10,7 @@ import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
 import { accommodationService } from "@/core/services/accommodation.service";
-import { infrastructureService } from "@/core/services/infrastructure.service";
+import { infrastructureService, type RoomListFilters } from "@/core/services/infrastructure.service";
 import { AssignStudentModal } from "@/features/rooms/components/AssignStudentModal";
 import { CloseRoomModal } from "@/features/rooms/components/CloseRoomModal";
 import { DeleteRoomModal } from "@/features/rooms/components/DeleteRoomModal";
@@ -103,7 +104,13 @@ export function RoomsManagement() {
     window.history.replaceState(null, "", nextUrl);
   }, [siteFilter, buildingFilter, debouncedSearch, statusFilter, page, pageSize]);
 
+  const filtersInitializedRef = useRef(false);
+
   useEffect(() => {
+    if (!filtersInitializedRef.current) {
+      filtersInitializedRef.current = true;
+      return;
+    }
     setPage(1);
   }, [debouncedSearch, siteFilter, buildingFilter, statusFilter, pageSize]);
 
@@ -144,7 +151,8 @@ export function RoomsManagement() {
     return ids;
   }, [assignmentsQuery.data, debouncedSearch]);
 
-  const useClientPagination = statusFilter !== "all" || (studentMatchedRoomIds?.size ?? 0) > 0;
+  const hasSearch = debouncedSearch.trim().length > 0;
+  const useClientPagination = statusFilter !== "all" || hasSearch;
 
   const roomsQuery = useQuery({
     queryKey: [
@@ -157,15 +165,14 @@ export function RoomsManagement() {
         page,
         pageSize,
         useClientPagination,
-        studentMatchCount: studentMatchedRoomIds?.size ?? 0,
       },
     ],
     queryFn: async () => {
-      const apiFilters: Parameters<typeof infrastructureService.getRooms>[0] = {
+      const apiFilters: RoomListFilters = {
         ordering: "number",
       };
 
-      if (debouncedSearch.trim()) apiFilters.search = debouncedSearch.trim();
+      if (hasSearch) apiFilters.search = debouncedSearch.trim();
       if (siteFilter !== "all") apiFilters.wing__building__site = siteFilter;
       if (buildingFilter !== "all") apiFilters.wing__building = buildingFilter;
       if (statusFilter === "closed") apiFilters.is_active = false;
@@ -178,38 +185,47 @@ export function RoomsManagement() {
           results = results.filter((room) => matchesRoomStatusFilter(room, statusFilter));
         }
 
-        if (studentMatchedRoomIds && studentMatchedRoomIds.size > 0 && debouncedSearch.trim()) {
+        if (hasSearch) {
+          const searchLower = debouncedSearch.trim().toLowerCase();
           const apiIds = new Set(results.map((r) => r.id));
-          const extraIds = [...studentMatchedRoomIds].filter((id) => !apiIds.has(id));
-          if (extraIds.length > 0) {
-            const extras = await Promise.all(
-              extraIds.map((id) => infrastructureService.getRoomById(id).catch(() => null))
-            );
-            results = [...results, ...extras.filter((r): r is Room => r !== null)];
+
+          if (studentMatchedRoomIds && studentMatchedRoomIds.size > 0) {
+            const extraIds = [...studentMatchedRoomIds].filter((id) => !apiIds.has(id));
+            if (extraIds.length > 0) {
+              const extras = await Promise.all(
+                extraIds.map((id) => infrastructureService.getRoomById(id).catch(() => null))
+              );
+              results = [...results, ...extras.filter((r): r is Room => r !== null)];
+            }
           }
+
           results = results.filter(
             (room) =>
-              room.number.toLowerCase().includes(debouncedSearch.trim().toLowerCase()) ||
-              studentMatchedRoomIds.has(room.id)
+              room.number.toLowerCase().includes(searchLower) ||
+              (studentMatchedRoomIds?.has(room.id) ?? false)
           );
         }
 
         const total = results.length;
-        const start = (page - 1) * pageSize;
+        const totalPagesForQuery = Math.max(1, Math.ceil(total / pageSize));
+        const currentPage = Math.min(Math.max(1, page), totalPagesForQuery);
+        const start = (currentPage - 1) * pageSize;
+
         return {
           count: total,
           next: start + pageSize < total ? "client" : null,
-          previous: page > 1 ? "client" : null,
+          previous: currentPage > 1 ? "client" : null,
           results: results.slice(start, start + pageSize),
         };
       }
 
       return infrastructureService.getRooms({
         ...apiFilters,
-        page,
+        page: Math.max(1, page),
         page_size: pageSize,
       });
     },
+    placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
   });
 
@@ -236,11 +252,14 @@ export function RoomsManagement() {
 
   const totalCount = roomsQuery.data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const safePage = Math.min(page, totalPages);
+  const safePage = Math.min(Math.max(1, page), totalPages);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (totalCount === 0) return;
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages, totalCount]);
 
   const viewItem = useMemo(
     () => enrichedItems.find((item) => item.room.id === viewRoomId) ?? null,
