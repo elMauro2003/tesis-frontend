@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { FetchError } from "@/lib/fetchClient";
+import { cn } from "@/utils/helpers/shadcn/index";
 import { Room } from "@/types/models";
 
 interface CloseRoomModalProps {
@@ -29,6 +30,9 @@ const CLOSURE_CAUSES = [
   "Fumigación / Higiene",
   "Otro",
 ] as const;
+
+const closureFieldClass =
+  "rounded-xl border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] focus-visible:border-[var(--color-tertiary)] focus-visible:ring-2 focus-visible:ring-[var(--color-tertiary)]/20";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof FetchError) return error.message;
@@ -111,12 +115,16 @@ export function CloseRoomModal({
               Causa técnica o administrativa
             </label>
             <Select value={cause} onValueChange={setCause}>
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className={closureFieldClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {CLOSURE_CAUSES.map((option) => (
-                  <SelectItem key={option} value={option}>
+                  <SelectItem
+                    key={option}
+                    value={option}
+                    className="data-[highlighted]:bg-[var(--color-tertiary-fixed)]/60 data-[highlighted]:text-[var(--color-on-tertiary-fixed)] data-[state=checked]:bg-[var(--color-tertiary-fixed)]/80 data-[state=checked]:text-[var(--color-on-tertiary-fixed)]"
+                  >
                     {option}
                   </SelectItem>
                 ))}
@@ -137,7 +145,7 @@ export function CloseRoomModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describa brevemente el problema detectado..."
               rows={2}
-              className="rounded-xl border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-highest)] text-sm"
+              className={cn("text-sm", closureFieldClass)}
             />
           </div>
 
@@ -153,15 +161,32 @@ export function CloseRoomModal({
               type="date"
               value={reopenDate}
               onChange={(e) => setReopenDate(e.target.value)}
-              className="rounded-xl bg-[var(--color-surface-container-highest)]"
+              className={closureFieldClass}
             />
           </div>
 
-          <div className="flex items-start gap-3 rounded-xl border border-[var(--color-tertiary-fixed)] bg-[var(--color-tertiary-fixed)]/30 p-4">
-            <span className="material-symbols-outlined shrink-0 text-lg text-[var(--color-tertiary-fixed-variant)]">
-              info
+          <div
+            className={cn(
+              "flex items-start gap-3 rounded-xl border p-4",
+              hasOccupants
+                ? "border-[var(--color-error)]/25 bg-[var(--color-error-container)]/50"
+                : "border-[var(--color-tertiary-fixed)] bg-[var(--color-tertiary-fixed)]/30"
+            )}
+          >
+            <span
+              className={cn(
+                "material-symbols-outlined shrink-0 text-lg",
+                hasOccupants ? "text-[var(--color-error)]" : "text-[var(--color-on-tertiary-fixed-variant)]"
+              )}
+            >
+              {hasOccupants ? "warning" : "info"}
             </span>
-            <p className="text-[11px] font-medium leading-tight text-[var(--color-on-tertiary-fixed-variant)]">
+            <p
+              className={cn(
+                "text-[11px] font-medium leading-tight",
+                hasOccupants ? "text-[#93000a]" : "text-[var(--color-on-tertiary-fixed-variant)]"
+              )}
+            >
               {hasOccupants
                 ? "Esta acción impedirá nuevas asignaciones a este cuarto. Los estudiantes que actualmente ocupan la plaza deberán ser permutados antes de proceder."
                 : "Esta acción impedirá nuevas asignaciones a este cuarto hasta que lo reactive desde la edición del cuarto."}
@@ -173,8 +198,14 @@ export function CloseRoomModal({
           <Button type="button" variant="cancel" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
-          <Button type="button" variant="confirm" onClick={() => closeMutation.mutate()} disabled={isPending}>
-            <span className="material-symbols-outlined text-lg">block</span>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => closeMutation.mutate()}
+            disabled={isPending}
+            className=" border-transparent bg-[var(--color-tertiary)] font-bold text-[var(--color-on-tertiary)] shadow-[var(--shadow-tertiary-btn)] hover:bg-[var(--color-tertiary-container)] hover:text-[var(--color-on-tertiary)] active:scale-[0.98] disabled:bg-[var(--color-surface-container-high)] disabled:text-[var(--color-outline)] disabled:shadow-none disabled:hover:bg-[var(--color-surface-container-high)]"
+          >
+            <span className="material-symbols-outlined text-lg">construction</span>
             {isPending ? "Clausurando..." : "Confirmar clausura"}
           </Button>
         </footer>
