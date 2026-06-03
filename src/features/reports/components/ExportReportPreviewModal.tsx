@@ -99,7 +99,7 @@ export function ExportReportPreviewModal({
       }
     >
       <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-        <p className="text-sm text-outline print:hidden">
+        <p className="text-sm text-outline print:hidden text-center">
           Revise métricas, indicadores y el listado antes de descargar. Se abrirá una ventana nueva; en
           el diálogo de impresión elija «Guardar como PDF».
         </p>
