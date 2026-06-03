@@ -108,11 +108,20 @@ export const infrastructureService = {
   deleteWing: (id: number): Promise<void> => fetchClient(`/api/v1/alas/${id}/`, { method: "DELETE" }),
 
   // Cuartos
-  getRooms: (filters?: { wing?: number; is_active?: boolean; page?: number }): Promise<PaginatedResponse<Room>> => {
+  getRooms: (filters?: {
+    search?: string;
+    page?: number;
+    page_size?: number;
+    is_active?: boolean;
+    wing?: number;
+    wing__building?: number;
+    wing__building__site?: number;
+    ordering?: string;
+  }): Promise<PaginatedResponse<Room>> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) params.append(key, String(value));
+        if (value !== undefined && value !== "") params.append(key, String(value));
       });
     }
     const qs = params.toString();

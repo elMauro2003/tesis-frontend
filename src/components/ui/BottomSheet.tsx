@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/utils/helpers/shadcn/index";
 
 interface BottomSheetProps {
   open: boolean;
@@ -44,11 +45,23 @@ export function BottomSheet({
 
   if (!mounted) return null;
 
+  const smMaxWidthClass = maxWidthClassName.startsWith("max-w-")
+    ? maxWidthClassName.replace(/^max-w-/, "sm:max-w-")
+    : maxWidthClassName;
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => {
       if (!nextOpen) onClose();
     }}>
-      <DialogContent className={`transition-all duration-300 ease-out ${presented ? "dialog-sheet-enter" : "dialog-sheet-exit"} ${maxWidthClassName} overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]`}>
+      <DialogContent
+        className={cn(
+          "transition-all duration-300 ease-out",
+          presented ? "dialog-sheet-enter" : "dialog-sheet-exit",
+          "w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] sm:w-full",
+          maxWidthClassName,
+          smMaxWidthClass
+        )}
+      >
         {(title || subtitle) ? (
           <header className="bg-[var(--color-surface-container-lowest)] p-6">
             {title ? <DialogTitle className="text-xl font-headline font-extrabold text-[var(--color-primary-dark)]">{title}</DialogTitle> : null}
@@ -61,7 +74,7 @@ export function BottomSheet({
           </>
         )}
 
-        <div>{children}</div>
+        <div className="w-full min-w-0">{children}</div>
 
         {footer ? <footer>{footer}</footer> : null}
 

@@ -59,6 +59,10 @@ export interface Room {
   current_occupancy?: number;
   available_spots?: number;
   is_full?: boolean;
+  wing_name?: string;
+  building_name?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Gestión de Personas
@@ -196,9 +200,13 @@ export interface RoomAssignment {
   assigned_date?: string;
   released_date?: string | null;
   assigned_by?: string | number | { id: number; username?: string };
+  assigned_by_name?: string;
   start_date?: string;
   end_date?: string | null;
   is_active: boolean;
+  student_name?: string;
+  student_id_code?: string;
+  room_detail?: string;
 }
 
 export interface RoomDuty { 

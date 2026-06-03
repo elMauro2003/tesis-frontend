@@ -1,5 +1,10 @@
-import { fetchClient } from "@/lib/fetchClient";
+import { fetchClient, FetchError } from "@/lib/fetchClient";
 import { RoomAssignment, RoomDuty, PaginatedResponse } from "@/types/models";
+
+const todayIsoDate = () => new Date().toISOString().slice(0, 10);
+
+const isAssignmentReleased = (assignment: RoomAssignment) =>
+  Boolean(assignment.released_date) || assignment.is_active === false;
 
 export interface RoomAssignmentCreatePayload {
   student: number;
@@ -60,7 +65,48 @@ export const accommodationService = {
   
   createAssignment: (data: RoomAssignmentCreatePayload): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
   
-  releaseAssignment: (id: number): Promise<void> => fetchClient(`/api/v1/asignaciones/${id}/liberar/`, { method: "POST" }),
+  releaseAssignment: async (id: number, releasedDate?: string): Promise<void> => {
+    const payload = { released_date: releasedDate ?? todayIsoDate() };
+
+    try {
+      await fetchClient<RoomAssignment>(`/api/v1/asignaciones/${id}/liberar/`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return;
+    } catch (error) {
+      // El backend a veces aplica la liberación pero responde 500 al serializar released_date.
+      if (!(error instanceof FetchError) || error.status !== 500) {
+        throw error;
+      }
+    }
+
+    const assignment = await fetchClient<RoomAssignment>(`/api/v1/asignaciones/${id}/`);
+    if (isAssignmentReleased(assignment)) {
+      return;
+    }
+
+    throw new FetchError(
+      500,
+      "No se pudo confirmar la liberación. Intente de nuevo o contacte al administrador."
+    );
+  },
+
+  /** Traslado de estudiante: libera la asignación activa y crea una nueva en otro cuarto (permuta). */
+  transferStudentAssignment: async (
+    assignmentId: number,
+    studentId: number,
+    targetRoomId: number,
+    assignedDate?: string
+  ): Promise<RoomAssignment> => {
+    const releaseDate = assignedDate ?? todayIsoDate();
+    await accommodationService.releaseAssignment(assignmentId, releaseDate);
+    return accommodationService.createAssignment({
+      student: studentId,
+      room: targetRoomId,
+      assigned_date: releaseDate,
+    });
+  },
 
   // --- Cuartelerías (Room Duties) ---
   getRoomDuties: (filters?: { room?: number; student?: number; completed?: boolean; page?: number }): Promise<PaginatedResponse<RoomDuty>> => {
