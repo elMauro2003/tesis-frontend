@@ -21,6 +21,7 @@ interface RoomsListProps {
   onEdit: (room: Room) => void;
   onPermute: (room: Room) => void;
   onRevoke: (room: Room) => void;
+  onAssignStudent: (room: Room) => void;
   onClose: (room: Room) => void;
   onDelete: (room: Room) => void;
 }
@@ -35,6 +36,7 @@ export function RoomsList({
   onEdit,
   onPermute,
   onRevoke,
+  onAssignStudent,
   onClose,
   onDelete,
 }: RoomsListProps) {
@@ -88,6 +90,7 @@ export function RoomsList({
             onEdit={onEdit}
             onPermute={onPermute}
             onRevoke={onRevoke}
+            onAssignStudent={onAssignStudent}
             onClose={onClose}
             onDelete={onDelete}
           />

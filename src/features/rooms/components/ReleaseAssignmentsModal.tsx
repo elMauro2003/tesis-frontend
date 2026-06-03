@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,14 +101,7 @@ export function ReleaseAssignmentsModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="cursor-pointer text-[var(--color-outline)] transition-colors hover:text-[var(--color-on-surface)]"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <ModalCloseButton onClick={onClose} />
         </header>
 
         <div className="space-y-6 p-6">
@@ -174,7 +168,7 @@ export function ReleaseAssignmentsModal({
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/60 p-5">
+        <footer className="flex items-center justify-end gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)] p-5">
           <Button type="button" variant="cancel" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
@@ -183,8 +177,8 @@ export function ReleaseAssignmentsModal({
             variant="destructive"
             onClick={() => releaseMutation.mutate()}
             disabled={isPending || !canSubmit}
-            className="rounded-xl shadow-md shadow-red-600/20"
           >
+            <span className="material-symbols-outlined text-lg">do_not_disturb_on</span>
             {isPending ? "Revocando..." : "Confirmar revocación"}
           </Button>
         </footer>

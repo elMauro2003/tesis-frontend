@@ -143,6 +143,7 @@ export interface Student {
   };
   age?: number;
   is_militant: boolean;
+  has_room?: boolean;
   current_room?: {
     number?: string;
     wing?: string;

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,19 +190,12 @@ export function RoomFormModal({
             <h3 className="font-headline text-xl font-extrabold leading-tight text-[var(--color-primary-dark)]">{title}</h3>
             <p className="mt-1 text-xs leading-relaxed text-[var(--color-on-surface-variant)]">{subtitle}</p>
           </div>
-          <button
-            type="button"
-            className="cursor-pointer text-[var(--color-outline)] transition-colors hover:text-[var(--color-on-surface)]"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <ModalCloseButton onClick={onClose} />
         </div>
 
         <div className="space-y-5 p-6">
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="space-y-1">
+          <div className="space-y-5">
+            <div className="min-w-0 space-y-1">
               <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                 Sede
               </label>
@@ -211,61 +205,63 @@ export function RoomFormModal({
                   setValues((c) => ({ ...c, siteId: Number(value), buildingId: "", wingId: "" }))
                 }
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sede" />
+                <SelectTrigger className="min-w-0 max-w-full">
+                  <SelectValue placeholder="Seleccione la sede" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[min(24rem,calc(100vw-2rem))]">
                   {sites.map((site) => (
-                    <SelectItem key={site.id} value={String(site.id)}>
-                      {site.name}
+                    <SelectItem key={site.id} value={String(site.id)} className="items-start py-2.5">
+                      <span className="line-clamp-2 text-left leading-snug">{site.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
-                Edificio
-              </label>
-              <Select
-                value={values.buildingId === "" ? "" : String(values.buildingId)}
-                onValueChange={(value) =>
-                  setValues((c) => ({ ...c, buildingId: Number(value), wingId: "" }))
-                }
-                disabled={values.siteId === ""}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Edificio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {buildingsForSite.map((building) => (
-                    <SelectItem key={building.id} value={String(building.id)}>
-                      {building.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
-                Ala
-              </label>
-              <Select
-                value={values.wingId === "" ? "" : String(values.wingId)}
-                onValueChange={(value) => setValues((c) => ({ ...c, wingId: Number(value) }))}
-                disabled={values.buildingId === ""}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Ala" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wingsForBuilding.map((wing) => (
-                    <SelectItem key={wing.id} value={String(wing.id)}>
-                      {wing.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid min-w-0 gap-5 sm:grid-cols-2">
+              <div className="min-w-0 space-y-1">
+                <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Edificio
+                </label>
+                <Select
+                  value={values.buildingId === "" ? "" : String(values.buildingId)}
+                  onValueChange={(value) =>
+                    setValues((c) => ({ ...c, buildingId: Number(value), wingId: "" }))
+                  }
+                  disabled={values.siteId === ""}
+                >
+                  <SelectTrigger className="min-w-0 max-w-full">
+                    <SelectValue placeholder="Edificio" />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[min(20rem,calc(100vw-2rem))]">
+                    {buildingsForSite.map((building) => (
+                      <SelectItem key={building.id} value={String(building.id)}>
+                        <span className="line-clamp-2 text-left leading-snug">{building.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-0 space-y-1">
+                <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Ala
+                </label>
+                <Select
+                  value={values.wingId === "" ? "" : String(values.wingId)}
+                  onValueChange={(value) => setValues((c) => ({ ...c, wingId: Number(value) }))}
+                  disabled={values.buildingId === ""}
+                >
+                  <SelectTrigger className="min-w-0 max-w-full">
+                    <SelectValue placeholder="Ala" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wingsForBuilding.map((wing) => (
+                      <SelectItem key={wing.id} value={String(wing.id)}>
+                        {wing.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

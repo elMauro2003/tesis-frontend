@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -149,14 +150,7 @@ export function PermuteRoomModal({
               Permutar estudiante
             </h3>
           </div>
-          <button
-            type="button"
-            className="cursor-pointer text-[var(--color-outline)] transition-colors hover:text-[var(--color-on-surface)]"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <ModalCloseButton onClick={onClose} />
         </div>
 
         <div className="w-full min-w-0 space-y-6 bg-[var(--color-surface-container-low)]/40 p-6">
@@ -288,7 +282,7 @@ export function PermuteRoomModal({
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-lowest)] p-5">
+        <footer className="flex items-center justify-end gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)] p-5">
           <Button type="button" variant="cancel" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
@@ -298,7 +292,7 @@ export function PermuteRoomModal({
             onClick={() => permuteMutation.mutate()}
             disabled={isPending || assignmentId === "" || targetRoomId === ""}
           >
-            <span className="material-symbols-outlined text-lg">check</span>
+            <span className="material-symbols-outlined text-lg">swap_horiz</span>
             {isPending ? "Ejecutando permuta..." : "Ejecutar permuta"}
           </Button>
         </footer>

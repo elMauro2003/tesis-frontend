@@ -25,6 +25,7 @@ interface RoomListRowProps {
   onEdit: (room: Room) => void;
   onPermute: (room: Room) => void;
   onRevoke: (room: Room) => void;
+  onAssignStudent: (room: Room) => void;
   onClose: (room: Room) => void;
   onDelete: (room: Room) => void;
 }
@@ -38,9 +39,11 @@ export function RoomListRow({
   onEdit,
   onPermute,
   onRevoke,
+  onAssignStudent,
   onClose,
   onDelete,
 }: RoomListRowProps) {
+  const hasFreeSpot = assignments.length < room.capacity;
   const isClosed = deriveRoomDisplayStatus(room) === "closed";
   const iconMuted = isClosed;
 
@@ -117,6 +120,13 @@ export function RoomListRow({
             <DropdownMenuItem onSelect={() => onEdit(room)}>
               <span className="material-symbols-outlined text-base">edit</span>
               Editar cuarto
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => onAssignStudent(room)}
+              disabled={!room.is_active || !hasFreeSpot}
+            >
+              <span className="material-symbols-outlined text-base">person_add</span>
+              Registrar estudiante
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => onPermute(room)}

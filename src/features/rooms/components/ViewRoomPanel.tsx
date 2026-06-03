@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Room, RoomAssignment } from "@/types/models";
 import { RoomOccupantsStack } from "@/features/rooms/components/RoomOccupantsStack";
@@ -70,14 +71,11 @@ export function ViewRoomPanel({
         aria-modal="true"
       >
         <header className="relative flex flex-col gap-4 border-b border-[var(--color-outline-variant)]/20 bg-[var(--color-surface-container-lowest)] p-6">
-          <button
-            type="button"
-            className="absolute right-4 top-4 cursor-pointer text-[var(--color-outline)] hover:text-[var(--color-on-surface)]"
+          <ModalCloseButton
             onClick={handleRequestClose}
-            aria-label="Cerrar panel"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+            label="Cerrar panel"
+            className="absolute right-4 top-4"
+          />
           <div className="mt-2 flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary-selected)] text-[var(--color-primary)] shadow-sm ring-4 ring-[var(--color-surface-container-lowest)]">
               <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>

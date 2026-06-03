@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { infrastructureService } from "@/core/services/infrastructure.service";
@@ -74,14 +75,7 @@ export function DeleteRoomModal({
               Esta acción no se puede deshacer desde la interfaz.
             </p>
           </div>
-          <button
-            type="button"
-            className="cursor-pointer text-[var(--color-outline)] transition-colors hover:text-[var(--color-on-surface)]"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <ModalCloseButton onClick={onClose} />
         </div>
 
         <div className="space-y-5 p-6">
@@ -107,6 +101,7 @@ export function DeleteRoomModal({
             Cancelar
           </Button>
           <Button type="button" variant="destructive" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
+            <span className="material-symbols-outlined text-lg">delete</span>
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar cuarto"}
           </Button>
         </footer>

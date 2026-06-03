@@ -10,6 +10,7 @@ import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
 import { accommodationService } from "@/core/services/accommodation.service";
 import { infrastructureService } from "@/core/services/infrastructure.service";
+import { AssignStudentModal } from "@/features/rooms/components/AssignStudentModal";
 import { CloseRoomModal } from "@/features/rooms/components/CloseRoomModal";
 import { DeleteRoomModal } from "@/features/rooms/components/DeleteRoomModal";
 import { PermuteRoomModal } from "@/features/rooms/components/PermuteRoomModal";
@@ -59,6 +60,7 @@ export function RoomsManagement() {
   const [closeOpen, setCloseOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [permuteOpen, setPermuteOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [viewRoomId, setViewRoomId] = useState<number | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
@@ -286,6 +288,22 @@ export function RoomsManagement() {
     setReleaseOpen(true);
   };
 
+  const handleAssignStudent = (room: Room) => {
+    const roomAssignments = assignmentsByRoom.get(room.id) ?? [];
+    if (!room.is_active) {
+      toast.warning("Cuarto clausurado", { description: "Reactive el cuarto antes de registrar estudiantes." });
+      return;
+    }
+    if (roomAssignments.length >= room.capacity) {
+      toast.info("Sin plazas disponibles", {
+        description: "Este cuarto ya alcanzó su capacidad máxima.",
+      });
+      return;
+    }
+    setSelectedRoom(room);
+    setAssignOpen(true);
+  };
+
   const handlePermute = (room: Room) => {
     const assignments = assignmentsByRoom.get(room.id) ?? [];
     if (assignments.length === 0) {
@@ -378,6 +396,7 @@ export function RoomsManagement() {
         onEdit={handleEdit}
         onPermute={handlePermute}
         onRevoke={handleRevoke}
+        onAssignStudent={handleAssignStudent}
         onClose={handleCloseRoom}
         onDelete={handleDelete}
       />
@@ -430,6 +449,7 @@ export function RoomsManagement() {
       <CloseRoomModal
         room={closeOpen ? selectedRoom : null}
         roomLabel={selectedEnriched?.title ?? selectedRoom?.number ?? ""}
+        assignmentCount={selectedEnriched?.assignments.length ?? 0}
         open={closeOpen}
         onClose={() => {
           setCloseOpen(false);
@@ -448,6 +468,21 @@ export function RoomsManagement() {
           setSelectedRoom(null);
         }}
         onReleased={() => {
+          roomsQuery.refetch();
+          void assignmentsQuery.refetch();
+        }}
+      />
+
+      <AssignStudentModal
+        room={assignOpen ? selectedRoom : null}
+        roomLabel={selectedEnriched?.title ?? selectedRoom?.number ?? ""}
+        assignments={selectedEnriched?.assignments ?? []}
+        open={assignOpen}
+        onClose={() => {
+          setAssignOpen(false);
+          setSelectedRoom(null);
+        }}
+        onAssigned={() => {
           roomsQuery.refetch();
           void assignmentsQuery.refetch();
         }}
