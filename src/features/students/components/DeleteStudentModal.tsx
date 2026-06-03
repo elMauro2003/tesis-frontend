@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { studentService } from "@/core/services/student.service";
@@ -34,7 +35,7 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
 
   useEffect(() => {
     if (!open) deleteMutation.reset();
-  }, [open]);
+  }, [open, deleteMutation]);
 
   const title = "Dar de Baja de la Residencia";
 
@@ -87,7 +88,7 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Motivo de la baja</label>
               <Select defaultValue="Graduación">
-                <SelectTrigger className="w-full bg-[var(--color-surface-container-low)] rounded-lg text-sm font-medium text-[var(--color-on-surface)] shadow-none h-10">
+                <SelectTrigger className="w-full h-10 rounded-lg bg-[var(--color-surface-container-low)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                   <SelectValue placeholder="Seleccionar motivo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -107,16 +108,17 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
         </div>
 
         <footer className="border-t border-[var(--color-outline-variant)]/15 p-6 flex justify-end gap-3 bg-[var(--color-surface-container-low)]/50">
-          <button className="px-4 py-2 text-sm font-semibold text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container-lowest)] rounded-lg hover:bg-[var(--color-surface-container-low)] transition-colors shadow-sm cursor-pointer" onClick={onClose} disabled={deleteMutation.isPending}>
+          <Button type="button" variant="cancel" onClick={onClose} disabled={deleteMutation.isPending}>
             Cancelar
-          </button>
-          <button
-            className="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all shadow-md active:scale-95 shadow-red-600/20 disabled:opacity-50 cursor-pointer"
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
             onClick={() => deleteMutation.mutate()}
             disabled={!student || deleteMutation.isPending}
           >
             {deleteMutation.isPending ? 'Eliminando...' : 'Confirmar Baja'}
-          </button>
+          </Button>
         </footer>
       </div>
     </BottomSheet>

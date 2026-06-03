@@ -37,8 +37,11 @@ export interface Site {
 export interface Building {
   id: number;
   name: string;
+  gender?: BuildingGender | null;
   site: Site | number;
 }
+
+export type BuildingGender = "Varones" | "Hembras" | "Mixto";
 
 export interface Wing {
   id: number;

@@ -153,14 +153,6 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
         
         {/* Header */}
         <header className="bg-[var(--color-surface-container-lowest)] border-b border-[var(--color-outline-variant)]/20 p-6 flex flex-col gap-4 relative">
-          <button 
-            onClick={handleRequestClose}
-            className="absolute top-6 right-6 p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
-            aria-label="Cerrar panel"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-          
           <div className="flex items-center gap-4 mt-2">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-xl ring-4 ring-[var(--color-surface-container-lowest)] shadow-sm ${isFemale ? "bg-pink-100 text-pink-600" : "bg-[var(--color-primary-light)] text-[var(--color-primary)]"}`}>
               {isLoading ? (
@@ -188,7 +180,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[var(--color-surface)]">
           {/* Contacto y Origen */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Contacto y Origen</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div className="col-span-2">
@@ -211,7 +203,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           </section>
 
           {/* Academia y Ubicación */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Academia y Ubicación</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div>
@@ -242,7 +234,7 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
           </section>
 
           {/* Salud y Perfil */}
-          <section className="soft-lift-card p-5 border border-ghost">
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Salud y Perfil</h4>
             <div className="grid grid-cols-2 gap-y-4 gap-x-4">
               <div>

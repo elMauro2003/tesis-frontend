@@ -7,12 +7,15 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { FetchError } from "@/lib/fetchClient";
-import { Site } from "@/types/models";
+import { Building } from "@/types/models";
 
-interface DeleteSiteModalProps {
-  site: Site | null;
+interface DeleteBuildingModalProps {
+  building: Building | null;
+  wingCount: number;
+  roomCount: number;
   open: boolean;
   onClose: () => void;
+  onDeleted?: () => void;
 }
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -27,26 +30,28 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
+export function DeleteBuildingModal({ building, wingCount, roomCount, open, onClose, onDeleted }: DeleteBuildingModalProps) {
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!site) {
+      if (!building) {
         return;
       }
 
-      await infrastructureService.deleteSite(site.id);
+      await infrastructureService.deleteBuilding(building.id);
     },
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["buildings-all"] });
       await queryClient.invalidateQueries({ queryKey: ["sites"] });
-      toast.success("Sede eliminada", {
-        description: "La sede fue removida del sistema correctamente.",
+      toast.success("Edificio eliminado", {
+        description: "El edificio fue removido del sistema correctamente.",
       });
+      onDeleted?.();
       onClose();
     },
     onError: (error) => {
-      toast.error("No se pudo eliminar la sede", {
+      toast.error("No se pudo eliminar el edificio", {
         description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
       });
     },
@@ -58,21 +63,21 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
     }
   }, [open]);
 
-  const siteName = useMemo(() => site?.name ?? "Sede", [site]);
-  const siteAddress = useMemo(() => site?.address ?? "Dirección no registrada", [site]);
-  const buildingCount = useMemo(() => site?.building_count ?? 0, [site]);
-  const wingCountLabel = buildingCount > 0 ? "alas y cuartos" : "alas y cuartos";
+  const buildingName = useMemo(() => building?.name ?? "Edificio", [building]);
+  const buildingGender = useMemo(() => building?.gender ?? "Tipo no definido", [building]);
 
   return (
-    <BottomSheet open={open && !!site} onClose={onClose} maxWidthClassName="max-w-md">
+    <BottomSheet open={open && !!building} onClose={onClose} maxWidthClassName="max-w-md">
       <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
         <div className="bg-red-50 p-6 flex items-start gap-4">
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0 text-red-600">
             <span className="material-symbols-outlined text-2xl">warning</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-extrabold text-red-900 leading-tight font-headline">Eliminar Sede</h3>
-            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)] leading-relaxed">Esta acción eliminará la sede y todo su contenido relacionado.</p>
+            <h3 className="text-xl font-extrabold text-red-900 leading-tight font-headline">Eliminar Edificio</h3>
+            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)] leading-relaxed">
+              Esta acción eliminará el edificio y todo su contenido relacionado.
+            </p>
           </div>
           <button type="button" className="text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer" onClick={onClose} aria-label="Cerrar modal">
             <span className="material-symbols-outlined">close</span>
@@ -82,28 +87,32 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
         <div className="p-6 space-y-5">
           <div className="bg-[var(--color-surface-container-low)] rounded-xl p-4 space-y-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Sede</p>
-              <p className="mt-1 text-sm font-semibold text-[var(--color-on-surface)]">{siteName}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Edificio</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--color-on-surface)]">{buildingName}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Dirección</p>
-              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{siteAddress}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Tipo de bloque</p>
+              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{buildingGender}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Edificios asociados</p>
-              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{buildingCount} edificio{buildingCount === 1 ? "" : "s"}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Alas asociadas</p>
+              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{wingCount} ala{wingCount === 1 ? "" : "s"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Cuartos asociados</p>
+              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{roomCount} cuarto{roomCount === 1 ? "" : "s"}</p>
             </div>
           </div>
 
           <div className="rounded-xl bg-red-50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
             <p className="mt-2 text-sm text-red-900 leading-relaxed">
-              Si elimina esta sede, también se perderán sus {buildingCount} edificio{buildingCount === 1 ? "" : "s"}, junto con sus {wingCountLabel} vinculadas. Confirme antes de continuar.
+              Si elimina este edificio, también se perderán sus {wingCount} ala{wingCount === 1 ? "" : "s"} y sus {roomCount} cuarto{roomCount === 1 ? "" : "s"} vinculados.
             </p>
           </div>
 
           <p className="text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
-            Esta operación no se puede deshacer desde la interfaz. Si necesita conservar información, realice una revisión previa de la estructura territorial.
+            Esta operación no se puede deshacer desde la interfaz. Si necesita conservar información, revise antes las alas y cuartos dependientes.
           </p>
         </div>
 
@@ -115,12 +124,14 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
             type="button"
             variant="danger"
             onClick={() => deleteMutation.mutate()}
-            disabled={!site || deleteMutation.isPending}
+            disabled={!building || deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? "Eliminando..." : "Eliminar sede"}
+            {deleteMutation.isPending ? "Eliminando..." : "Eliminar edificio"}
           </Button>
         </footer>
       </div>
     </BottomSheet>
   );
 }
+
+export default DeleteBuildingModal;

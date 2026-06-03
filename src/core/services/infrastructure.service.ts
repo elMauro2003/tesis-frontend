@@ -38,12 +38,16 @@ export const infrastructureService = {
   deleteSite: (id: number): Promise<void> => fetchClient(`/api/v1/sedes/${id}/`, { method: "DELETE" }),
   
   // Edificios
-  getBuildings: (siteId?: number): Promise<PaginatedResponse<Building>> => {
-    const query = siteId ? `?site=${siteId}` : "";
-    return fetchClient(`/api/v1/edificios/${query}`);
+  getBuildings: (opts?: { siteId?: number; page?: number; page_size?: number }): Promise<PaginatedResponse<Building>> => {
+    const params = new URLSearchParams();
+    if (opts?.siteId) params.append("site", String(opts.siteId));
+    if (opts?.page) params.append("page", String(opts.page));
+    if (opts?.page_size) params.append("page_size", String(opts.page_size));
+    const qs = params.toString();
+    return fetchClient(`/api/v1/edificios/${qs ? `?${qs}` : ""}`);
   },
   getAllBuildings: async (siteId?: number): Promise<PaginatedResponse<Building>> => {
-    const firstPage = await infrastructureService.getBuildings(siteId);
+    const firstPage = await infrastructureService.getBuildings({ siteId });
 
     if (!firstPage.next) {
       return firstPage;

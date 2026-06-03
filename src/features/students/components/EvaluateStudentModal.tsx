@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,7 +51,7 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
       setComments("");
       evaluateMutation.reset();
     }
-  }, [open]);
+  }, [open, evaluateMutation]);
 
   const fullName = useMemo(() => {
     if (!student) return "Estudiante";
@@ -110,7 +111,7 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Evaluación</label>
                 <Select value={grade} onValueChange={setGrade}>
-                  <SelectTrigger className="w-full bg-[var(--color-surface-container-lowest)] border-none rounded-lg text-sm text-[var(--color-on-surface)] font-medium shadow-none h-11">
+                  <SelectTrigger className="w-full h-11 rounded-lg bg-[var(--color-surface-container-lowest)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                     <SelectValue placeholder="Seleccionar evaluación" />
                   </SelectTrigger>
                   <SelectContent>
@@ -134,20 +135,18 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
 
         {/* Modal Footer */}
         <footer className="border-t border-[var(--color-outline-variant)]/20 p-6 flex justify-end items-center gap-3 bg-[var(--color-surface-container-lowest)]">
-          <button 
-            onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer"
-          >
+          <Button type="button" variant="cancel" onClick={onClose}>
             Cancelar
-          </button>
-          <button 
+          </Button>
+          <Button 
+            type="button"
+            variant="confirm"
             onClick={() => evaluateMutation.mutate()}
             disabled={evaluateMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-lg text-sm font-semibold shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-on-primary-fixed-variant)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">save</span>
             {evaluateMutation.isPending ? "Guardando..." : "Guardar Evaluación"}
-          </button>
+          </Button>
         </footer>
       </div>
     </BottomSheet>

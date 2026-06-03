@@ -10,7 +10,17 @@ const Select = SelectPrimitive.Root
 
 const SelectGroup = SelectPrimitive.Group
 
-const SelectValue = SelectPrimitive.Value
+const SelectValue = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Value>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Value>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Value
+    ref={ref}
+    className={cn("flex-1 truncate text-left", className)}
+    {...props}
+  />
+))
+SelectValue.displayName = SelectPrimitive.Value.displayName
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -19,7 +29,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between gap-3 rounded-lg border-0 bg-[var(--color-surface-container-highest)] px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none ring-0 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-11 w-full items-center justify-between gap-3 rounded-lg border-0 bg-[var(--color-surface-container-highest)] px-4 py-2 text-left text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none ring-0 focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] disabled:cursor-not-allowed disabled:opacity-50",
       className
     )}
     {...props}
@@ -75,7 +85,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 min-w-[12rem] overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] shadow-[var(--shadow-ambient)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin] border-0",
+        "relative z-[80] min-w-[12rem] overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] shadow-[var(--shadow-ambient)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin] border-0",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
@@ -117,7 +127,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-xl py-2.5 pl-3 pr-8 text-sm outline-none transition-colors focus:bg-[var(--color-primary-selected)] focus:text-[var(--color-primary-dark)] data-[state=checked]:bg-[var(--color-primary-selected)] data-[state=checked]:text-[var(--color-primary-dark)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-xl py-2.5 pl-3 pr-8 text-sm outline-none transition-colors data-[highlighted]:bg-[var(--color-primary-selected)] data-[highlighted]:text-[var(--color-primary-dark)] data-[highlighted]:shadow-[inset_3px_0_0_var(--color-primary)] focus:bg-[var(--color-primary-selected)] focus:text-[var(--color-primary-dark)] data-[state=checked]:bg-[var(--color-primary-selected)] data-[state=checked]:text-[var(--color-primary-dark)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

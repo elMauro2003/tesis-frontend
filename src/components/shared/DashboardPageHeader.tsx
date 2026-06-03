@@ -1,7 +1,8 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/shared/SearchField";
 
 interface DashboardPageHeaderProps {
   title: string;
@@ -14,6 +15,7 @@ interface DashboardPageHeaderProps {
   actionIcon?: string;
   topBadge?: string;
   extraAction?: ReactNode;
+  searchComponent?: ReactNode;
 }
 
 export function DashboardPageHeader({
@@ -27,6 +29,7 @@ export function DashboardPageHeader({
   actionIcon = "add",
   topBadge,
   extraAction,
+  searchComponent,
 }: DashboardPageHeaderProps) {
   return (
     <div className="mb-10 space-y-6">
@@ -50,30 +53,23 @@ export function DashboardPageHeader({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {extraAction}
-          <button
-            type="button"
-            onClick={onAction}
-            className="inline-flex items-center gap-2 bg-primary text-on-primary font-bold text-sm px-4 py-2 rounded-lg shadow-[var(--shadow-primary-btn)] hover:bg-[var(--color-primary-hover)] transition-all active:scale-95 cursor-pointer"
-          >
+          <Button type="button" variant="add" onClick={onAction} className="cursor-pointer">
             <span className="material-symbols-outlined text-lg">{actionIcon}</span>
             {actionLabel}
-          </button>
+          </Button>
         </div>
       </header>
 
       <section className="space-y-6">
-        <div className="relative group">
-          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors">
-            <span className="material-symbols-outlined text-xl">search</span>
-          </span>
-          <Input
-            className="h-14 rounded-xl bg-[var(--color-surface-container-low)] pl-12 pr-4 text-sm text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] shadow-none outline-none transition-all focus-visible:bg-[var(--color-surface-container-highest)]"
-            placeholder={searchPlaceholder}
-            type="text"
+        {searchComponent ? (
+          searchComponent
+        ) : (
+          <SearchField
             value={searchValue}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={onSearchChange}
+            placeholder={searchPlaceholder}
           />
-        </div>
+        )}
       </section>
     </div>
   );
