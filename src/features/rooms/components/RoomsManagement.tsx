@@ -446,8 +446,9 @@ export function RoomsManagement() {
 
       <ViewRoomPanel
         roomId={viewRoomId}
-        roomLabel={viewItem?.room.number ?? ""}
+        roomLabel={viewItem?.title ?? viewItem?.room.number ?? ""}
         locationSubtitle={viewItem?.subtitle ?? ""}
+        roomSnapshot={viewItem?.room ?? null}
         assignments={viewItem?.assignments ?? []}
         open={viewRoomId !== null}
         onClose={() => setViewRoomId(null)}

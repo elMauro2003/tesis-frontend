@@ -115,14 +115,18 @@ export function RoomFormModal({
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!room) return;
-      await infrastructureService.updateRoom(room.id, {
+      return infrastructureService.updateRoom(room.id, {
         number: values.number.trim(),
         wing: Number(values.wingId),
         capacity: Number(values.capacity),
         is_active: values.isActive,
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (updatedRoom) => {
+      if (room && updatedRoom) {
+        queryClient.setQueryData(["room-detail", room.id], updatedRoom);
+        await queryClient.invalidateQueries({ queryKey: ["room-detail", room.id] });
+      }
       await queryClient.invalidateQueries({ queryKey: ["rooms"] });
       toast.success("Cuarto actualizado", { description: "Los cambios se guardaron correctamente." });
       onSaved?.();

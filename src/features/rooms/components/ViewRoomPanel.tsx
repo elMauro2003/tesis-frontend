@@ -16,6 +16,7 @@ interface ViewRoomPanelProps {
   roomId: number | null;
   roomLabel: string;
   locationSubtitle: string;
+  roomSnapshot?: Room | null;
   assignments: RoomAssignment[];
   open: boolean;
   onClose: () => void;
@@ -25,6 +26,7 @@ export function ViewRoomPanel({
   roomId,
   roomLabel,
   locationSubtitle,
+  roomSnapshot,
   assignments,
   open,
   onClose,
@@ -35,7 +37,8 @@ export function ViewRoomPanel({
     queryKey: ["room-detail", roomId],
     queryFn: () => infrastructureService.getRoomById(roomId!),
     enabled: open && roomId !== null,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   useEffect(() => {
@@ -49,12 +52,14 @@ export function ViewRoomPanel({
 
   if (!isOpen && !roomId) return null;
 
-  const room: Room | undefined = detailQuery.data;
-  const title = room?.number ?? roomLabel;
+  const room =
+    detailQuery.isFetching && roomSnapshot
+      ? roomSnapshot
+      : (detailQuery.data ?? roomSnapshot ?? undefined);
+  const title = roomLabel || room?.number || "";
   const subtitle =
-    room?.building_name && room?.wing_name
-      ? `${room.building_name} • ${room.wing_name}`
-      : locationSubtitle;
+    locationSubtitle ||
+    (room?.building_name && room?.wing_name ? `${room.building_name} • ${room.wing_name}` : "");
   const occupancy = room ? getRoomOccupancy(room) : 0;
   const available = room ? getRoomAvailableSpots(room) : 0;
 
@@ -98,7 +103,7 @@ export function ViewRoomPanel({
         </header>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
-          {detailQuery.isLoading ? (
+          {detailQuery.isLoading && !room ? (
             <div className="space-y-3 animate-pulse">
               <div className="h-4 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
               <div className="h-20 rounded-xl bg-[var(--color-surface-container-low)]" />

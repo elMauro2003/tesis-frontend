@@ -41,6 +41,9 @@ export function DeleteRoomModal({
       await infrastructureService.deleteRoom(room.id);
     },
     onSuccess: async () => {
+      if (room) {
+        queryClient.removeQueries({ queryKey: ["room-detail", room.id] });
+      }
       await queryClient.invalidateQueries({ queryKey: ["rooms"] });
       await queryClient.invalidateQueries({ queryKey: ["rooms-all"] });
       toast.success("Cuarto eliminado", {

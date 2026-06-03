@@ -59,6 +59,9 @@ export function CloseRoomModal({
       await infrastructureService.updateRoom(room.id, { is_active: false });
     },
     onSuccess: async () => {
+      if (room) {
+        await queryClient.invalidateQueries({ queryKey: ["room-detail", room.id] });
+      }
       await queryClient.invalidateQueries({ queryKey: ["rooms"] });
       await queryClient.invalidateQueries({ queryKey: ["active-assignments"] });
       const details = [cause, description.trim()].filter(Boolean).join(" — ");
