@@ -16,6 +16,8 @@ interface DashboardPageHeaderProps {
   topBadge?: string;
   extraAction?: ReactNode;
   searchComponent?: ReactNode;
+  /** Si es false, no se muestra la sección de búsqueda ni searchComponent. */
+  showSearch?: boolean;
 }
 
 export function DashboardPageHeader({
@@ -30,6 +32,7 @@ export function DashboardPageHeader({
   topBadge,
   extraAction,
   searchComponent,
+  showSearch = true,
 }: DashboardPageHeaderProps) {
   return (
     <div className="mb-10 space-y-6">
@@ -60,17 +63,19 @@ export function DashboardPageHeader({
         </div>
       </header>
 
-      <section className="space-y-6">
-        {searchComponent ? (
-          searchComponent
-        ) : (
-          <SearchField
-            value={searchValue}
-            onChange={onSearchChange}
-            placeholder={searchPlaceholder}
-          />
-        )}
-      </section>
+      {showSearch ? (
+        <section className="space-y-6">
+          {searchComponent ? (
+            searchComponent
+          ) : (
+            <SearchField
+              value={searchValue}
+              onChange={onSearchChange}
+              placeholder={searchPlaceholder}
+            />
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

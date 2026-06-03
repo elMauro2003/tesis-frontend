@@ -52,7 +52,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <nav className="flex-1 space-y-1">
           <Link href="/dashboard/reports" className={navLinkClassName('/dashboard/reports')}>
             <span className={navIconClassName('/dashboard/reports')}>analytics</span>
-            <span className="font-medium text-sm">Reports</span>
+            <span className="font-medium text-sm">Reportes</span>
           </Link>
           <Link href="/dashboard/sedes" className={navLinkClassName('/dashboard/sedes')}>
             <span className={navIconClassName('/dashboard/sedes')}>location_city</span>

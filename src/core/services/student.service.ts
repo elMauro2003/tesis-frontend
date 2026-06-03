@@ -13,7 +13,9 @@ export interface GetStudentsFilters {
 // Extend filters with optional server-side room filter if supported
 export interface ExtendedGetStudentsFilters extends GetStudentsFilters {
   has_room?: boolean;
-  faculty?: number;
+  group__career_year__career__faculty?: number;
+  group__career_year__year?: number;
+  group__career_year__career?: number;
 }
 
 export const studentService = {

@@ -192,6 +192,8 @@ export interface Complaint {
   description: string;
   response?: string;
   is_public: boolean;
+  building?: number | null;
+  building_name?: string;
 }
 
 export interface RoomAssignment {
@@ -230,9 +232,13 @@ export interface Information {
 
 export interface Report {
   id: number;
+  name: string;
   type: string;
+  parameters?: Record<string, unknown> | null;
   generated_date: string;
-  file_url: string;
+  generated_by?: number;
+  generated_by_name?: string;
+  file_url: string | null;
 }
 
 export interface PaginatedResponse<T> {
