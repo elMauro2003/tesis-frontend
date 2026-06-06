@@ -47,30 +47,35 @@ export function ReportMetricCard({
   const styles = toneStyles[tone];
 
   return (
-    <div className="group flex h-40 flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-[0_4px_20px_rgba(0,55,176,0.03)] transition-shadow duration-300 hover:shadow-lg">
-      <div className="flex items-start justify-between">
+    <div className="group flex h-full min-h-[10rem] flex-col gap-6 rounded-xl bg-surface-container-lowest p-6 shadow-[0_4px_20px_rgba(0,55,176,0.03)] transition-shadow duration-300 hover:shadow-lg">
+      <div className="flex items-center justify-between gap-3">
         <div
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl transition-colors",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors",
             styles.icon
           )}
         >
           <span
-            className="material-symbols-outlined"
+            className="material-symbols-outlined text-2xl leading-none"
             style={filledIcon ? { fontVariationSettings: "'FILL' 1" } : undefined}
           >
             {icon}
           </span>
         </div>
         {badge ? (
-          <span className={cn("rounded-full px-2 py-1 text-[10px] font-bold uppercase", styles.badge)}>
+          <span
+            className={cn(
+              "inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-[10px] font-bold uppercase leading-none",
+              styles.badge
+            )}
+          >
             {badge}
           </span>
         ) : null}
       </div>
-      <div>
-        <h3 className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-outline">{title}</h3>
-        <p className={cn("font-headline text-3xl font-extrabold", styles.value)}>
+      <div className="mt-auto space-y-1">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-outline">{title}</h3>
+        <p className={cn("font-headline text-3xl font-extrabold leading-tight", styles.value)}>
           {value}
           {suffix ? <span className="ml-1 text-sm font-medium text-outline">{suffix}</span> : null}
         </p>
