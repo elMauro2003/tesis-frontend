@@ -156,6 +156,36 @@ export const filterComplaintsByBuilding = (
   return complaints.filter((complaint) => complaint.building === buildingId);
 };
 
+export const filterComplaintsBySite = (
+  complaints: Complaint[],
+  siteId: number | "all",
+  buildingsById: Map<number, Building>
+): Complaint[] => {
+  if (siteId === "all") {
+    return complaints;
+  }
+
+  const siteBuildingIds = new Set<number>();
+  for (const [buildingId, building] of buildingsById) {
+    const buildingSiteId = getNumericId(building.site);
+    if (buildingSiteId === siteId) {
+      siteBuildingIds.add(buildingId);
+    }
+  }
+
+  return complaints.filter((complaint) => {
+    const complaintBuildingId = getNumericId(complaint.building);
+    return complaintBuildingId !== null && siteBuildingIds.has(complaintBuildingId);
+  });
+};
+
+export const filterComplaintsByScope = (
+  complaints: Complaint[],
+  siteId: number | "all",
+  buildingId: number | "all",
+  buildingsById: Map<number, Building>
+): Complaint[] => filterComplaintsBySite(filterComplaintsByBuilding(complaints, buildingId), siteId, buildingsById);
+
 export const buildReportParameters = (filters: {
   siteId: number | "all";
   buildingId: number | "all";

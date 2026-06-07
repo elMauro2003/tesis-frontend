@@ -18,8 +18,8 @@ import {
   computeClosedRoomsCount,
   computeComplaintStatusBreakdown,
   countActiveAssignmentsInRooms,
-  filterComplaintsByBuilding,
   filterComplaintsByLookback,
+  filterComplaintsByScope,
   filterRoomsBySiteAndBuilding,
 } from "@/features/reports/utils/metrics";
 import { buildReportPreviewModel, type ReportPreviewModel } from "@/features/reports/utils/reportPreview";
@@ -66,30 +66,6 @@ export function useReportsDashboard() {
     staleTime: 60 * 1000,
   });
 
-  const pendingComplaintsQuery = useQuery({
-    queryKey: ["complaints-pending-count", appliedFilters.buildingId],
-    queryFn: () =>
-      complaintService.getComplaints({
-        status: "pendiente",
-        building: appliedFilters.buildingId !== "all" ? appliedFilters.buildingId : undefined,
-        page: 1,
-        page_size: 1,
-      }),
-    staleTime: 60 * 1000,
-  });
-
-  const inProgressComplaintsQuery = useQuery({
-    queryKey: ["complaints-in-progress-count", appliedFilters.buildingId],
-    queryFn: () =>
-      complaintService.getComplaints({
-        status: "en_proceso",
-        building: appliedFilters.buildingId !== "all" ? appliedFilters.buildingId : undefined,
-        page: 1,
-        page_size: 1,
-      }),
-    staleTime: 60 * 1000,
-  });
-
   const appliedAnalytics = useReportAnalytics(appliedFilters, true);
   const draftAnalytics = useReportAnalytics(debouncedDraftFilters, true);
 
@@ -126,8 +102,13 @@ export function useReportsDashboard() {
 
   const complaintsInPeriod = useMemo(() => {
     const inPeriod = filterComplaintsByLookback(complaints);
-    return filterComplaintsByBuilding(inPeriod, appliedFilters.buildingId);
-  }, [complaints, appliedFilters.buildingId]);
+    return filterComplaintsByScope(
+      inPeriod,
+      appliedFilters.siteId,
+      appliedFilters.buildingId,
+      catalog.buildingsById
+    );
+  }, [complaints, appliedFilters.siteId, appliedFilters.buildingId, catalog.buildingsById]);
 
   const complaintBreakdown = useMemo(
     () => computeComplaintStatusBreakdown(complaintsInPeriod),
@@ -142,8 +123,14 @@ export function useReportsDashboard() {
   const registeredStudentsCount = appliedAnalytics.totalStudents;
   const availableSpots = computeAvailableSpots(scopedRooms);
   const closedRooms = computeClosedRoomsCount(scopedRooms);
-  const pendingComplaints = pendingComplaintsQuery.data?.count ?? 0;
-  const inProgressComplaints = inProgressComplaintsQuery.data?.count ?? 0;
+  const pendingComplaints = useMemo(
+    () => complaintsInPeriod.filter((complaint) => complaint.status === "pendiente").length,
+    [complaintsInPeriod]
+  );
+  const inProgressComplaints = useMemo(
+    () => complaintsInPeriod.filter((complaint) => complaint.status === "en_proceso").length,
+    [complaintsInPeriod]
+  );
 
   const paginatedStudents = useMemo(
     () => paginateItems(appliedAnalytics.students, resultsPage, resultsPageSize),
@@ -275,8 +262,6 @@ export function useReportsDashboard() {
     complaintsQuery.refetch();
     appliedAnalytics.refetchStudents();
     activeAssignmentsQuery.refetch();
-    pendingComplaintsQuery.refetch();
-    inProgressComplaintsQuery.refetch();
   };
 
   return {

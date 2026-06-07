@@ -31,14 +31,13 @@ export const getDaysUntilExpiry = (expiresDate?: string | null) => {
     return null;
   }
 
-  const expiry = new Date(expiresDate);
+  const expiry = new Date(`${expiresDate}T00:00:00`);
   if (Number.isNaN(expiry.getTime())) {
     return null;
   }
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  expiry.setHours(0, 0, 0, 0);
 
   return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };

@@ -12,6 +12,7 @@ import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, BuildingGender, Room, Site, Wing } from "@/types/models";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { parseOptionalUrlId } from "@/utils/helpers/parseUrlId";
 import { BuildingFormModal } from "@/features/buildings/components/BuildingFormModal";
 import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
 import { DeleteWingModal } from "@/features/buildings/components/DeleteWingModal";
@@ -135,7 +136,7 @@ export default function BuildingsPage() {
 
     setPage(initialPage);
     setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
-    setSiteFilter(initialSite ? Number(initialSite) : "all");
+    setSiteFilter(parseOptionalUrlId(initialSite));
     setBuildingTypeFilter(initialGender === "Varones" || initialGender === "Hembras" || initialGender === "Mixto" ? initialGender : "all");
     setSearch(initialSearch);
 

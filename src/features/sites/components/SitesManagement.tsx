@@ -1,14 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { infrastructureService } from "@/core/services/infrastructure.service";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Building, Room, Site, Wing } from "@/types/models";
 import { DeleteSiteModal } from "@/features/sites/components/DeleteSiteModal";
 import { SiteFormModal } from "@/features/sites/components/SiteFormModal";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 
 const formatCount = (value: number) => new Intl.NumberFormat("es-ES").format(value);
 
@@ -173,6 +175,9 @@ export function SitesManagement() {
     setDeleteOpen(true);
   };
 
+  const isLoadingSites = sitesQuery.isLoading;
+  const hasSearch = search.trim().length > 0;
+
   return (
     <div className="w-full space-y-8">
       <DashboardPageHeader
@@ -215,15 +220,31 @@ export function SitesManagement() {
             <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-6 text-sm text-[var(--color-on-surface-variant)]">
               No fue posible cargar las sedes en este momento. Intente nuevamente.
             </div>
+          ) : isLoadingSites ? (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="animate-pulse rounded-2xl bg-[var(--color-surface-container-low)] p-6">
+                  <div className="h-14 w-14 rounded-full bg-[var(--color-surface-container-high)]" />
+                  <div className="mt-5 h-6 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
+                  <div className="mt-2 h-4 w-full rounded bg-[var(--color-surface-container-high)]" />
+                </div>
+              ))}
+            </div>
           ) : filteredSites.length === 0 ? (
               <DashboardEmptyState
-                title={search.trim() ? "Sin resultados" : "No hay sedes para mostrar"}
-                description={search.trim()
+                title={hasSearch ? "Sin resultados" : "No hay sedes para mostrar"}
+                description={hasSearch
                   ? "Ajuste el texto de búsqueda o limpie el filtro para ver más resultados."
                   : "Cree la primera sede para comenzar a estructurar la distribución territorial."}
-                icon={search.trim() ? "filter_alt_off" : "location_city"}
-                actionLabel="Añadir sede"
-                onAction={openCreateModal}
+                icon={hasSearch ? "filter_alt_off" : "location_city"}
+                actionLabel={hasSearch ? undefined : "Añadir sede"}
+                onAction={hasSearch ? undefined : openCreateModal}
+                secondaryAction={hasSearch ? (
+                  <Button type="button" variant="neutral" onClick={() => setSearch("")}>
+                    <span className="material-symbols-outlined text-lg">filter_alt_off</span>
+                    Limpiar búsqueda
+                  </Button>
+                ) : undefined}
               />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -273,10 +294,13 @@ export function SitesManagement() {
                     </div>
 
                     <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[var(--color-outline-variant)]/15">
-                      <button type="button" className="inline-flex items-center gap-1 text-sm font-bold text-[var(--color-primary)] cursor-pointer hover:text-[var(--color-on-primary-fixed-variant)] transition-colors">
+                      <Link
+                        href={`${DASHBOARD_ROUTES.edificios}?site=${site.id}`}
+                        className="inline-flex items-center gap-1 text-sm font-bold text-[var(--color-primary)] transition-colors hover:text-[var(--color-on-primary-fixed-variant)]"
+                      >
                         Ver edificios
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                      </button>
+                      </Link>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"

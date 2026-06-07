@@ -9,6 +9,7 @@ import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
+import { parseOptionalUrlId } from "@/utils/helpers/parseUrlId";
 import { accommodationService } from "@/core/services/accommodation.service";
 import { infrastructureService, type RoomListFilters } from "@/core/services/infrastructure.service";
 import { AssignStudentModal } from "@/features/rooms/components/AssignStudentModal";
@@ -76,8 +77,8 @@ export function RoomsManagement() {
 
     setPage(initialPage);
     setPageSize(PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : DEFAULT_PAGE_SIZE);
-    setSiteFilter(initialSite ? Number(initialSite) : "all");
-    setBuildingFilter(initialBuilding ? Number(initialBuilding) : "all");
+    setSiteFilter(parseOptionalUrlId(initialSite));
+    setBuildingFilter(parseOptionalUrlId(initialBuilding));
     setSearch(initialSearch);
     setDebouncedSearch(initialSearch);
     if (initialStatus && STATUS_OPTIONS.some((o) => o.value === initialStatus)) {
@@ -114,11 +115,26 @@ export function RoomsManagement() {
     setPage(1);
   }, [debouncedSearch, siteFilter, buildingFilter, statusFilter, pageSize]);
 
-  useEffect(() => {
-    if (siteFilter === "all") {
-      setBuildingFilter("all");
-    }
-  }, [siteFilter]);
+  const handleSiteFilterChange = (value: string) => {
+    setSiteFilter(value === "all" ? "all" : Number(value));
+    setBuildingFilter("all");
+    setPage(1);
+  };
+
+  const handleBuildingFilterChange = (value: string) => {
+    setBuildingFilter(value === "all" ? "all" : Number(value));
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (value: RoomStatusFilter) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
 
   const assignmentsQuery = useQuery({
     queryKey: ["active-assignments"],
@@ -165,6 +181,8 @@ export function RoomsManagement() {
         page,
         pageSize,
         useClientPagination,
+        assignmentsVersion: assignmentsQuery.dataUpdatedAt,
+        studentMatchCount: studentMatchedRoomIds?.size ?? 0,
       },
     ],
     queryFn: async () => {
@@ -233,6 +251,22 @@ export function RoomsManagement() {
     if (siteFilter === "all") return catalog.buildings;
     return catalog.buildingsBySite.get(siteFilter) ?? [];
   }, [catalog.buildings, catalog.buildingsBySite, siteFilter]);
+
+  useEffect(() => {
+    if (siteFilter === "all") {
+      setBuildingFilter("all");
+      return;
+    }
+
+    if (buildingFilter === "all") {
+      return;
+    }
+
+    const buildingBelongsToSite = filteredBuildings.some((building) => building.id === buildingFilter);
+    if (!buildingBelongsToSite) {
+      setBuildingFilter("all");
+    }
+  }, [siteFilter, buildingFilter, filteredBuildings]);
 
   const enrichedItems: EnrichedRoom[] = useMemo(() => {
     const rooms = roomsQuery.data?.results ?? [];
@@ -371,7 +405,7 @@ export function RoomsManagement() {
             <DashboardFilterSelect
               className="w-full sm:min-w-[140px] sm:w-auto"
               value={siteFilter === "all" ? "all" : String(siteFilter)}
-              onValueChange={(value) => setSiteFilter(value === "all" ? "all" : Number(value))}
+              onValueChange={handleSiteFilterChange}
               placeholder="Sede: Todas"
               options={[
                 { value: "all", label: "Sede: Todas" },
@@ -381,7 +415,7 @@ export function RoomsManagement() {
             <DashboardFilterSelect
               className="w-full sm:min-w-[140px] sm:w-auto"
               value={buildingFilter === "all" ? "all" : String(buildingFilter)}
-              onValueChange={(value) => setBuildingFilter(value === "all" ? "all" : Number(value))}
+              onValueChange={handleBuildingFilterChange}
               placeholder="Edificio: Todos"
               disabled={siteFilter === "all"}
               options={[
@@ -395,7 +429,7 @@ export function RoomsManagement() {
           <DashboardFilterSelect
             className="w-full sm:min-w-[160px] sm:w-auto"
             value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as RoomStatusFilter)}
+            onValueChange={(value) => handleStatusFilterChange(value as RoomStatusFilter)}
             placeholder="Estado: Todos"
             options={STATUS_OPTIONS}
           />
@@ -428,7 +462,7 @@ export function RoomsManagement() {
         pageSize={pageSize}
         pageSizeOptions={PAGE_SIZE_OPTIONS}
         onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       <RoomFormModal

@@ -13,8 +13,10 @@ export type AnnouncementFormValues = {
 
 export const getTodayDateInputValue = () => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today.toISOString().slice(0, 10);
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export const getYesterdayDateInputValue = () => addDaysToDateInput(getTodayDateInputValue(), -1);

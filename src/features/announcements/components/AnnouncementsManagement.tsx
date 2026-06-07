@@ -146,6 +146,7 @@ export function AnnouncementsManagement() {
 
   const handleClearFilters = () => {
     setSearch("");
+    setDebouncedSearch("");
     setVisibilityFilter("all");
     setStatusFilter("active");
     resetPage();
@@ -223,8 +224,16 @@ export function AnnouncementsManagement() {
 
   const isLoading = announcementsQuery.isLoading;
   const isError = announcementsQuery.isError;
+  const hasStatusMismatch =
+    !isLoading &&
+    !isError &&
+    announcementsWithCategory.length > 0 &&
+    filteredAnnouncements.length === 0;
   const hasFiltersApplied =
-    debouncedSearch.length > 0 || visibilityFilter !== "all" || statusFilter !== "active";
+    debouncedSearch.length > 0 ||
+    visibilityFilter !== "all" ||
+    statusFilter !== "active" ||
+    hasStatusMismatch;
   const isTrulyEmpty = !hasFiltersApplied && announcementsWithCategory.length === 0;
 
   return (
@@ -303,15 +312,32 @@ export function AnnouncementsManagement() {
             </div>
           ) : filteredAnnouncements.length === 0 ? (
             <DashboardEmptyState
-              title={hasFiltersApplied ? "Sin resultados" : "El tablón está vacío"}
+              title={
+                hasStatusMismatch
+                  ? statusFilter === "active"
+                    ? "No hay anuncios activos"
+                    : "No hay anuncios archivados"
+                  : hasFiltersApplied
+                    ? "Sin resultados"
+                    : "El tablón está vacío"
+              }
               description={
-                hasFiltersApplied
-                  ? "Ningún anuncio coincide con los filtros o la búsqueda actuales."
-                  : "Aún no hay comunicados publicados. Use el botón «Nuevo anuncio» en la cabecera para crear el primero."
+                hasStatusMismatch
+                  ? statusFilter === "active"
+                    ? "Todos los comunicados están archivados. Cambie a la vista de archivados para consultarlos."
+                    : "Aún no hay comunicados archivados con los filtros actuales."
+                  : hasFiltersApplied
+                    ? "Ningún anuncio coincide con los filtros o la búsqueda actuales."
+                    : "Aún no hay comunicados publicados. Use el botón «Nuevo anuncio» en la cabecera para crear el primero."
               }
               icon={hasFiltersApplied ? "filter_alt_off" : "campaign"}
               secondaryAction={
-                hasFiltersApplied ? (
+                hasStatusMismatch && statusFilter === "active" ? (
+                  <Button type="button" variant="neutral" onClick={() => { setStatusFilter("archived"); resetPage(); }}>
+                    <span className="material-symbols-outlined text-lg">inventory_2</span>
+                    Ver archivados
+                  </Button>
+                ) : hasFiltersApplied ? (
                   <Button type="button" variant="neutral" onClick={handleClearFilters}>
                     <span className="material-symbols-outlined text-lg">filter_alt_off</span>
                     Limpiar filtros

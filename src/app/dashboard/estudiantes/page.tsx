@@ -646,6 +646,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setSearch("");
+                        setDebouncedSearch("");
                         setFacultyId("all");
                         setBuildingId("all");
                         setGender("all");

@@ -6,6 +6,9 @@ export interface GetComplaintsFilters {
   type?: string;
   date?: string;
   building?: number;
+  search?: string;
+  ordering?: string;
+  visibility?: boolean;
   page?: number;
   page_size?: number;
 }
