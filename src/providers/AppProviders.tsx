@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { AuthProvider } from "./AuthProvider";
+import { ForbiddenHandler } from "./ForbiddenHandler";
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -28,6 +29,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ForbiddenHandler />
         {children}
       </AuthProvider>
       {/* DevTools solo visibles en entorno de desarrollo. Botón fijo asilado. */}

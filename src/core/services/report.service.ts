@@ -28,8 +28,15 @@ export const reportService = {
 
   getReportById: (id: number): Promise<Report> => fetchClient(`/api/v1/reportes/${id}/`),
 
-  createReport: (data: CreateReportPayload): Promise<Report> =>
-    fetchClient("/api/v1/reportes/", { method: "POST", body: JSON.stringify(data) }),
+  createReport: (
+    data: CreateReportPayload,
+    options?: { suppressForbiddenEvent?: boolean }
+  ): Promise<Report> =>
+    fetchClient("/api/v1/reportes/", {
+      method: "POST",
+      body: JSON.stringify(data),
+      suppressForbiddenEvent: options?.suppressForbiddenEvent,
+    }),
 
   pollUntilFileReady: async (
     id: number,

@@ -11,7 +11,7 @@ import { renderReportPrintHtml } from "@/features/reports/utils/renderReportPrin
 import { FetchError } from "@/lib/fetchClient";
 
 export const registerReportOnServer = async (payload: CreateReportPayload) => {
-  return reportService.createReport(payload);
+  return reportService.createReport(payload, { suppressForbiddenEvent: true });
 };
 
 export type ExportReportResult =

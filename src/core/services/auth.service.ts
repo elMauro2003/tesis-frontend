@@ -1,5 +1,6 @@
 import { fetchClient } from "@/lib/fetchClient";
 import { LoginResponse, User } from "@/types/auth";
+import { clearAuthSessionCookies } from "@/utils/auth/sessionCookies";
 
 export const authService = {
   login: (credentials: { username: string; password: string }): Promise<LoginResponse> => {
@@ -19,6 +20,7 @@ export const authService = {
     } finally {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
+      clearAuthSessionCookies();
     }
   },
 

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { usePathname, useRouter } from "next/navigation";
 import { getDefaultRouteForRoles } from "@/configs/permissions";
 import { PUBLIC_ROUTES } from "@/configs/routes";
+import { syncAccessTokenCookie } from "@/utils/auth/sessionCookies";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -20,7 +21,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Solo checkea auth si no está cargando aún (por defecto true)
+    const accessToken = localStorage.getItem("access_token");
+    if (accessToken) {
+      syncAccessTokenCookie(accessToken);
+    }
+
     checkAuth();
   }, [checkAuth]);
 

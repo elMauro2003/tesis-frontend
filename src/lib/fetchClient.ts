@@ -1,5 +1,16 @@
-import { AuthTokens } from "@/types/auth";
 import { API_URL } from "@/configs/env";
+import {
+  clearAuthSessionCookies,
+  syncAccessTokenCookie,
+} from "@/utils/auth/sessionCookies";
+
+export type FetchClientOptions = RequestInit & {
+  /** Si es true, no dispara el handler global de 403. */
+  suppressForbiddenEvent?: boolean;
+};
+
+const FORBIDDEN_MESSAGE =
+  "No tienes permiso para realizar esta acción.";
 
 const extractHumanErrorMessage = (payload: unknown): string | null => {
   if (typeof payload === "string") {
@@ -72,16 +83,29 @@ export class FetchError extends Error {
 }
 
 // Interceptor-like fetch wrapper
+const dispatchForbiddenEvent = (message: string, endpoint: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("auth:forbidden", {
+      detail: { message, endpoint },
+    })
+  );
+};
+
 export const fetchClient = async <T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: FetchClientOptions = {}
 ): Promise<T> => {
+  const { suppressForbiddenEvent = false, ...requestOptions } = options;
   const url = `${API_URL}${endpoint}`;
 
   // 1. Get tokens from localStorage
   const accessToken = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
 
-  const headers = new Headers(options.headers);
+  const headers = new Headers(requestOptions.headers);
   headers.set("Content-Type", "application/json");
 
   if (accessToken) {
@@ -89,7 +113,7 @@ export const fetchClient = async <T>(
   }
 
   const config: RequestInit = {
-    ...options,
+    ...requestOptions,
     headers,
   };
 
@@ -109,6 +133,7 @@ export const fetchClient = async <T>(
         if (refreshRes.ok) {
           const { access } = await refreshRes.json();
           localStorage.setItem("access_token", access);
+          syncAccessTokenCookie(access);
 
           // Retry original request with new token
           headers.set("Authorization", `Bearer ${access}`);
@@ -117,7 +142,7 @@ export const fetchClient = async <T>(
           // Refresh token expired or invalid
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
-          // Optionally trigger global logout event here
+          clearAuthSessionCookies();
           window.dispatchEvent(new CustomEvent("auth:logout"));
         }
       } catch (err) {
@@ -140,7 +165,13 @@ export const fetchClient = async <T>(
       ? (extractedMessage && extractedMessage !== "Los datos proporcionados no son válidos." && extractedMessage !== "Bad Request"
           ? extractedMessage
           : GENERIC_400_MESSAGE)
-      : (extractedMessage || "Ocurrió un error al procesar la solicitud. Intente nuevamente.");
+      : response.status === 403
+        ? (extractedMessage || FORBIDDEN_MESSAGE)
+        : (extractedMessage || "Ocurrió un error al procesar la solicitud. Intente nuevamente.");
+
+    if (response.status === 403 && !suppressForbiddenEvent) {
+      dispatchForbiddenEvent(normalizedMessage, endpoint);
+    }
 
     throw new FetchError(response.status, normalizedMessage, errorData);
   }

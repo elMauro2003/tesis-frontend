@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { User, Role } from "@/types/auth";
 import { authService } from "@/core/services/auth.service";
+import {
+  clearAuthSessionCookies,
+  setAuthSessionCookies,
+  syncAccessTokenCookie,
+} from "@/utils/auth/sessionCookies";
 
 interface AuthState {
   user: User | null;
@@ -22,11 +27,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setCredentials: (user, access, refresh) => {
     localStorage.setItem("access_token", access);
     localStorage.setItem("refresh_token", refresh);
+    setAuthSessionCookies(access, user.roles);
     set({ user, isAuthenticated: true });
   },
 
   logout: async () => {
     await authService.logout();
+    clearAuthSessionCookies();
     set({ user: null, isAuthenticated: false });
   },
 
@@ -39,11 +46,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const user = await authService.getMe();
+      setAuthSessionCookies(token, user.roles);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
       set({ user: null, isAuthenticated: false, isLoading: false });
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
+      clearAuthSessionCookies();
     }
   },
 
