@@ -21,6 +21,7 @@ interface RoomListRowProps {
   title: string;
   subtitle: string;
   assignments: RoomAssignment[];
+  canManage?: boolean;
   onView: (room: Room) => void;
   onEdit: (room: Room) => void;
   onPermute: (room: Room) => void;
@@ -35,6 +36,7 @@ export function RoomListRow({
   title,
   subtitle,
   assignments,
+  canManage = true,
   onView,
   onEdit,
   onPermute,
@@ -104,6 +106,7 @@ export function RoomListRow({
         >
           <span className="material-symbols-outlined text-xl">visibility</span>
         </Button>
+        {canManage ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -157,6 +160,7 @@ export function RoomListRow({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        ) : null}
       </div>
     </div>
   );

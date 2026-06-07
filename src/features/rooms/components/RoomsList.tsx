@@ -15,6 +15,7 @@ interface RoomsListProps {
   items: EnrichedRoom[];
   loading: boolean;
   error: string | null;
+  canManage?: boolean;
   onRetry: () => void;
   onCreate: () => void;
   onView: (room: Room) => void;
@@ -30,6 +31,7 @@ export function RoomsList({
   items,
   loading,
   error,
+  canManage = true,
   onRetry,
   onCreate,
   onView,
@@ -74,8 +76,8 @@ export function RoomsList({
             title="No hay cuartos para mostrar"
             description="Ajuste los filtros o registre un nuevo cuarto para comenzar."
             icon="bed"
-            actionLabel="Añadir cuarto"
-            onAction={onCreate}
+            actionLabel={canManage ? "Añadir cuarto" : undefined}
+            onAction={canManage ? onCreate : undefined}
           />
         </div>
       ) : (
@@ -86,6 +88,7 @@ export function RoomsList({
             title={item.title}
             subtitle={item.subtitle}
             assignments={item.assignments}
+            canManage={canManage}
             onView={onView}
             onEdit={onEdit}
             onPermute={onPermute}

@@ -10,8 +10,8 @@ interface DashboardPageHeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
   actionIcon?: string;
   topBadge?: string;
   extraAction?: ReactNode;
@@ -56,10 +56,12 @@ export function DashboardPageHeader({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {extraAction}
-          <Button type="button" variant="add" onClick={onAction} className="cursor-pointer">
-            <span className="material-symbols-outlined text-lg">{actionIcon}</span>
-            {actionLabel}
-          </Button>
+          {actionLabel && onAction ? (
+            <Button type="button" variant="add" onClick={onAction} className="cursor-pointer">
+              <span className="material-symbols-outlined text-lg">{actionIcon}</span>
+              {actionLabel}
+            </Button>
+          ) : null}
         </div>
       </header>
 

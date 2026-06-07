@@ -12,6 +12,7 @@ interface AnnouncementCardProps {
   announcement: AnnouncementWithCategory;
   isArchived: boolean;
   isArchivePending?: boolean;
+  readOnly?: boolean;
   onEdit: (announcement: AnnouncementWithCategory) => void;
   onDelete: (announcement: AnnouncementWithCategory) => void;
   onArchive: (announcement: AnnouncementWithCategory) => void;
@@ -22,6 +23,7 @@ export function AnnouncementCard({
   announcement,
   isArchived,
   isArchivePending = false,
+  readOnly = false,
   onEdit,
   onDelete,
   onArchive,
@@ -125,6 +127,8 @@ export function AnnouncementCard({
 
       <footer className="flex items-center justify-between gap-4 border-t border-[var(--color-outline-variant)]/15 px-8 py-4">
         <div className="flex items-center gap-2">
+          {readOnly ? null : (
+            <>
           {!isArchived ? (
             <button
               type="button"
@@ -168,6 +172,8 @@ export function AnnouncementCard({
           >
             <span className="material-symbols-outlined text-lg">delete</span>
           </button>
+            </>
+          )}
         </div>
 
         <span

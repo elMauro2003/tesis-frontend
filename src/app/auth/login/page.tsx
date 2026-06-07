@@ -6,7 +6,7 @@ import { FormField } from "@/components/shared/FormField";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/core/services/auth.service";
 import { useAuthStore } from "@/store/useAuthStore";
-import { DEFAULT_LOGIN_REDIRECT } from "@/configs/routes";
+import { getDefaultRouteForRoles } from "@/configs/permissions";
 
 function LoginBrandDecorations() {
   return (
@@ -47,7 +47,7 @@ function LoginFormContent() {
       setCredentials(response.user, response.access, response.refresh);
 
       const callbackUrl = searchParams.get("callbackUrl");
-      router.replace(callbackUrl || DEFAULT_LOGIN_REDIRECT);
+      router.replace(callbackUrl || getDefaultRouteForRoles(response.user.roles));
     } catch (err: unknown) {
       const message =
         err instanceof Error && err.message

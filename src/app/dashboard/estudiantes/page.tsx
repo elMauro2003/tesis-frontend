@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from '@tanstack/react-query';
-import { useAuthStore } from "@/store/useAuthStore";
 import { ViewStudentPanel } from "@/features/students/components/ViewStudentPanel";
 import { DeleteStudentModal } from "@/features/students/components/DeleteStudentModal";
 import { EvaluateStudentModal } from "@/features/students/components/EvaluateStudentModal";
@@ -22,6 +21,7 @@ import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { SearchField } from "@/components/shared/SearchField";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type PaginatedList<T> = {
   results?: T[];
@@ -105,7 +105,11 @@ const fetchAllPages = async <T,>(endpoint: string): Promise<T[]> => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { can, isReadOnly } = usePermissions();
+  const canCreateStudent = can("students", "create");
+  const canUpdateStudent = can("students", "update");
+  const canDeleteStudent = can("students", "delete");
+  const readOnlyStudents = isReadOnly("students");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -500,15 +504,19 @@ export default function DashboardPage() {
   return (
     <div className="w-full px-8 py-4">
       <DashboardPageHeader
-        title="Estudiantes"
-        description="Lista y administra estudiantes activos y sus asignaciones dentro del sistema." 
+        title={readOnlyStudents ? "Consulta de estudiantes" : "Estudiantes"}
+        description={
+          readOnlyStudents
+            ? "Consulte estudiantes dentro del alcance asignado a su rol académico."
+            : "Lista y administra estudiantes activos y sus asignaciones dentro del sistema."
+        }
         topBadge="Personas"
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar estudiante por nombre o Carné de Identidad..."
-        actionLabel="Añadir Estudiante"
+        actionLabel={canCreateStudent ? "Añadir Estudiante" : undefined}
         actionIcon="person_add"
-        onAction={handleCreateStudent}
+        onAction={canCreateStudent ? handleCreateStudent : undefined}
         searchComponent={(
           <div ref={searchContainerRef} className="relative w-full">
             <SearchField
@@ -710,15 +718,21 @@ export default function DashboardPage() {
                           >
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </button>
-                          <Link href={DASHBOARD_ROUTES.estudianteEditar(student.id)} className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
-                            <span className="material-symbols-outlined text-xl">edit</span>
-                          </Link>
-                          <button className="p-2 text-outline hover:text-yellow-500 transition-colors cursor-pointer" title="Evaluar" onClick={() => setSelectedStudentToEvaluateId(student.id)}>
-                            <span className="material-symbols-outlined text-xl">star</span>
-                          </button>
-                          <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja" onClick={() => setSelectedStudentToDeleteId(student.id)}>
-                            <span className="material-symbols-outlined text-xl">person_remove</span>
-                          </button>
+                          {canUpdateStudent ? (
+                            <Link href={DASHBOARD_ROUTES.estudianteEditar(student.id)} className="p-2 text-outline hover:text-primary transition-colors cursor-pointer" title="Editar">
+                              <span className="material-symbols-outlined text-xl">edit</span>
+                            </Link>
+                          ) : null}
+                          {canUpdateStudent ? (
+                            <button className="p-2 text-outline hover:text-yellow-500 transition-colors cursor-pointer" title="Evaluar" onClick={() => setSelectedStudentToEvaluateId(student.id)}>
+                              <span className="material-symbols-outlined text-xl">star</span>
+                            </button>
+                          ) : null}
+                          {canDeleteStudent ? (
+                            <button className="p-2 text-outline hover:text-error transition-colors cursor-pointer" title="Dar de Baja" onClick={() => setSelectedStudentToDeleteId(student.id)}>
+                              <span className="material-symbols-outlined text-xl">person_remove</span>
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

@@ -18,6 +18,7 @@ import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuild
 import { DeleteWingModal } from "@/features/buildings/components/DeleteWingModal";
 import { WingFormModal } from "@/features/buildings/components/WingFormModal";
 import { ViewBuildingPanel } from "@/features/buildings/components/ViewBuildingPanel";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -76,6 +77,11 @@ const getBuildingSiteLabel = (building: Building, sitesById: Map<number, Site>):
 };
 
 export default function BuildingsPage() {
+  const { can } = usePermissions();
+  const canCreateBuilding = can("buildings", "create");
+  const canUpdateBuilding = can("buildings", "update");
+  const canDeleteBuilding = can("buildings", "delete");
+
   const [allBuildings, setAllBuildings] = useState<Building[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [wings, setWings] = useState<Wing[]>([]);
@@ -390,9 +396,9 @@ export default function BuildingsPage() {
         searchValue={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Buscar edificio..."
-        actionLabel="Añadir edificio"
+        actionLabel={canCreateBuilding ? "Añadir edificio" : undefined}
         actionIcon="add"
-        onAction={handleCreateBuilding}
+        onAction={canCreateBuilding ? handleCreateBuilding : undefined}
         searchComponent={<SearchField value={search} onChange={handleSearchChange} placeholder="Buscar edificio por nombre..." />}
       />
 
@@ -520,6 +526,7 @@ export default function BuildingsPage() {
                             <span className="material-symbols-outlined text-xl">visibility</span>
                           </Button>
 
+                          {canUpdateBuilding || canDeleteBuilding ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -533,21 +540,30 @@ export default function BuildingsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="min-w-[13rem]">
-                              <DropdownMenuItem onSelect={() => handleEditBuilding(building)}>
-                                <span className="material-symbols-outlined text-base">edit</span>
-                                Editar edificio
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => handleRegisterWing(building)}>
-                                <span className="material-symbols-outlined text-base">apartment</span>
-                                Registrar ala
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onSelect={() => handleDeleteBuilding(building)} className="text-[var(--color-error)] focus:text-[var(--color-error)]">
-                                <span className="material-symbols-outlined text-base">delete</span>
-                                Eliminar edificio
-                              </DropdownMenuItem>
+                              {canUpdateBuilding ? (
+                                <>
+                                  <DropdownMenuItem onSelect={() => handleEditBuilding(building)}>
+                                    <span className="material-symbols-outlined text-base">edit</span>
+                                    Editar edificio
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => handleRegisterWing(building)}>
+                                    <span className="material-symbols-outlined text-base">apartment</span>
+                                    Registrar ala
+                                  </DropdownMenuItem>
+                                </>
+                              ) : null}
+                              {canDeleteBuilding ? (
+                                <>
+                                  {canUpdateBuilding ? <DropdownMenuSeparator /> : null}
+                                  <DropdownMenuItem onSelect={() => handleDeleteBuilding(building)} className="text-[var(--color-error)] focus:text-[var(--color-error)]">
+                                    <span className="material-symbols-outlined text-base">delete</span>
+                                    Eliminar edificio
+                                  </DropdownMenuItem>
+                                </>
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

@@ -27,6 +27,7 @@ import {
   isAnnouncementArchived,
 } from "@/features/announcements/utils/announcementPresentation";
 import { FetchError } from "@/lib/fetchClient";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Information } from "@/types/models";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -65,6 +66,9 @@ const toApiVisibilityFilter = (filter: AnnouncementVisibilityFilter) => {
 };
 
 export function AnnouncementsManagement() {
+  const { canManageAnnouncements } = usePermissions();
+  const canManage = canManageAnnouncements();
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<AnnouncementVisibilityFilter>("all");
@@ -85,13 +89,18 @@ export function AnnouncementsManagement() {
   const apiIsPublic = toApiVisibilityFilter(visibilityFilter);
 
   const announcementsQuery = useQuery({
-    queryKey: ["announcements", { is_public: apiIsPublic, search: debouncedSearch }],
-    queryFn: () =>
-      communicationService.getAllInformations({
-        is_public: apiIsPublic,
-        search: debouncedSearch || undefined,
-        ordering: "-created_at",
-      }),
+    queryKey: ["announcements", canManage ? "manage" : "public", { is_public: apiIsPublic, search: debouncedSearch }],
+    queryFn: () => {
+      if (canManage) {
+        return communicationService.getAllInformations({
+          is_public: apiIsPublic,
+          search: debouncedSearch || undefined,
+          ordering: "-created_at",
+        });
+      }
+
+      return communicationService.getPublicInformations();
+    },
     staleTime: 60 * 1000,
   });
 
@@ -103,11 +112,19 @@ export function AnnouncementsManagement() {
   }, [announcementsQuery.data?.results]);
 
   const filteredAnnouncements = useMemo(() => {
+    const searchTerm = debouncedSearch.trim().toLowerCase();
+
     return announcementsWithCategory.filter((announcement) => {
       const archived = isAnnouncementArchived(announcement);
-      return statusFilter === "active" ? !archived : archived;
+      const matchesStatus = canManage ? (statusFilter === "active" ? !archived : archived) : !archived;
+      const matchesSearch =
+        !searchTerm ||
+        announcement.title.toLowerCase().includes(searchTerm) ||
+        announcement.content.toLowerCase().includes(searchTerm);
+
+      return matchesStatus && matchesSearch;
     });
-  }, [announcementsWithCategory, statusFilter]);
+  }, [announcementsWithCategory, statusFilter, canManage, debouncedSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAnnouncements.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -239,35 +256,41 @@ export function AnnouncementsManagement() {
   return (
     <div className="w-full space-y-8">
       <DashboardPageHeader
-        title="Tablón de Anuncios"
-        description="Publique y administre comunicados importantes para la comunidad estudiantil desde un tablón centralizado."
+        title={canManage ? "Tablón de Anuncios" : "Comunicados"}
+        description={
+          canManage
+            ? "Publique y administre comunicados importantes para la comunidad estudiantil desde un tablón centralizado."
+            : "Consulte los comunicados públicos vigentes publicados por la residencia."
+        }
         topBadge="Comunicación institucional"
         searchValue={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Buscar anuncio por título o contenido..."
-        actionLabel="Nuevo anuncio"
+        actionLabel={canManage ? "Nuevo anuncio" : undefined}
         actionIcon="add"
-        onAction={openCreateModal}
+        onAction={canManage ? openCreateModal : undefined}
       />
 
-      <DashboardFiltersBar
-        left={
-          <DashboardFilterSelect
-            className="w-full sm:w-56"
-            value={visibilityFilter}
-            onValueChange={handleVisibilityChange}
-            placeholder="Visibilidad"
-            options={visibilityOptions}
-          />
-        }
-        right={
-          <DashboardSegmentedFilter
-            value={statusFilter}
-            onValueChange={handleStatusChange}
-            options={statusOptions}
-          />
-        }
-      />
+      {canManage ? (
+        <DashboardFiltersBar
+          left={
+            <DashboardFilterSelect
+              className="w-full sm:w-56"
+              value={visibilityFilter}
+              onValueChange={handleVisibilityChange}
+              placeholder="Visibilidad"
+              options={visibilityOptions}
+            />
+          }
+          right={
+            <DashboardSegmentedFilter
+              value={statusFilter}
+              onValueChange={handleStatusChange}
+              options={statusOptions}
+            />
+          }
+        />
+      ) : null}
 
       <section className="overflow-hidden rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
         <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-container-low)] px-6 py-5">
@@ -281,9 +304,11 @@ export function AnnouncementsManagement() {
                 : `${filteredAnnouncements.length} anuncio${filteredAnnouncements.length === 1 ? "" : "s"} visible${filteredAnnouncements.length === 1 ? "" : "s"}`}
             </p>
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">
-            Panel de gestión
-          </div>
+          {canManage ? (
+            <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">
+              Panel de gestión
+            </div>
+          ) : null}
         </div>
 
         <div className="p-6">
@@ -357,6 +382,7 @@ export function AnnouncementsManagement() {
                   announcement={announcement}
                   isArchived={isAnnouncementArchived(announcement)}
                   isArchivePending={isArchivePending && archiveTargetId === announcement.id}
+                  readOnly={!canManage}
                   onEdit={openEditModal}
                   onDelete={openDeleteModal}
                   onArchive={handleArchive}

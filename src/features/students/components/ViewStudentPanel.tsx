@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Can } from '@/components/shared/Can';
 import { DASHBOARD_ROUTES } from '@/configs/dashboardRoutes';
 import { FetchError } from '@/lib/fetchClient';
 import { Student } from '@/types/models';
@@ -265,12 +266,14 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
 
         {/* Footer */}
         <footer className="border-t border-[var(--color-outline-variant)]/20 p-4 bg-[var(--color-surface-container-lowest)] flex justify-end gap-3 shrink-0">
-          {student && (
-            <Link href={DASHBOARD_ROUTES.estudianteEditar(student.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">
-              <span className="material-symbols-outlined text-lg">edit</span>
-              Editar Datos
-            </Link>
-          )}
+          {student ? (
+            <Can feature="students" action="update">
+              <Link href={DASHBOARD_ROUTES.estudianteEditar(student.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">
+                <span className="material-symbols-outlined text-lg">edit</span>
+                Editar Datos
+              </Link>
+            </Can>
+          ) : null}
           <button 
             onClick={onClose}
             className="px-4 py-2 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg text-slate-600 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors cursor-pointer"

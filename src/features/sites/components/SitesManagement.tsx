@@ -11,6 +11,7 @@ import { SiteFormModal } from "@/features/sites/components/SiteFormModal";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const formatCount = (value: number) => new Intl.NumberFormat("es-ES").format(value);
 
@@ -31,6 +32,11 @@ const getSiteLabel = (site: Site) => site.address?.trim() || "Dirección no regi
 const siteSearchTarget = (site: Site) => `${site.name} ${site.address ?? ""} ${site.description ?? ""}`.toLowerCase();
 
 export function SitesManagement() {
+  const { can } = usePermissions();
+  const canCreateSite = can("sites", "create");
+  const canUpdateSite = can("sites", "update");
+  const canDeleteSite = can("sites", "delete");
+
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -187,9 +193,9 @@ export function SitesManagement() {
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar sede..."
-        actionLabel="Añadir sede"
+        actionLabel={canCreateSite ? "Añadir sede" : undefined}
         actionIcon="add"
-        onAction={openCreateModal}
+        onAction={canCreateSite ? openCreateModal : undefined}
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -237,8 +243,8 @@ export function SitesManagement() {
                   ? "Ajuste el texto de búsqueda o limpie el filtro para ver más resultados."
                   : "Cree la primera sede para comenzar a estructurar la distribución territorial."}
                 icon={hasSearch ? "filter_alt_off" : "location_city"}
-                actionLabel={hasSearch ? undefined : "Añadir sede"}
-                onAction={hasSearch ? undefined : openCreateModal}
+                actionLabel={hasSearch || !canCreateSite ? undefined : "Añadir sede"}
+                onAction={hasSearch || !canCreateSite ? undefined : openCreateModal}
                 secondaryAction={hasSearch ? (
                   <Button type="button" variant="neutral" onClick={() => setSearch("")}>
                     <span className="material-symbols-outlined text-lg">filter_alt_off</span>
@@ -301,24 +307,30 @@ export function SitesManagement() {
                         Ver edificios
                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                       </Link>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(site)}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-outline)] transition-colors hover:bg-[var(--color-surface-container-lowest)] hover:text-[var(--color-primary)] cursor-pointer"
-                          aria-label={`Editar ${site.name}`}
-                        >
-                          <span className="material-symbols-outlined text-lg">edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openDeleteModal(site)}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-outline)] transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
-                          aria-label={`Eliminar ${site.name}`}
-                        >
-                          <span className="material-symbols-outlined text-lg">delete</span>
-                        </button>
-                      </div>
+                      {canUpdateSite || canDeleteSite ? (
+                        <div className="flex items-center gap-2">
+                          {canUpdateSite ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(site)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-outline)] transition-colors hover:bg-[var(--color-surface-container-lowest)] hover:text-[var(--color-primary)] cursor-pointer"
+                              aria-label={`Editar ${site.name}`}
+                            >
+                              <span className="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                          ) : null}
+                          {canDeleteSite ? (
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(site)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-outline)] transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                              aria-label={`Eliminar ${site.name}`}
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 );

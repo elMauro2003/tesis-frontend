@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePathname, useRouter } from "next/navigation";
-import { PUBLIC_ROUTES, DEFAULT_LOGIN_REDIRECT } from "@/configs/routes";
+import { getDefaultRouteForRoles } from "@/configs/permissions";
+import { PUBLIC_ROUTES } from "@/configs/routes";
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ interface AuthProviderProps {
  * Revisa el token guardado y valida contra el backend antes de renderizar la app protegida.
  */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const { checkAuth, isLoading, isAuthenticated } = useAuthStore();
+  const { checkAuth, isLoading, isAuthenticated, user } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,11 +32,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!isAuthenticated && !isPublicRoute) {
       // Intenta acceder a zona privada sin sesión
       router.replace(`/auth/login?callbackUrl=${pathname}`);
-    } else if (isAuthenticated && isPublicRoute) {
-      // Intenta acceder a login estando logueado
-      router.replace(DEFAULT_LOGIN_REDIRECT);
+    } else if (isAuthenticated && isPublicRoute && user) {
+      router.replace(getDefaultRouteForRoles(user.roles));
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router, user]);
 
   // Si está cargando y NO es una ruta pública, bloqueamos el render para evitar FOUC
   // (Flashes of Unauthenticated Content)

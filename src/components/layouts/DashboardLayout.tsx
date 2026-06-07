@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
+import { getNavItemsForRoles, getNavLabelForRoles } from "@/configs/permissions";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface DashboardLayoutProps {
@@ -11,8 +11,10 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const pathname = usePathname();
+  const userRoles = user?.roles ?? [];
+  const navItems = getNavItemsForRoles(userRoles);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -32,7 +34,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="bg-background text-on-surface min-h-screen font-body w-full">
-      {/* Sidebar Navigation */}
       <aside className="fixed left-4 top-4 bottom-4 w-64 rounded-xl bg-surface-container-lowest shadow-[0_20px_40px_rgba(0,55,176,0.06)] flex flex-col h-[calc(100vh-2rem)] p-4 z-50">
         <div className="flex items-center gap-3 mb-8 px-2">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
@@ -51,39 +52,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav className="flex-1 space-y-1">
-          <Link href={DASHBOARD_ROUTES.reportes} className={navLinkClassName(DASHBOARD_ROUTES.reportes)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.reportes)}>analytics</span>
-            <span className="font-medium text-sm">Reportes</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.sedes} className={navLinkClassName(DASHBOARD_ROUTES.sedes)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.sedes)}>location_city</span>
-            <span className="font-medium text-sm">Sedes</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.edificios} className={navLinkClassName(DASHBOARD_ROUTES.edificios)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.edificios)}>domain</span>
-            <span className="font-medium text-sm">Edificios</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.cuartos} className={navLinkClassName(DASHBOARD_ROUTES.cuartos)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.cuartos)}>bed</span>
-            <span className="font-medium text-sm">Cuartos</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.estudiantes} className={navLinkClassName(DASHBOARD_ROUTES.estudiantes)}>
-            <span
-              className={navIconClassName(DASHBOARD_ROUTES.estudiantes)}
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              school
-            </span>
-            <span className="font-semibold text-sm">Estudiantes</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.quejas} className={navLinkClassName(DASHBOARD_ROUTES.quejas)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.quejas)}>emergency_home</span>
-            <span className="font-medium text-sm">Quejas</span>
-          </Link>
-          <Link href={DASHBOARD_ROUTES.anuncios} className={navLinkClassName(DASHBOARD_ROUTES.anuncios)}>
-            <span className={navIconClassName(DASHBOARD_ROUTES.anuncios)}>campaign</span>
-            <span className="font-medium text-sm">Anuncios</span>
-          </Link>
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} className={navLinkClassName(item.href)}>
+              <span
+                className={navIconClassName(item.href)}
+                style={item.filledIcon ? { fontVariationSettings: "'FILL' 1" } : undefined}
+              >
+                {item.icon}
+              </span>
+              <span className={`text-sm ${item.filledIcon ? "font-semibold" : "font-medium"}`}>
+                {getNavLabelForRoles(item, userRoles)}
+              </span>
+            </Link>
+          ))}
         </nav>
 
         <div className="pt-4 mt-4 border-t border-outline-variant/15 space-y-1">
@@ -101,7 +82,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content Canvas */}
       <main className="ml-72 mr-8 pt-8 pb-12">{children}</main>
     </div>
   );

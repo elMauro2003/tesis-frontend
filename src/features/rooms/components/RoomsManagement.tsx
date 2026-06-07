@@ -9,6 +9,7 @@ import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
+import { usePermissions } from "@/hooks/usePermissions";
 import { parseOptionalUrlId } from "@/utils/helpers/parseUrlId";
 import { accommodationService } from "@/core/services/accommodation.service";
 import { infrastructureService, type RoomListFilters } from "@/core/services/infrastructure.service";
@@ -48,6 +49,8 @@ const assignmentMatchesSearch = (assignment: RoomAssignment, query: string): boo
 
 export function RoomsManagement() {
   const catalog = useRoomsCatalog();
+  const { canManageRooms } = usePermissions();
+  const canManage = canManageRooms();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -387,9 +390,9 @@ export function RoomsManagement() {
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Buscar por número de cuarto o estudiante..."
-        actionLabel="Añadir cuarto"
+        actionLabel={canManage ? "Añadir cuarto" : undefined}
         actionIcon="add"
-        onAction={openCreate}
+        onAction={canManage ? openCreate : undefined}
         searchComponent={
           <SearchField
             value={search}
@@ -440,6 +443,7 @@ export function RoomsManagement() {
         items={enrichedItems}
         loading={roomsQuery.isLoading}
         error={errorMessage}
+        canManage={canManage}
         onRetry={() => {
           roomsQuery.refetch();
           catalog.refetch();

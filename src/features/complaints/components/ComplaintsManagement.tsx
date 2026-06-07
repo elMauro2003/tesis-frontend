@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { complaintService } from "@/core/services/complaint.service";
+import { useComplaintsForRole } from "@/features/complaints/hooks/useComplaintsForRole";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
@@ -50,6 +50,10 @@ const formatComplaintDate = (value: string) => {
 };
 
 export function ComplaintsManagement() {
+  const { can, canManageComplaints } = usePermissions();
+  const isManager = canManageComplaints();
+  const canCreateComplaint = can("complaints", "create");
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -62,18 +66,13 @@ export function ComplaintsManagement() {
     return () => window.clearTimeout(timer);
   }, [search]);
 
-  const complaintsQuery = useQuery({
-    queryKey: ["complaints", { debouncedSearch, statusFilter, typeFilter, page, pageSize }],
-    queryFn: () =>
-      complaintService.getComplaints({
-        search: debouncedSearch || undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        type: typeFilter !== "all" ? typeFilter : undefined,
-        ordering: "-date",
-        page,
-        page_size: pageSize,
-      }),
-    staleTime: 60 * 1000,
+  const complaintsQuery = useComplaintsForRole({
+    search: debouncedSearch || undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    type: typeFilter !== "all" ? typeFilter : undefined,
+    ordering: "-date",
+    page,
+    page_size: pageSize,
   });
 
   const complaints = complaintsQuery.data?.results ?? [];
@@ -114,56 +113,72 @@ export function ComplaintsManagement() {
   return (
     <div className="w-full space-y-8">
       <DashboardPageHeader
-        title="Quejas"
-        description="Consulte y gestione las quejas presentadas por la comunidad estudiantil."
+        title={isManager ? "Gestión de quejas" : "Mis quejas"}
+        description={
+          isManager
+            ? "Consulte y gestione las quejas presentadas por la comunidad estudiantil."
+            : "Revise el estado de sus quejas y presente nuevas solicitudes cuando sea necesario."
+        }
         topBadge="Atención estudiantil"
         searchValue={search}
         onSearchChange={(value) => {
           setSearch(value);
           resetPage();
         }}
-        searchPlaceholder="Buscar queja por descripción o estudiante..."
-        actionLabel="Nueva queja"
+        searchPlaceholder={
+          isManager
+            ? "Buscar queja por descripción o estudiante..."
+            : "Buscar en mis quejas..."
+        }
+        actionLabel={canCreateComplaint ? "Nueva queja" : undefined}
         actionIcon="add"
-        onAction={() => {
-          toast.info("Registro de quejas", {
-            description: "El formulario de creación estará disponible en una próxima iteración.",
-          });
-        }}
-        showSearch
+        onAction={
+          canCreateComplaint
+            ? () => {
+                toast.info("Registro de quejas", {
+                  description: "El formulario de creación estará disponible en una próxima iteración.",
+                });
+              }
+            : undefined
+        }
+        showSearch={isManager}
       />
 
-      <DashboardFiltersBar
-        left={
-          <DashboardFilterSelect
-            className="w-full sm:w-56"
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              resetPage();
-            }}
-            placeholder="Estado"
-            options={STATUS_OPTIONS}
-          />
-        }
-        right={
-          <DashboardFilterSelect
-            className="w-full sm:w-56"
-            value={typeFilter}
-            onValueChange={(value) => {
-              setTypeFilter(value);
-              resetPage();
-            }}
-            placeholder="Tipo"
-            options={TYPE_OPTIONS}
-          />
-        }
-      />
+      {isManager ? (
+        <DashboardFiltersBar
+          left={
+            <DashboardFilterSelect
+              className="w-full sm:w-56"
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                resetPage();
+              }}
+              placeholder="Estado"
+              options={STATUS_OPTIONS}
+            />
+          }
+          right={
+            <DashboardFilterSelect
+              className="w-full sm:w-56"
+              value={typeFilter}
+              onValueChange={(value) => {
+                setTypeFilter(value);
+                resetPage();
+              }}
+              placeholder="Tipo"
+              options={TYPE_OPTIONS}
+            />
+          }
+        />
+      ) : null}
 
       <section className="overflow-hidden rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
         <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-container-low)] px-6 py-5">
           <div>
-            <h2 className="text-base font-bold text-[var(--color-primary-dark)]">Bandeja de quejas</h2>
+            <h2 className="text-base font-bold text-[var(--color-primary-dark)]">
+              {isManager ? "Bandeja de quejas" : "Mis solicitudes"}
+            </h2>
             <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
               {isLoading ? "Cargando quejas..." : `${totalItems} queja${totalItems === 1 ? "" : "s"} registrada${totalItems === 1 ? "" : "s"}`}
             </p>
