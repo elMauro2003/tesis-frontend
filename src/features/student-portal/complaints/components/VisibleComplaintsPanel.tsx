@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { Complaint } from "@/types/models";
 import {
   COMPLAINT_STATUS_LABELS,
@@ -10,14 +12,9 @@ import {
 interface VisibleComplaintsPanelProps {
   complaints: Complaint[];
   isLoading?: boolean;
-  onViewAll: () => void;
 }
 
-export function VisibleComplaintsPanel({
-  complaints,
-  isLoading = false,
-  onViewAll,
-}: VisibleComplaintsPanelProps) {
+export function VisibleComplaintsPanel({ complaints, isLoading = false }: VisibleComplaintsPanelProps) {
   const preview = complaints.slice(0, 3);
 
   return (
@@ -82,13 +79,12 @@ export function VisibleComplaintsPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onViewAll}
-        className="mt-6 w-full rounded-lg border-2 border-primary/20 py-3 text-xs font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/5"
+      <Link
+        href={PORTAL_ROUTES.quejasVisibles}
+        className="mt-6 flex w-full items-center justify-center rounded-lg border-2 border-primary/20 py-3 text-xs font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/5"
       >
         Ver todas las quejas
-      </button>
+      </Link>
     </aside>
   );
 }

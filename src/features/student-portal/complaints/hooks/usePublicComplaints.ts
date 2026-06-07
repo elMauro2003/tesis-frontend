@@ -1,12 +1,23 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { complaintService } from "@/core/services/complaint.service";
 
+const PAGE_SIZE = 10;
+
 export function usePublicComplaints() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["portal", "complaints", "public"],
-    queryFn: () => complaintService.getPublicComplaints({ page: 1, page_size: 100 }),
+    queryFn: ({ pageParam = 1 }) =>
+      complaintService.getPublicComplaints({ page: pageParam, page_size: PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage.next) {
+        return undefined;
+      }
+
+      return lastPageParam + 1;
+    },
     staleTime: 60_000,
   });
 }

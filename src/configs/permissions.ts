@@ -216,6 +216,7 @@ export const PORTAL_ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/portal/evaluaciones": FEATURE_PERMISSIONS.evaluations_self.view!,
   "/portal/quejas": STUDENT_ROLE,
   "/portal/quejas/nueva": STUDENT_ROLE,
+  "/portal/quejas/visibles": STUDENT_ROLE,
   "/portal/anuncios": STUDENT_ROLE,
   "/portal/perfil": FEATURE_PERMISSIONS.portal_profile.view!,
 };

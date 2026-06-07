@@ -3,6 +3,7 @@ export const PORTAL_ROUTES = {
   evaluaciones: "/portal/evaluaciones",
   quejas: "/portal/quejas",
   quejasNueva: "/portal/quejas/nueva",
+  quejasVisibles: "/portal/quejas/visibles",
   anuncios: "/portal/anuncios",
   perfil: "/portal/perfil",
   anuncioDetalle: (id: number | string) => `/portal/anuncios/${id}`,

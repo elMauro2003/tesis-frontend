@@ -9,7 +9,6 @@ import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
 import { MyComplaintCard } from "@/features/student-portal/complaints/components/MyComplaintCard";
-import { PublicComplaintsArchiveSheet } from "@/features/student-portal/complaints/components/PublicComplaintsArchiveSheet";
 import { VisibleComplaintsPanel } from "@/features/student-portal/complaints/components/VisibleComplaintsPanel";
 import { useMyComplaints } from "@/features/student-portal/complaints/hooks/useMyComplaints";
 import { usePublicComplaints } from "@/features/student-portal/complaints/hooks/usePublicComplaints";
@@ -24,7 +23,6 @@ import { Complaint } from "@/types/models";
 export function ComplaintsList() {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
-  const [archiveOpen, setArchiveOpen] = useState(false);
   const [editingComplaint, setEditingComplaint] = useState<Complaint | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -32,7 +30,7 @@ export function ComplaintsList() {
   const publicComplaintsQuery = usePublicComplaints();
 
   const complaints = complaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
-  const publicComplaints = publicComplaintsQuery.data?.results ?? [];
+  const publicComplaints = publicComplaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
 
   const todayCount = useMemo(() => countTodayComplaints(complaints), [complaints]);
   const remainingToday = Math.max(0, DAILY_COMPLAINT_LIMIT - todayCount);
@@ -140,7 +138,6 @@ export function ComplaintsList() {
           <VisibleComplaintsPanel
             complaints={publicComplaints}
             isLoading={publicComplaintsQuery.isLoading}
-            onViewAll={() => setArchiveOpen(true)}
           />
         </div>
       </div>
@@ -152,12 +149,6 @@ export function ComplaintsList() {
           setEditingComplaint(null);
         }}
         complaint={editingComplaint}
-      />
-
-      <PublicComplaintsArchiveSheet
-        open={archiveOpen}
-        onClose={() => setArchiveOpen(false)}
-        complaints={publicComplaints}
       />
     </PortalPageShell>
   );

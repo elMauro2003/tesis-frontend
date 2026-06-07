@@ -70,6 +70,48 @@ export function canEditComplaint(status: Complaint["status"]) {
   return status === "pendiente" || status === "en_proceso";
 }
 
+export const COMPLAINT_TYPE_OPTIONS = [
+  {
+    value: "administrativa" as const,
+    label: "Administrativa",
+    description: "Infraestructura, servicios, convivencia o mantenimiento.",
+    icon: "apartment",
+  },
+  {
+    value: "educativa" as const,
+    label: "Educativa",
+    description: "Actividades académicas, horarios o procesos formativos.",
+    icon: "school",
+  },
+];
+
+export function getPublicComplaintsStats(complaints: import("@/types/models").Complaint[]) {
+  const total = complaints.length;
+  const resolved = complaints.filter((item) => item.status === "resuelta").length;
+  const inProcess = complaints.filter(
+    (item) => item.status === "pendiente" || item.status === "en_proceso"
+  ).length;
+  const successRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+  return { total, resolved, inProcess, successRate };
+}
+
+export function getPublicStatusBadgeClass(status: Complaint["status"]) {
+  if (status === "resuelta") {
+    return "bg-primary/5 text-primary";
+  }
+
+  if (status === "en_proceso" || status === "pendiente") {
+    return "bg-tertiary-fixed text-tertiary";
+  }
+
+  if (status === "rechazada") {
+    return "bg-error-container text-error";
+  }
+
+  return "bg-secondary-container text-secondary";
+}
+
 export function formatComplaintDateShort(value: string) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
