@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { communicationService } from "@/core/services/communication.service";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
@@ -21,9 +22,24 @@ import {
 } from "@/features/announcements/types";
 import {
   getAnnouncementCategory,
+  getAnnouncementArchivePayload,
+  getAnnouncementUnarchivePayload,
   isAnnouncementArchived,
 } from "@/features/announcements/utils/announcementPresentation";
+import { FetchError } from "@/lib/fetchClient";
 import { Information } from "@/types/models";
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof FetchError) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const visibilityOptions = [
   { value: "all", label: "Todos los anuncios" },
@@ -58,6 +74,8 @@ export function AnnouncementsManagement() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Information | null>(null);
+  const [archiveTargetId, setArchiveTargetId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 450);
@@ -148,6 +166,61 @@ export function AnnouncementsManagement() {
     setDeleteOpen(true);
   };
 
+  const archiveMutation = useMutation({
+    mutationFn: async (announcement: Information) => {
+      setArchiveTargetId(announcement.id);
+      await communicationService.updateInformation(announcement.id, getAnnouncementArchivePayload());
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast.success("Anuncio archivado", {
+        description: "El comunicado pasó al tablón de archivados.",
+      });
+    },
+    onError: (error) => {
+      toast.error("No se pudo archivar el anuncio", {
+        description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
+      });
+    },
+    onSettled: () => {
+      setArchiveTargetId(null);
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (announcement: AnnouncementWithCategory) => {
+      setArchiveTargetId(announcement.id);
+      await communicationService.updateInformation(
+        announcement.id,
+        getAnnouncementUnarchivePayload(announcement)
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["announcements"] });
+      toast.success("Anuncio restaurado", {
+        description: "El comunicado volvió al tablón activo.",
+      });
+    },
+    onError: (error) => {
+      toast.error("No se pudo restaurar el anuncio", {
+        description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
+      });
+    },
+    onSettled: () => {
+      setArchiveTargetId(null);
+    },
+  });
+
+  const handleArchive = (announcement: AnnouncementWithCategory) => {
+    archiveMutation.mutate(announcement);
+  };
+
+  const handleUnarchive = (announcement: AnnouncementWithCategory) => {
+    unarchiveMutation.mutate(announcement);
+  };
+
+  const isArchivePending = archiveMutation.isPending || unarchiveMutation.isPending;
+
   const isLoading = announcementsQuery.isLoading;
   const isError = announcementsQuery.isError;
   const hasFiltersApplied =
@@ -190,7 +263,9 @@ export function AnnouncementsManagement() {
       <section className="overflow-hidden rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
         <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-container-low)] px-6 py-5">
           <div>
-            <h2 className="text-base font-bold text-[var(--color-primary-dark)]">Tablón activo</h2>
+            <h2 className="text-base font-bold text-[var(--color-primary-dark)]">
+              {statusFilter === "archived" ? "Tablón archivado" : "Tablón activo"}
+            </h2>
             <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
               {isLoading
                 ? "Cargando anuncios..."
@@ -254,8 +329,12 @@ export function AnnouncementsManagement() {
                 <AnnouncementCard
                   key={announcement.id}
                   announcement={announcement}
+                  isArchived={isAnnouncementArchived(announcement)}
+                  isArchivePending={isArchivePending && archiveTargetId === announcement.id}
                   onEdit={openEditModal}
                   onDelete={openDeleteModal}
+                  onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
                 />
               ))}
 

@@ -16,6 +16,9 @@ export const ANNOUNCEMENT_CATEGORY_CONFIG: Record<
     selectedClassName: string;
     icon: string;
     iconClassName: string;
+    listAccentClassName: string;
+    listHeaderGradientClassName: string;
+    listHoverShadowClassName: string;
   }
 > = {
   urgent: {
@@ -26,6 +29,9 @@ export const ANNOUNCEMENT_CATEGORY_CONFIG: Record<
     selectedClassName: "border-[var(--color-error)] ring-2 ring-[var(--color-error)]/25 shadow-[0_12px_24px_rgba(186,26,26,0.12)]",
     icon: "campaign",
     iconClassName: "text-[var(--color-error)]",
+    listAccentClassName: "border-l-[var(--color-error)]",
+    listHeaderGradientClassName: "from-[var(--color-error-container)]/55 via-[var(--color-error-container)]/15 to-transparent",
+    listHoverShadowClassName: "hover:shadow-[0_20px_40px_rgba(186,26,26,0.1)]",
   },
   informative: {
     label: "Informativa",
@@ -35,6 +41,9 @@ export const ANNOUNCEMENT_CATEGORY_CONFIG: Record<
     selectedClassName: "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[0_12px_24px_rgba(0,55,176,0.12)]",
     icon: "info",
     iconClassName: "text-[var(--color-primary)]",
+    listAccentClassName: "border-l-[var(--color-primary)]",
+    listHeaderGradientClassName: "from-[var(--color-secondary-container)]/80 via-[var(--color-secondary-container)]/20 to-transparent",
+    listHoverShadowClassName: "hover:shadow-[0_20px_40px_rgba(0,55,176,0.08)]",
   },
   important: {
     label: "Importante",
@@ -44,8 +53,30 @@ export const ANNOUNCEMENT_CATEGORY_CONFIG: Record<
     selectedClassName: "border-[var(--color-on-primary-fixed-variant)] ring-2 ring-[var(--color-primary-fixed)]/40 shadow-[0_12px_24px_rgba(0,55,176,0.1)]",
     icon: "groups",
     iconClassName: "text-[var(--color-on-primary-fixed-variant)]",
+    listAccentClassName: "border-l-[var(--color-on-primary-fixed-variant)]",
+    listHeaderGradientClassName: "from-[var(--color-primary-fixed)]/70 via-[var(--color-primary-fixed)]/20 to-transparent",
+    listHoverShadowClassName: "hover:shadow-[0_20px_40px_rgba(0,55,176,0.1)]",
   },
 };
+
+export const ANNOUNCEMENT_VISIBILITY_DISPLAY = {
+  public: {
+    label: "Público",
+    badgeClassName: "bg-[var(--color-primary-selected)] text-[var(--color-primary)]",
+    cardClassName: "border-[var(--color-primary)]/12 bg-[var(--color-surface-container-lowest)]",
+    headerClassName: "bg-[var(--color-primary-selected)]/20",
+    icon: "public",
+    iconClassName: "text-[var(--color-primary)]",
+  },
+  internal: {
+    label: "Interno",
+    badgeClassName: "bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface-variant)]",
+    cardClassName: "border border-dashed border-[var(--color-outline-variant)]/55 bg-[var(--color-surface-container-low)]",
+    headerClassName: "bg-[var(--color-surface-container-high)]/70",
+    icon: "lock",
+    iconClassName: "text-[var(--color-on-surface-variant)]",
+  },
+} as const;
 
 export const ANNOUNCEMENT_VISIBILITY_OPTIONS = [
   {

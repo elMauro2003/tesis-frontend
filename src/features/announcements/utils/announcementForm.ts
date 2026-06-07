@@ -17,6 +17,8 @@ export const getTodayDateInputValue = () => {
   return today.toISOString().slice(0, 10);
 };
 
+export const getYesterdayDateInputValue = () => addDaysToDateInput(getTodayDateInputValue(), -1);
+
 export const toDateInputValue = (value?: string | null) => {
   if (!value) {
     return "";

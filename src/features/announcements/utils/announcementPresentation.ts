@@ -1,6 +1,11 @@
 import { Information } from "@/types/models";
 import { AnnouncementCategory } from "@/features/announcements/types";
-import { getCategoryFromDates } from "@/features/announcements/utils/announcementForm";
+import {
+  getCategoryFromDates,
+  getExpiryDateForCategory,
+  getTodayDateInputValue,
+  getYesterdayDateInputValue,
+} from "@/features/announcements/utils/announcementForm";
 
 const dateFormatter = new Intl.DateTimeFormat("es-ES", {
   day: "numeric",
@@ -41,6 +46,20 @@ export const getDaysUntilExpiry = (expiresDate?: string | null) => {
 export const isAnnouncementArchived = (announcement: Information) => {
   const daysUntilExpiry = getDaysUntilExpiry(announcement.expires_date);
   return daysUntilExpiry !== null && daysUntilExpiry < 0;
+};
+
+export const getAnnouncementArchivePayload = () => ({
+  expires_date: getYesterdayDateInputValue(),
+});
+
+export const getAnnouncementUnarchivePayload = (announcement: Information) => {
+  const category = getAnnouncementCategory(announcement);
+  const publishedDate = getTodayDateInputValue();
+
+  return {
+    published_date: publishedDate,
+    expires_date: getExpiryDateForCategory(category, publishedDate),
+  };
 };
 
 export const getAnnouncementCategory = (announcement: Information): AnnouncementCategory =>
