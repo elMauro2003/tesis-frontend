@@ -16,7 +16,6 @@ export type Feature =
   | "announcements_manage"
   | "admin"
   | "evaluations_self"
-  | "room_duties_self"
   | "portal_profile";
 
 const STUDENT_ROLE = ["estudiante"] as const satisfies readonly Role[];
@@ -100,9 +99,6 @@ const FEATURE_PERMISSIONS: Record<Feature, FeaturePermissions> = {
     delete: ["admin"],
   },
   evaluations_self: {
-    view: STUDENT_ROLE,
-  },
-  room_duties_self: {
     view: STUDENT_ROLE,
   },
   portal_profile: {
@@ -206,12 +202,6 @@ export const PORTAL_NAV_ITEMS: PortalNavItemConfig[] = [
     icon: "campaign",
     feature: "announcements",
   },
-  {
-    href: PORTAL_ROUTES.cuartelerias,
-    label: "Cuartelerías",
-    icon: "cleaning_services",
-    feature: "room_duties_self",
-  },
 ];
 
 const DEFAULT_ROUTE_PRIORITY: { roles: readonly Role[]; route: string }[] = [
@@ -227,7 +217,6 @@ export const PORTAL_ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/portal/quejas": STUDENT_ROLE,
   "/portal/quejas/nueva": STUDENT_ROLE,
   "/portal/anuncios": STUDENT_ROLE,
-  "/portal/cuartelerias": FEATURE_PERMISSIONS.room_duties_self.view!,
   "/portal/perfil": FEATURE_PERMISSIONS.portal_profile.view!,
 };
 

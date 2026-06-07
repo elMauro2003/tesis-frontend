@@ -21,14 +21,7 @@ export function PortalHeader() {
           <h1 className="font-headline text-base font-bold text-primary">UCLV Residencias</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="material-symbols-outlined text-on-surface-variant transition-colors hover:text-primary"
-            aria-label="Notificaciones"
-          >
-            notifications
-          </button>
+        <div className="flex items-center">
           <Link
             href={PORTAL_ROUTES.perfil}
             className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-primary-light text-xs font-bold text-primary ring-2 ring-primary/10"
