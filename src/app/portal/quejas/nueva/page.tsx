@@ -10,14 +10,14 @@ import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hoo
 export default function NuevaQuejaPage() {
   const router = useRouter();
   const dailyQuota = useDailyComplaintQuota();
-  const [open, setOpen] = useState(false);
+  const [canShowForm, setCanShowForm] = useState(false);
 
   useEffect(() => {
     if (dailyQuota.isLoading) {
       return;
     }
 
-    if (!dailyQuota.canCreate) {
+    if (dailyQuota.isReady && dailyQuota.remainingToday === 0) {
       toast.error("Límite diario alcanzado", {
         description: `Solo puede registrar ${dailyQuota.limit} quejas por día. Intente mañana.`,
       });
@@ -25,18 +25,16 @@ export default function NuevaQuejaPage() {
       return;
     }
 
-    setOpen(true);
-  }, [dailyQuota.canCreate, dailyQuota.isLoading, dailyQuota.limit, router]);
+    setCanShowForm(true);
+  }, [dailyQuota.isLoading, dailyQuota.isReady, dailyQuota.limit, dailyQuota.remainingToday, router]);
 
-  useEffect(() => {
-    if (!open && !dailyQuota.isLoading) {
-      router.replace(PORTAL_ROUTES.quejas);
-    }
-  }, [dailyQuota.isLoading, open, router]);
+  const handleClose = () => {
+    router.replace(PORTAL_ROUTES.quejas);
+  };
 
-  if (dailyQuota.isLoading || !open) {
+  if (dailyQuota.isLoading || !canShowForm) {
     return null;
   }
 
-  return <CreateComplaintSheet open={open} onClose={() => setOpen(false)} />;
+  return <CreateComplaintSheet open onClose={handleClose} />;
 }

@@ -14,7 +14,6 @@ import {
   getBuildingLabel,
   getComplaintBorderClass,
   getComplaintStatusTone,
-  getComplaintTitle,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
 import { cn } from "@/utils/helpers/shadcn/index";
 
@@ -42,12 +41,12 @@ export function MyComplaintCard({
   return (
     <article
       className={cn(
-        "rounded-xl border-l-4 bg-surface-container-lowest p-5 shadow-[var(--shadow-ambient)] transition-transform active:scale-[0.99]",
+        "min-w-0 overflow-hidden rounded-xl border-l-4 bg-surface-container-lowest p-5 shadow-[var(--shadow-ambient)] transition-transform active:scale-[0.99]",
         getComplaintBorderClass(complaint.status)
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-outline">
               {formatComplaintDate(complaint.date)}
@@ -56,9 +55,6 @@ export function MyComplaintCard({
               {typeLabel}
             </span>
           </div>
-          <h3 className="font-headline text-lg font-bold leading-tight text-on-surface">
-            {getComplaintTitle(complaint.description)}
-          </h3>
         </div>
 
         {isEditable ? (
@@ -90,26 +86,26 @@ export function MyComplaintCard({
         )}
       </div>
 
-      <div className="mb-3 flex items-center gap-2 text-sm text-on-surface-variant">
-        <span className="material-symbols-outlined text-sm text-outline">location_on</span>
-        <span>{getBuildingLabel(complaint)}</span>
+      <div className="mb-3 flex min-w-0 items-start gap-2 text-sm text-on-surface-variant">
+        <span className="material-symbols-outlined shrink-0 text-sm text-outline">location_on</span>
+        <span className="min-w-0 break-words">{getBuildingLabel(complaint)}</span>
       </div>
 
       <CollapsibleText
         text={complaint.description}
-        className="mb-4 text-sm leading-relaxed text-on-surface-variant"
-        maxCharsBeforeCollapse={180}
+        className="mb-4 font-headline text-base font-semibold leading-snug text-on-surface"
+        maxCharsBeforeCollapse={220}
       />
 
       {complaint.response ? (
-        <div className="mb-4 flex gap-3 rounded-lg bg-surface-container-low p-4">
+        <div className="mb-4 flex min-w-0 gap-3 rounded-lg bg-surface-container-low p-4">
           <span
             className="material-symbols-outlined shrink-0 text-primary"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             assignment_turned_in
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="mb-1 text-sm font-semibold text-on-secondary-fixed-variant">
               Respuesta de la administración
               {responseDateLabel ? (

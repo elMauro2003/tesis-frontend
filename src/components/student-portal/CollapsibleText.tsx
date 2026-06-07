@@ -24,14 +24,16 @@ export function CollapsibleText({
   }, [clampLines, maxCharsBeforeCollapse, text]);
 
   if (!shouldCollapse) {
-    return <p className={cn("whitespace-pre-line leading-relaxed", className)}>{text}</p>;
+    return (
+      <p className={cn("min-w-0 break-words whitespace-pre-line leading-relaxed", className)}>{text}</p>
+    );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <p
         className={cn(
-          "whitespace-pre-line leading-relaxed",
+          "min-w-0 break-words whitespace-pre-line leading-relaxed",
           !expanded && "line-clamp-3",
           className
         )}

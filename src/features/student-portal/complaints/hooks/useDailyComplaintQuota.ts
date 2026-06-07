@@ -37,13 +37,15 @@ export function useDailyComplaintQuota() {
 
   const todayCount = query.data ?? 0;
   const remainingToday = Math.max(0, DAILY_COMPLAINT_LIMIT - todayCount);
+  const isReady = query.isFetched && !query.isError;
 
   return {
     todayCount,
     remainingToday,
-    canCreate: !query.isError && remainingToday > 0,
+    canCreate: isReady && remainingToday > 0,
     limit: DAILY_COMPLAINT_LIMIT,
-    isLoading: query.isLoading,
+    isLoading: query.isLoading || !query.isFetched,
+    isReady,
     isError: query.isError,
     refetch: query.refetch,
   };

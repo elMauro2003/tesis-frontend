@@ -6,7 +6,6 @@ import {
   COMPLAINT_STATUS_LABELS,
   formatComplaintDate,
   getBuildingLabel,
-  getComplaintTitle,
   getPublicStatusBadgeClass,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
 import { cn } from "@/utils/helpers/shadcn/index";
@@ -21,11 +20,11 @@ export function PublicComplaintCard({ complaint }: PublicComplaintCardProps) {
   return (
     <article
       className={cn(
-        "group rounded-xl bg-surface-container-lowest p-6 shadow-[var(--shadow-ambient)] transition-all hover:-translate-y-1 md:p-8",
+        "group min-w-0 overflow-hidden rounded-xl bg-surface-container-lowest p-6 shadow-[var(--shadow-ambient)] transition-all hover:-translate-y-1 md:p-8",
         isInProcess && "border-l-4 border-tertiary"
       )}
     >
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <span
             className={cn(
@@ -38,18 +37,15 @@ export function PublicComplaintCard({ complaint }: PublicComplaintCardProps) {
           <span className="text-sm text-outline">{formatComplaintDate(complaint.date)}</span>
         </div>
 
-        <h3 className="font-headline text-xl font-bold text-on-surface transition-colors group-hover:text-primary md:text-2xl">
-          {getComplaintTitle(complaint.description)}
-        </h3>
-
-        <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-          <span className="material-symbols-outlined text-sm">location_on</span>
-          <span>{getBuildingLabel(complaint)}</span>
+        <div className="flex min-w-0 items-start gap-2 text-sm text-on-surface-variant">
+          <span className="material-symbols-outlined shrink-0 text-sm">location_on</span>
+          <span className="min-w-0 break-words">{getBuildingLabel(complaint)}</span>
         </div>
 
         <CollapsibleText
           text={complaint.description}
-          className="max-w-3xl text-sm text-on-surface-variant md:text-base"
+          className="font-headline text-lg font-bold leading-snug text-on-surface transition-colors group-hover:text-primary md:text-xl"
+          maxCharsBeforeCollapse={260}
         />
       </div>
 

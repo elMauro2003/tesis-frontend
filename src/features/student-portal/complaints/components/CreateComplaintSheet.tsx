@@ -49,6 +49,8 @@ export function CreateComplaintSheet({
   const isFollowUp = Boolean(followUpFrom) && !isEditing;
   const descriptionHintId = useId();
   const hasPrefilledBuilding = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const [date, setDate] = useState(getLocalTodayIsoDate);
   const [type, setType] = useState<"administrativa" | "educativa">("administrativa");
@@ -59,7 +61,8 @@ export function CreateComplaintSheet({
   const selectedType = COMPLAINT_TYPE_OPTIONS.find((option) => option.value === type);
   const buildingsLoading = buildingsQuery.isLoading;
   const buildingsUnavailable = !buildingsLoading && buildings.length === 0;
-  const canCreateToday = isEditing || dailyQuota.canCreate;
+  const canCreateToday =
+    isEditing || !dailyQuota.isReady || dailyQuota.remainingToday > 0;
 
   useEffect(() => {
     if (!open) {
@@ -72,7 +75,7 @@ export function CreateComplaintSheet({
         toast.error("No se puede editar", {
           description: "Solo puede modificar quejas pendientes o en proceso.",
         });
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -95,7 +98,7 @@ export function CreateComplaintSheet({
     setType("administrativa");
     setBuildingId("none");
     setDescription("");
-  }, [complaint, followUpFrom, onClose, open]);
+  }, [complaint, followUpFrom, open]);
 
   useEffect(() => {
     if (!open || isEditing || followUpFrom || hasPrefilledBuilding.current || buildings.length === 0) {
@@ -114,15 +117,23 @@ export function CreateComplaintSheet({
   }, [buildings, followUpFrom, isEditing, open, studentProfileQuery.data]);
 
   useEffect(() => {
-    if (!open || isEditing || dailyQuota.isLoading || dailyQuota.canCreate) {
+    if (!open || isEditing || followUpFrom) {
+      return;
+    }
+
+    if (!dailyQuota.isReady) {
+      return;
+    }
+
+    if (dailyQuota.remainingToday > 0) {
       return;
     }
 
     toast.error("Límite diario alcanzado", {
       description: `Solo puede registrar ${dailyQuota.limit} quejas por día. Intente mañana.`,
     });
-    onClose();
-  }, [dailyQuota.canCreate, dailyQuota.isLoading, dailyQuota.limit, isEditing, onClose, open]);
+    onCloseRef.current();
+  }, [dailyQuota.isReady, dailyQuota.limit, dailyQuota.remainingToday, followUpFrom, isEditing, open]);
 
   const descriptionLength = description.trim().length;
   const isDescriptionValid =
@@ -188,7 +199,7 @@ export function CreateComplaintSheet({
       return;
     }
 
-    if (!isEditing && !dailyQuota.canCreate) {
+    if (!isEditing && dailyQuota.isReady && dailyQuota.remainingToday === 0) {
       toast.error("Límite diario alcanzado", {
         description: `Solo puede registrar ${dailyQuota.limit} quejas por día. Intente mañana.`,
       });

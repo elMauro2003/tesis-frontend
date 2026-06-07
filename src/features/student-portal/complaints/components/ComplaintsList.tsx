@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
@@ -35,11 +35,11 @@ export function ComplaintsList() {
   const { remainingToday, canCreate, limit: dailyLimit, isLoading: isQuotaLoading, isError: isQuotaError, refetch: refetchQuota } =
     dailyQuota;
 
-  const closeSheet = () => {
+  const closeSheet = useCallback(() => {
     setSheetOpen(false);
     setEditingComplaint(null);
     setFollowUpComplaint(null);
-  };
+  }, []);
 
   const openEditSheet = (complaint: Complaint) => {
     if (!canEditComplaint(complaint.status)) {
