@@ -1,27 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
+import { DeleteComplaintModal } from "@/features/student-portal/complaints/components/DeleteComplaintModal";
 import { MyComplaintCard } from "@/features/student-portal/complaints/components/MyComplaintCard";
 import { VisibleComplaintsPanel } from "@/features/student-portal/complaints/components/VisibleComplaintsPanel";
 import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hooks/useDailyComplaintQuota";
 import { useMyComplaints } from "@/features/student-portal/complaints/hooks/useMyComplaints";
 import { usePublicComplaints } from "@/features/student-portal/complaints/hooks/usePublicComplaints";
-import { complaintService } from "@/core/services/complaint.service";
-import { FetchError } from "@/lib/fetchClient";
 import { Complaint } from "@/types/models";
 
 export function ComplaintsList() {
-  const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingComplaint, setEditingComplaint] = useState<Complaint | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingComplaint, setDeletingComplaint] = useState<Complaint | null>(null);
 
   const complaintsQuery = useMyComplaints();
   const publicComplaintsQuery = usePublicComplaints();
@@ -31,23 +28,6 @@ export function ComplaintsList() {
   const publicComplaints = publicComplaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
 
   const { remainingToday, canCreate, limit: dailyLimit, isLoading: isQuotaLoading } = dailyQuota;
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => complaintService.deleteComplaint(id),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["portal", "complaints"] }),
-        queryClient.invalidateQueries({ queryKey: ["portal", "complaints", "daily-quota"] }),
-      ]);
-      toast.success("Queja eliminada");
-      setDeletingId(null);
-    },
-    onError: (error) => {
-      const message = error instanceof FetchError ? error.message : "No se pudo eliminar la queja.";
-      toast.error("Error", { description: message });
-      setDeletingId(null);
-    },
-  });
 
   const openCreateSheet = () => {
     if (isQuotaLoading) {
@@ -70,14 +50,8 @@ export function ComplaintsList() {
     setCreateOpen(true);
   };
 
-  const handleDelete = (complaint: Complaint) => {
-    const confirmed = window.confirm("¿Desea eliminar esta queja?");
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(complaint.id);
-    deleteMutation.mutate(complaint.id);
+  const openDeleteModal = (complaint: Complaint) => {
+    setDeletingComplaint(complaint);
   };
 
   return (
@@ -131,9 +105,8 @@ export function ComplaintsList() {
                   key={complaint.id}
                   complaint={complaint}
                   onEdit={openEditSheet}
-                  onDelete={handleDelete}
+                  onDelete={openDeleteModal}
                   onFollowUp={() => openCreateSheet()}
-                  isDeleting={deletingId === complaint.id}
                 />
               ))}
 
@@ -161,6 +134,12 @@ export function ComplaintsList() {
           setEditingComplaint(null);
         }}
         complaint={editingComplaint}
+      />
+
+      <DeleteComplaintModal
+        complaint={deletingComplaint}
+        open={Boolean(deletingComplaint)}
+        onClose={() => setDeletingComplaint(null)}
       />
     </PortalPageShell>
   );
