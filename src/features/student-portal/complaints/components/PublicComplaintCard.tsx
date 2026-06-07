@@ -1,6 +1,7 @@
 "use client";
 
 import { Complaint } from "@/types/models";
+import { CollapsibleText } from "@/components/student-portal/CollapsibleText";
 import {
   COMPLAINT_STATUS_LABELS,
   formatComplaintDate,
@@ -46,9 +47,10 @@ export function PublicComplaintCard({ complaint }: PublicComplaintCardProps) {
           <span>{getBuildingLabel(complaint)}</span>
         </div>
 
-        <p className="max-w-3xl text-sm leading-relaxed text-on-surface-variant md:text-base">
-          {complaint.description}
-        </p>
+        <CollapsibleText
+          text={complaint.description}
+          className="max-w-3xl text-sm text-on-surface-variant md:text-base"
+        />
       </div>
 
       {complaint.response ? (
@@ -62,13 +64,13 @@ export function PublicComplaintCard({ complaint }: PublicComplaintCardProps) {
                 account_balance
               </span>
             </div>
-            <div className="w-full rounded-xl bg-surface-container-low p-5">
+            <div className="min-w-0 flex-1 rounded-xl bg-surface-container-low p-5">
               {isInProcess ? (
                 <div className="mb-3 flex items-center gap-3">
-                  <p className="text-sm font-bold uppercase tracking-wider text-primary">
+                  <p className="shrink-0 text-sm font-bold uppercase tracking-wider text-primary">
                     Estado de la solicitud
                   </p>
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-outline-variant/20">
+                  <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-outline-variant/20">
                     <div className="h-full w-[60%] rounded-full bg-tertiary" />
                   </div>
                 </div>
@@ -77,9 +79,11 @@ export function PublicComplaintCard({ complaint }: PublicComplaintCardProps) {
                   Respuesta administrativa
                 </p>
               )}
-              <p className="text-sm italic leading-relaxed text-on-surface-variant">
-                &ldquo;{complaint.response}&rdquo;
-              </p>
+              <CollapsibleText
+                text={complaint.response}
+                className="text-sm italic text-on-surface-variant"
+                maxCharsBeforeCollapse={220}
+              />
             </div>
           </div>
         </div>

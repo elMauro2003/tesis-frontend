@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PortalBackLink } from "@/components/student-portal/PortalBackLink";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
@@ -8,95 +8,87 @@ import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { PublicComplaintCard } from "@/features/student-portal/complaints/components/PublicComplaintCard";
-import { usePublicComplaints } from "@/features/student-portal/complaints/hooks/usePublicComplaints";
+import { useAllPublicComplaints } from "@/features/student-portal/complaints/hooks/useAllPublicComplaints";
 import {
   getBuildingLabel,
   getPublicComplaintsStats,
+  matchesComplaintSearch,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const PAGE_SIZE = 8;
 
 export function PublicComplaintsArchive() {
   const [search, setSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("all");
-  const publicComplaintsQuery = usePublicComplaints();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const publicComplaintsQuery = useAllPublicComplaints();
 
-  const allComplaints = publicComplaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
+  const allComplaints = publicComplaintsQuery.data?.results ?? [];
 
   const buildings = useMemo(() => {
     const values = new Set(allComplaints.map((complaint) => getBuildingLabel(complaint)));
-    return Array.from(values).sort();
+    return Array.from(values).sort((a, b) => a.localeCompare(b, "es"));
   }, [allComplaints]);
 
   const filteredComplaints = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
     return allComplaints.filter((complaint) => {
       const matchesBuilding =
         buildingFilter === "all" || getBuildingLabel(complaint) === buildingFilter;
-      const matchesSearch =
-        !query ||
-        complaint.description.toLowerCase().includes(query) ||
-        getBuildingLabel(complaint).toLowerCase().includes(query) ||
-        (complaint.response?.toLowerCase().includes(query) ?? false);
 
-      return matchesBuilding && matchesSearch;
+      return matchesBuilding && matchesComplaintSearch(complaint, search);
     });
   }, [allComplaints, buildingFilter, search]);
 
+  const displayedComplaints = filteredComplaints.slice(0, visibleCount);
+  const hasMoreToShow = visibleCount < filteredComplaints.length;
+  const hasFiltersApplied = search.trim().length > 0 || buildingFilter !== "all";
   const stats = getPublicComplaintsStats(allComplaints);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, buildingFilter]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setBuildingFilter("all");
+  };
 
   return (
     <PortalPageShell>
       <PortalBackLink href={PORTAL_ROUTES.quejas} label="Volver a quejas" />
 
-      <header className="mb-8">
-        <h1 className="mb-3 font-headline text-3xl font-bold tracking-tight text-primary md:text-4xl">
-          Quejas visibles
+      <header className="mb-6">
+        <h1 className="mb-3 font-headline text-3xl font-bold tracking-tight text-primary md:text-4xl md:text-5xl">
+          Archivo Público de Quejas
         </h1>
-        <p className="max-w-2xl text-base leading-relaxed text-on-surface-variant">
-          Consulta el historial de incidencias publicadas por la administración para fomentar la
-          transparencia y el bienestar colectivo en la residencia.
+        <p className="max-w-2xl text-base leading-relaxed text-on-surface-variant md:text-lg">
+          Consulta el historial de incidencias resueltas por la administración para fomentar la
+          transparencia y el bienestar colectivo en nuestra comunidad universitaria.
         </p>
       </header>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-[var(--shadow-ambient)]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <span className="material-symbols-outlined text-primary">task_alt</span>
-          </div>
-          <div>
-            <div className="font-headline text-2xl font-bold text-primary">{stats.resolved}</div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-              Resueltas
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-[var(--shadow-ambient)]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-tertiary/10">
-            <span className="material-symbols-outlined text-tertiary">hourglass_empty</span>
-          </div>
-          <div>
-            <div className="font-headline text-2xl font-bold text-tertiary">{stats.inProcess}</div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-              En proceso
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-[var(--shadow-ambient)]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10">
-            <span className="material-symbols-outlined text-secondary">trending_up</span>
-          </div>
-          <div>
-            <div className="font-headline text-2xl font-bold text-secondary">{stats.successRate}%</div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
-              Tasa de éxito
-            </div>
-          </div>
-        </div>
+      <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+        <span>
+          <strong className="font-headline text-base text-primary">{stats.resolved}</strong> resueltas
+        </span>
+        <span className="hidden text-outline-variant sm:inline">·</span>
+        <span>
+          <strong className="font-headline text-base text-tertiary">{stats.inProcess}</strong> en proceso
+        </span>
+        <span className="hidden text-outline-variant sm:inline">·</span>
+        <span>
+          <strong className="font-headline text-base text-secondary">{stats.successRate}%</strong> tasa de
+          éxito
+        </span>
+        <span className="w-full text-xs text-outline sm:ml-auto sm:w-auto">
+          {filteredComplaints.length} de {allComplaints.length} visibles
+        </span>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
             search
@@ -106,10 +98,11 @@ export function PublicComplaintsArchive() {
             placeholder="Buscar por palabras clave..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar quejas"
           />
         </div>
         <Select value={buildingFilter} onValueChange={setBuildingFilter}>
-          <SelectTrigger>
+          <SelectTrigger aria-label="Filtrar por edificio">
             <SelectValue placeholder="Filtrar por edificio" />
           </SelectTrigger>
           <SelectContent>
@@ -122,6 +115,25 @@ export function PublicComplaintsArchive() {
           </SelectContent>
         </Select>
       </div>
+
+      {hasFiltersApplied ? (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-outline">Filtros activos</span>
+          {search.trim() ? (
+            <span className="rounded-full bg-primary-fixed px-3 py-1 text-xs font-medium text-primary">
+              Búsqueda: {search.trim()}
+            </span>
+          ) : null}
+          {buildingFilter !== "all" ? (
+            <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant">
+              {buildingFilter}
+            </span>
+          ) : null}
+          <Button type="button" variant="neutral" size="sm" onClick={clearFilters}>
+            Limpiar filtros
+          </Button>
+        </div>
+      ) : null}
 
       {publicComplaintsQuery.isError ? (
         <PortalEmptyState
@@ -136,21 +148,21 @@ export function PublicComplaintsArchive() {
           icon="public"
           title="Sin quejas visibles"
           description={
-            search || buildingFilter !== "all"
+            hasFiltersApplied
               ? "Ninguna queja coincide con los filtros aplicados."
               : "Aún no hay quejas públicas publicadas por la administración."
           }
         />
       ) : (
         <section className="space-y-6">
-          {filteredComplaints.map((complaint) => (
+          {displayedComplaints.map((complaint) => (
             <PublicComplaintCard key={complaint.id} complaint={complaint} />
           ))}
 
           <PortalLoadMore
-            onClick={() => publicComplaintsQuery.fetchNextPage()}
-            isLoading={publicComplaintsQuery.isFetchingNextPage}
-            hasMore={Boolean(publicComplaintsQuery.hasNextPage)}
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+            isLoading={false}
+            hasMore={hasMoreToShow}
           />
         </section>
       )}

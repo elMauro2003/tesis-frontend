@@ -85,7 +85,35 @@ export const COMPLAINT_TYPE_OPTIONS = [
   },
 ];
 
-export function getPublicComplaintsStats(complaints: import("@/types/models").Complaint[]) {
+export function normalizeComplaintText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export function matchesComplaintSearch(complaint: Complaint, rawQuery: string) {
+  const query = normalizeComplaintText(rawQuery);
+  if (!query) {
+    return true;
+  }
+
+  const haystack = normalizeComplaintText(
+    [
+      complaint.description,
+      getBuildingLabel(complaint),
+      complaint.response ?? "",
+      COMPLAINT_STATUS_LABELS[complaint.status],
+      complaint.type,
+    ].join(" ")
+  );
+
+  const terms = query.split(/\s+/).filter(Boolean);
+  return terms.every((term) => haystack.includes(term));
+}
+
+export function getPublicComplaintsStats(complaints: Complaint[]) {
   const total = complaints.length;
   const resolved = complaints.filter((item) => item.status === "resuelta").length;
   const inProcess = complaints.filter(

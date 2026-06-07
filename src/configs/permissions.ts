@@ -15,8 +15,7 @@ export type Feature =
   | "announcements"
   | "announcements_manage"
   | "admin"
-  | "evaluations_self"
-  | "portal_profile";
+  | "evaluations_self";
 
 const STUDENT_ROLE = ["estudiante"] as const satisfies readonly Role[];
 
@@ -100,10 +99,6 @@ const FEATURE_PERMISSIONS: Record<Feature, FeaturePermissions> = {
   },
   evaluations_self: {
     view: STUDENT_ROLE,
-  },
-  portal_profile: {
-    view: STUDENT_ROLE,
-    update: STUDENT_ROLE,
   },
 };
 
@@ -218,7 +213,6 @@ export const PORTAL_ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/portal/quejas/nueva": STUDENT_ROLE,
   "/portal/quejas/visibles": STUDENT_ROLE,
   "/portal/anuncios": STUDENT_ROLE,
-  "/portal/perfil": FEATURE_PERMISSIONS.portal_profile.view!,
 };
 
 export const ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
