@@ -7,15 +7,24 @@ import {
   countTodayComplaints,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
 
-const QUOTA_PAGE_SIZE = 100;
+const PAGE_SIZE = 50;
 
 async function fetchTodayComplaintCount() {
-  const response = await complaintService.getMyComplaints({
-    page: 1,
-    page_size: QUOTA_PAGE_SIZE,
-  });
+  let page = 1;
+  let totalCount = 0;
 
-  return countTodayComplaints(response.results);
+  while (true) {
+    const response = await complaintService.getMyComplaints({ page, page_size: PAGE_SIZE });
+    totalCount += countTodayComplaints(response.results);
+
+    if (totalCount >= DAILY_COMPLAINT_LIMIT || !response.next) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return totalCount;
 }
 
 export function useDailyComplaintQuota() {
@@ -23,6 +32,7 @@ export function useDailyComplaintQuota() {
     queryKey: ["portal", "complaints", "daily-quota"],
     queryFn: fetchTodayComplaintCount,
     staleTime: 30_000,
+    retry: 1,
   });
 
   const todayCount = query.data ?? 0;
@@ -31,7 +41,7 @@ export function useDailyComplaintQuota() {
   return {
     todayCount,
     remainingToday,
-    canCreate: remainingToday > 0,
+    canCreate: !query.isError && remainingToday > 0,
     limit: DAILY_COMPLAINT_LIMIT,
     isLoading: query.isLoading,
     isError: query.isError,

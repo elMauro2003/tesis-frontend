@@ -186,15 +186,30 @@ export interface Evaluation {
 export interface Complaint {
   id: number;
   student: Student | number;
+  student_name?: string;
   date: string;
   type: string;
+  type_display?: string;
   status: 'pendiente' | 'en_proceso' | 'resuelta' | 'rechazada';
+  status_display?: string;
   description: string;
-  response?: string;
-  is_public: boolean;
+  response?: string | null;
+  response_date?: string | null;
+  /** Campo canónico según API */
+  visibility?: boolean;
+  /** Alias legacy usado en algunas respuestas */
+  is_public?: boolean;
   building?: number | null;
   building_name?: string;
   created_at?: string;
+  updated_at?: string;
+}
+
+export interface ComplaintWritePayload {
+  date?: string;
+  type: 'administrativa' | 'educativa';
+  description: string;
+  building?: number | null;
 }
 
 export interface RoomAssignment {

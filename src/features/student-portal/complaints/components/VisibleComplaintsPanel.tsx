@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
+import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { Complaint } from "@/types/models";
 import {
   COMPLAINT_STATUS_LABELS,
@@ -12,9 +13,16 @@ import {
 interface VisibleComplaintsPanelProps {
   complaints: Complaint[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
-export function VisibleComplaintsPanel({ complaints, isLoading = false }: VisibleComplaintsPanelProps) {
+export function VisibleComplaintsPanel({
+  complaints,
+  isLoading = false,
+  isError = false,
+  onRetry,
+}: VisibleComplaintsPanelProps) {
   const preview = complaints.slice(0, 3);
 
   return (
@@ -33,6 +41,13 @@ export function VisibleComplaintsPanel({ complaints, isLoading = false }: Visibl
             </div>
           ))}
         </div>
+      ) : isError ? (
+        <PortalEmptyState
+          icon="error"
+          title="No se pudieron cargar"
+          description="Las quejas visibles no están disponibles en este momento."
+          onRetry={onRetry}
+        />
       ) : preview.length === 0 ? (
         <p className="text-sm text-on-surface-variant">
           No hay quejas visibles publicadas por la administración.

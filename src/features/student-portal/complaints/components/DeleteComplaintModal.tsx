@@ -9,6 +9,7 @@ import { complaintService } from "@/core/services/complaint.service";
 import {
   COMPLAINT_STATUS_LABELS,
   COMPLAINT_TYPE_LABELS,
+  canDeleteComplaint,
   formatComplaintDate,
   getBuildingLabel,
   getComplaintTitle,
@@ -41,6 +42,10 @@ export function DeleteComplaintModal({ complaint, open, onClose }: DeleteComplai
     mutationFn: async () => {
       if (!complaint) {
         return;
+      }
+
+      if (!canDeleteComplaint(complaint.status)) {
+        throw new Error("Solo puede eliminar quejas pendientes o en proceso.");
       }
 
       await complaintService.deleteComplaint(complaint.id);
@@ -165,7 +170,7 @@ export function DeleteComplaintModal({ complaint, open, onClose }: DeleteComplai
             type="button"
             variant="destructive"
             onClick={() => deleteMutation.mutate()}
-            disabled={deleteMutation.isPending}
+            disabled={deleteMutation.isPending || (complaint ? !canDeleteComplaint(complaint.status) : true)}
             className="w-full sm:w-auto"
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar queja"}

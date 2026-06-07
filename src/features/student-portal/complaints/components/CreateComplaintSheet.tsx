@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useId, useState } from "react";
+import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -11,13 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useComplaintBuildings } from "@/features/student-portal/complaints/hooks/useComplaintBuildings";
 import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hooks/useDailyComplaintQuota";
+import { usePortalStudentProfile } from "@/features/student-portal/complaints/hooks/usePortalStudentProfile";
 import {
   COMPLAINT_TYPE_OPTIONS,
+  buildFollowUpDescription,
+  canEditComplaint,
+  findBuildingOptionId,
   getLocalTodayIsoDate,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
 import { complaintService } from "@/core/services/complaint.service";
 import { FetchError } from "@/lib/fetchClient";
-import { Complaint } from "@/types/models";
+import { Complaint, ComplaintWritePayload } from "@/types/models";
 import { cn } from "@/utils/helpers/shadcn/index";
 
 const MIN_DESCRIPTION_LENGTH = 15;
@@ -28,15 +32,23 @@ interface CreateComplaintSheetProps {
   open: boolean;
   onClose: () => void;
   complaint?: Complaint | null;
+  followUpFrom?: Complaint | null;
 }
 
-export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplaintSheetProps) {
+export function CreateComplaintSheet({
+  open,
+  onClose,
+  complaint,
+  followUpFrom = null,
+}: CreateComplaintSheetProps) {
   const queryClient = useQueryClient();
   const buildingsQuery = useComplaintBuildings(open);
+  const studentProfileQuery = usePortalStudentProfile(open);
   const dailyQuota = useDailyComplaintQuota();
   const isEditing = Boolean(complaint);
+  const isFollowUp = Boolean(followUpFrom) && !isEditing;
   const descriptionHintId = useId();
-  const canCreateToday = isEditing || dailyQuota.canCreate;
+  const hasPrefilledBuilding = useRef(false);
 
   const [date, setDate] = useState(getLocalTodayIsoDate);
   const [type, setType] = useState<"administrativa" | "educativa">("administrativa");
@@ -47,13 +59,23 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
   const selectedType = COMPLAINT_TYPE_OPTIONS.find((option) => option.value === type);
   const buildingsLoading = buildingsQuery.isLoading;
   const buildingsUnavailable = !buildingsLoading && buildings.length === 0;
+  const canCreateToday = isEditing || dailyQuota.canCreate;
 
   useEffect(() => {
     if (!open) {
+      hasPrefilledBuilding.current = false;
       return;
     }
 
     if (complaint) {
+      if (!canEditComplaint(complaint.status)) {
+        toast.error("No se puede editar", {
+          description: "Solo puede modificar quejas pendientes o en proceso.",
+        });
+        onClose();
+        return;
+      }
+
       setDate(complaint.date);
       setType((complaint.type as "administrativa" | "educativa") || "administrativa");
       setBuildingId(complaint.building ? String(complaint.building) : "none");
@@ -61,11 +83,35 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
       return;
     }
 
+    if (followUpFrom) {
+      setDate(getLocalTodayIsoDate());
+      setType((followUpFrom.type as "administrativa" | "educativa") || "administrativa");
+      setBuildingId(followUpFrom.building ? String(followUpFrom.building) : "none");
+      setDescription(buildFollowUpDescription(followUpFrom));
+      return;
+    }
+
     setDate(getLocalTodayIsoDate());
     setType("administrativa");
     setBuildingId("none");
     setDescription("");
-  }, [complaint, open]);
+  }, [complaint, followUpFrom, onClose, open]);
+
+  useEffect(() => {
+    if (!open || isEditing || followUpFrom || hasPrefilledBuilding.current || buildings.length === 0) {
+      return;
+    }
+
+    const studentBuilding =
+      studentProfileQuery.data?.current_room_info?.building ??
+      studentProfileQuery.data?.current_room?.building;
+
+    const defaultBuildingId = findBuildingOptionId(buildings, studentBuilding);
+    if (defaultBuildingId) {
+      setBuildingId(String(defaultBuildingId));
+      hasPrefilledBuilding.current = true;
+    }
+  }, [buildings, followUpFrom, isEditing, open, studentProfileQuery.data]);
 
   useEffect(() => {
     if (!open || isEditing || dailyQuota.isLoading || dailyQuota.canCreate) {
@@ -84,12 +130,7 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload: {
-        date: string;
-        type: "administrativa" | "educativa";
-        description: string;
-        building?: number;
-      } = {
+      const payload: ComplaintWritePayload = {
         date,
         type,
         description: description.trim(),
@@ -97,6 +138,8 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
 
       if (buildingId !== "none") {
         payload.building = Number(buildingId);
+      } else if (complaint?.building) {
+        payload.building = null;
       }
 
       if (complaint) {
@@ -131,6 +174,13 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
 
+    if (isEditing && complaint && !canEditComplaint(complaint.status)) {
+      toast.error("No se puede editar", {
+        description: "Solo puede modificar quejas pendientes o en proceso.",
+      });
+      return;
+    }
+
     if (!isDescriptionValid) {
       toast.error("Descripción incompleta", {
         description: `Escriba al menos ${MIN_DESCRIPTION_LENGTH} caracteres describiendo el incidente.`,
@@ -148,17 +198,21 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
     saveMutation.mutate();
   };
 
+  const sheetTitle = isEditing ? "Editar queja" : isFollowUp ? "Añadir reclamación" : "Nueva queja";
+
+  const sheetSubtitle = isEditing
+    ? "Actualice los detalles de su solicitud."
+    : isFollowUp
+      ? `Nueva solicitud vinculada a la queja #${followUpFrom?.id}. Cupo hoy: ${dailyQuota.remainingToday}/${dailyQuota.limit}.`
+      : `Describa el incidente. Le quedan ${dailyQuota.remainingToday} de ${dailyQuota.limit} quejas hoy.`;
+
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
       scrollable
-      title={isEditing ? "Editar queja" : "Nueva queja"}
-      subtitle={
-        isEditing
-          ? "Actualice los detalles de su solicitud."
-          : `Describa el incidente. Le quedan ${dailyQuota.remainingToday} de ${dailyQuota.limit} quejas hoy.`
-      }
+      title={sheetTitle}
+      subtitle={sheetSubtitle}
       maxWidthClassName="max-w-lg"
       footer={
         <div className="flex gap-2">
@@ -175,16 +229,19 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
             <span className="material-symbols-outlined text-lg">
               {isEditing ? "save" : "send"}
             </span>
-            {saveMutation.isPending
-              ? "Guardando..."
-              : isEditing
-                ? "Guardar"
-                : "Enviar"}
+            {saveMutation.isPending ? "Guardando..." : isEditing ? "Guardar" : "Enviar"}
           </Button>
         </div>
       }
     >
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 p-4">
+        {isFollowUp ? (
+          <div className="rounded-xl bg-primary-fixed/30 px-3 py-2 text-xs leading-relaxed text-on-primary-fixed">
+            Esta reclamación se registrará como una nueva queja. La administración verá su seguimiento por
+            separado.
+          </div>
+        ) : null}
+
         <section className="space-y-2">
           <Label className="text-label-caps text-[10px] font-bold text-on-surface-variant">
             Tipo de queja
@@ -280,14 +337,14 @@ export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplai
                     }
                   />
                 </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin especificar</SelectItem>
-                {buildings.map((building) => (
-                  <SelectItem key={building.id} value={String(building.id)}>
-                    {building.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+                <SelectContent>
+                  <SelectItem value="none">Sin especificar</SelectItem>
+                  {buildings.map((building) => (
+                    <SelectItem key={building.id} value={String(building.id)}>
+                      {building.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             {buildingsUnavailable ? (

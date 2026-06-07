@@ -1,5 +1,5 @@
 import { fetchClient } from "@/lib/fetchClient";
-import { Complaint, PaginatedResponse } from "@/types/models";
+import { Complaint, ComplaintWritePayload, PaginatedResponse } from "@/types/models";
 
 export interface GetComplaintsFilters {
   status?: string;
@@ -13,10 +13,27 @@ export interface GetComplaintsFilters {
   page_size?: number;
 }
 
+function normalizeComplaint(raw: Complaint & { is_public?: boolean; visibility?: boolean }): Complaint {
+  const visibility = raw.visibility ?? raw.is_public ?? false;
+
+  return {
+    ...raw,
+    visibility,
+    is_public: visibility,
+  };
+}
+
+function normalizePage(response: PaginatedResponse<Complaint>): PaginatedResponse<Complaint> {
+  return {
+    ...response,
+    results: response.results.map(normalizeComplaint),
+  };
+}
+
 export const complaintService = {
-  getComplaints: (filters: GetComplaintsFilters = {}): Promise<PaginatedResponse<Complaint>> => {
+  getComplaints: async (filters: GetComplaintsFilters = {}): Promise<PaginatedResponse<Complaint>> => {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {
         params.append(key, String(value));
@@ -26,27 +43,16 @@ export const complaintService = {
     const queryString = params.toString();
     const endpoint = `/api/v1/quejas/${queryString ? `?${queryString}` : ""}`;
 
-    return fetchClient<PaginatedResponse<Complaint>>(endpoint);
+    const response = await fetchClient<PaginatedResponse<Complaint>>(endpoint);
+    return normalizePage(response);
   },
 
-  getComplaintById: (id: number): Promise<Complaint> => {
-    return fetchClient<Complaint>(`/api/v1/quejas/${id}/`);
+  getComplaintById: async (id: number): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/`);
+    return normalizeComplaint(response);
   },
 
-  getMyComplaints: (filters: Pick<GetComplaintsFilters, "page" | "page_size"> = {}): Promise<PaginatedResponse<Complaint>> => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        params.append(key, String(value));
-      }
-    });
-    const queryString = params.toString();
-    return fetchClient<PaginatedResponse<Complaint>>(
-      `/api/v1/quejas/mis-quejas/${queryString ? `?${queryString}` : ""}`
-    );
-  },
-
-  getPublicComplaints: (
+  getMyComplaints: async (
     filters: Pick<GetComplaintsFilters, "page" | "page_size"> = {}
   ): Promise<PaginatedResponse<Complaint>> => {
     const params = new URLSearchParams();
@@ -56,48 +62,70 @@ export const complaintService = {
       }
     });
     const queryString = params.toString();
-    return fetchClient<PaginatedResponse<Complaint>>(
-      `/api/v1/quejas/visibles/${queryString ? `?${queryString}` : ""}`
+    const response = await fetchClient<PaginatedResponse<Complaint>>(
+      `/api/v1/quejas/mis-quejas/${queryString ? `?${queryString}` : ""}`
     );
+    return normalizePage(response);
   },
 
-  createComplaint: (data: Partial<Complaint>): Promise<Complaint> => {
-    return fetchClient<Complaint>("/api/v1/quejas/", {
+  getPublicComplaints: async (
+    filters: Pick<GetComplaintsFilters, "page" | "page_size"> = {}
+  ): Promise<PaginatedResponse<Complaint>> => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    const response = await fetchClient<PaginatedResponse<Complaint>>(
+      `/api/v1/quejas/visibles/${queryString ? `?${queryString}` : ""}`
+    );
+    return normalizePage(response);
+  },
+
+  createComplaint: async (data: ComplaintWritePayload): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>("/api/v1/quejas/", {
       method: "POST",
       body: JSON.stringify(data),
     });
+    return normalizeComplaint(response);
   },
 
-  updateComplaint: (id: number, data: Partial<Complaint>): Promise<Complaint> => {
-    return fetchClient<Complaint>(`/api/v1/quejas/${id}/`, {
+  updateComplaint: async (id: number, data: ComplaintWritePayload): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
+    return normalizeComplaint(response);
   },
 
   deleteComplaint: (id: number): Promise<void> => {
     return fetchClient<void>(`/api/v1/quejas/${id}/`, { method: "DELETE" });
   },
 
-  updateComplaintStatus: (id: number, status: string): Promise<Complaint> => {
-    return fetchClient<Complaint>(`/api/v1/quejas/${id}/estado/`, {
+  updateComplaintStatus: async (id: number, status: string): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/estado/`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
+    return normalizeComplaint(response);
   },
 
-  respondToComplaint: (id: number, response: string): Promise<Complaint> => {
-    return fetchClient<Complaint>(`/api/v1/quejas/${id}/respuesta/`, {
+  respondToComplaint: async (id: number, responseText: string): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/respuesta/`, {
       method: "POST",
-      body: JSON.stringify({ response }),
+      body: JSON.stringify({ response: responseText }),
     });
+    return normalizeComplaint(response);
   },
 
-  updateComplaintVisibility: (id: number, is_public: boolean): Promise<Complaint> => {
-    return fetchClient<Complaint>(`/api/v1/quejas/${id}/visibilidad/`, {
+  updateComplaintVisibility: async (id: number, visibility: boolean): Promise<Complaint> => {
+    const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/visibilidad/`, {
       method: "PATCH",
-      body: JSON.stringify({ is_public }),
+      body: JSON.stringify({ visibility }),
     });
+    return normalizeComplaint(response);
   },
 
   getAllPublicComplaints: async (): Promise<PaginatedResponse<Complaint>> => {
@@ -121,7 +149,9 @@ export const complaintService = {
     };
   },
 
-  getAllComplaints: async (filters: Omit<GetComplaintsFilters, "page"> = {}): Promise<PaginatedResponse<Complaint>> => {
+  getAllComplaints: async (
+    filters: Omit<GetComplaintsFilters, "page"> = {}
+  ): Promise<PaginatedResponse<Complaint>> => {
     const pageSize = 100;
     const firstPage = await complaintService.getComplaints({ ...filters, page: 1, page_size: pageSize });
 

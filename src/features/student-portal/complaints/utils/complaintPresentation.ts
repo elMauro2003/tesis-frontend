@@ -90,6 +90,53 @@ export function canEditComplaint(status: Complaint["status"]) {
   return status === "pendiente" || status === "en_proceso";
 }
 
+export function canDeleteComplaint(status: Complaint["status"]) {
+  return canEditComplaint(status);
+}
+
+export function formatComplaintDateTime(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+export function buildFollowUpDescription(complaint: Complaint) {
+  const summary = getComplaintTitle(complaint.description);
+  return `Seguimiento a queja #${complaint.id} (“${summary}”): `;
+}
+
+export function findBuildingOptionId(
+  options: Array<{ id: number; name: string; label: string }>,
+  buildingName?: string | null
+) {
+  if (!buildingName?.trim()) {
+    return null;
+  }
+
+  const normalized = normalizeComplaintText(buildingName);
+
+  const match = options.find((option) => {
+    const name = normalizeComplaintText(option.name);
+    const label = normalizeComplaintText(option.label);
+    return name === normalized || label.includes(normalized) || normalized.includes(name);
+  });
+
+  return match?.id ?? null;
+}
+
 export const COMPLAINT_TYPE_OPTIONS = [
   {
     value: "administrativa" as const,
