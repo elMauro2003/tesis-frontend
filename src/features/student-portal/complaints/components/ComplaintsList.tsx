@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
@@ -10,12 +10,9 @@ import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
 import { MyComplaintCard } from "@/features/student-portal/complaints/components/MyComplaintCard";
 import { VisibleComplaintsPanel } from "@/features/student-portal/complaints/components/VisibleComplaintsPanel";
+import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hooks/useDailyComplaintQuota";
 import { useMyComplaints } from "@/features/student-portal/complaints/hooks/useMyComplaints";
 import { usePublicComplaints } from "@/features/student-portal/complaints/hooks/usePublicComplaints";
-import {
-  DAILY_COMPLAINT_LIMIT,
-  countTodayComplaints,
-} from "@/features/student-portal/complaints/utils/complaintPresentation";
 import { complaintService } from "@/core/services/complaint.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Complaint } from "@/types/models";
@@ -28,18 +25,20 @@ export function ComplaintsList() {
 
   const complaintsQuery = useMyComplaints();
   const publicComplaintsQuery = usePublicComplaints();
+  const dailyQuota = useDailyComplaintQuota();
 
   const complaints = complaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
   const publicComplaints = publicComplaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
 
-  const todayCount = useMemo(() => countTodayComplaints(complaints), [complaints]);
-  const remainingToday = Math.max(0, DAILY_COMPLAINT_LIMIT - todayCount);
-  const canCreateToday = remainingToday > 0;
+  const { remainingToday, canCreate, limit: dailyLimit, isLoading: isQuotaLoading } = dailyQuota;
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => complaintService.deleteComplaint(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["portal", "complaints"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["portal", "complaints"] }),
+        queryClient.invalidateQueries({ queryKey: ["portal", "complaints", "daily-quota"] }),
+      ]);
       toast.success("Queja eliminada");
       setDeletingId(null);
     },
@@ -51,6 +50,17 @@ export function ComplaintsList() {
   });
 
   const openCreateSheet = () => {
+    if (isQuotaLoading) {
+      return;
+    }
+
+    if (!canCreate) {
+      toast.error("Límite diario alcanzado", {
+        description: `Solo puede registrar ${dailyLimit} quejas por día. Intente mañana.`,
+      });
+      return;
+    }
+
     setEditingComplaint(null);
     setCreateOpen(true);
   };
@@ -76,14 +86,16 @@ export function ComplaintsList() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <h1 className="font-headline text-3xl font-extrabold tracking-tight text-primary">Quejas</h1>
           <span className="self-start rounded-full bg-primary-fixed px-4 py-2 text-xs font-bold text-on-primary-fixed">
-            Quejas disponibles hoy: {remainingToday} de {DAILY_COMPLAINT_LIMIT}
+            {isQuotaLoading
+              ? "Comprobando cupo diario..."
+              : `Quejas disponibles hoy: ${remainingToday} de ${dailyLimit}`}
           </span>
         </div>
 
         <button
           type="button"
           onClick={openCreateSheet}
-          disabled={!canCreateToday}
+          disabled={isQuotaLoading || !canCreate}
           className="bg-primary-gradient flex items-center justify-center gap-2 self-stretch rounded-lg px-6 py-3 font-headline text-sm font-bold text-on-primary shadow-[var(--shadow-primary-btn)] transition-transform hover:scale-[0.98] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
         >
           <span className="material-symbols-outlined">add</span>
@@ -120,7 +132,7 @@ export function ComplaintsList() {
                   complaint={complaint}
                   onEdit={openEditSheet}
                   onDelete={handleDelete}
-                  onFollowUp={openCreateSheet}
+                  onFollowUp={() => openCreateSheet()}
                   isDeleting={deletingId === complaint.id}
                 />
               ))}

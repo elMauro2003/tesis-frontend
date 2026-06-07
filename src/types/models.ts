@@ -194,6 +194,7 @@ export interface Complaint {
   is_public: boolean;
   building?: number | null;
   building_name?: string;
+  created_at?: string;
 }
 
 export interface RoomAssignment {

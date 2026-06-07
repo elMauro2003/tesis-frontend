@@ -2,6 +2,14 @@ import { Complaint } from "@/types/models";
 
 export const DAILY_COMPLAINT_LIMIT = 3;
 
+export function getLocalTodayIsoDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export const COMPLAINT_STATUS_LABELS: Record<Complaint["status"], string> = {
   pendiente: "Pendiente",
   en_proceso: "En proceso",
@@ -53,17 +61,29 @@ export function getBuildingLabel(complaint: Complaint) {
   return complaint.building_name?.trim() || "Residencia";
 }
 
+export function isComplaintSubmittedToday(complaint: Complaint, today = getLocalTodayIsoDate()) {
+  if (complaint.created_at?.startsWith(today)) {
+    return true;
+  }
+
+  // Fallback cuando el backend no envía created_at (p. ej. registros antiguos).
+  return !complaint.created_at && complaint.date === today;
+}
+
 export function countTodayComplaints(complaints: Complaint[]) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalTodayIsoDate();
+  return complaints.filter((complaint) => isComplaintSubmittedToday(complaint, today)).length;
+}
 
-  return complaints.filter((complaint) => {
-    if (complaint.date === today) {
-      return true;
-    }
+export function getDailyComplaintQuota(complaints: Complaint[]) {
+  const todayCount = countTodayComplaints(complaints);
+  const remainingToday = Math.max(0, DAILY_COMPLAINT_LIMIT - todayCount);
 
-    const createdAt = (complaint as { created_at?: string }).created_at;
-    return createdAt?.startsWith(today) ?? false;
-  }).length;
+  return {
+    todayCount,
+    remainingToday,
+    canCreate: remainingToday > 0,
+  };
 }
 
 export function canEditComplaint(status: Complaint["status"]) {

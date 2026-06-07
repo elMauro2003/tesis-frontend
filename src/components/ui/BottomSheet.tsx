@@ -12,6 +12,8 @@ interface BottomSheetProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidthClassName?: string;
+  /** Formularios largos: altura máxima, scroll interno y pie fijo. */
+  scrollable?: boolean;
 }
 
 export function BottomSheet({
@@ -22,6 +24,7 @@ export function BottomSheet({
   children,
   footer,
   maxWidthClassName = "max-w-md",
+  scrollable = false,
 }: BottomSheetProps) {
   const [mounted, setMounted] = useState(open);
   const [presented, setPresented] = useState(false);
@@ -50,22 +53,40 @@ export function BottomSheet({
     : maxWidthClassName;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => {
-      if (!nextOpen) onClose();
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+    >
       <DialogContent
         className={cn(
           "transition-all duration-300 ease-out",
           presented ? "dialog-sheet-enter" : "dialog-sheet-exit",
           "w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] sm:w-full",
           maxWidthClassName,
-          smMaxWidthClass
+          smMaxWidthClass,
+          scrollable &&
+            "flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col"
         )}
       >
         {(title || subtitle) ? (
-          <header className="bg-[var(--color-surface-container-lowest)] p-6">
-            {title ? <DialogTitle className="text-xl font-headline font-extrabold text-[var(--color-primary-dark)]">{title}</DialogTitle> : null}
-            {subtitle ? <DialogDescription className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{subtitle}</DialogDescription> : null}
+          <header
+            className={cn(
+              "shrink-0 bg-[var(--color-surface-container-lowest)]",
+              scrollable ? "border-b border-outline-variant/10 px-4 pb-3 pt-4" : "p-6"
+            )}
+          >
+            {title ? (
+              <DialogTitle className="text-lg font-headline font-extrabold text-[var(--color-primary-dark)] sm:text-xl">
+                {title}
+              </DialogTitle>
+            ) : null}
+            {subtitle ? (
+              <DialogDescription className="mt-0.5 text-xs leading-snug text-[var(--color-on-surface-variant)] sm:text-sm">
+                {subtitle}
+              </DialogDescription>
+            ) : null}
           </header>
         ) : (
           <>
@@ -74,9 +95,33 @@ export function BottomSheet({
           </>
         )}
 
-        <div className="w-full min-w-0">{children}</div>
+        <div
+          className={cn(
+            "w-full min-w-0",
+            scrollable && "flex min-h-0 flex-1 flex-col overflow-hidden"
+          )}
+        >
+          <div
+            className={cn(
+              scrollable && "min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+            )}
+          >
+            {children}
+          </div>
+        </div>
 
-        {footer ? <footer>{footer}</footer> : null}
+        {footer ? (
+          <footer
+            className={cn(
+              "shrink-0 bg-[var(--color-surface-container-lowest)]",
+              scrollable
+                ? "border-t border-outline-variant/15 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+                : undefined
+            )}
+          >
+            {footer}
+          </footer>
+        ) : null}
 
         <DialogClose asChild>
           <button type="button" aria-label="Cerrar" className="sr-only" />
