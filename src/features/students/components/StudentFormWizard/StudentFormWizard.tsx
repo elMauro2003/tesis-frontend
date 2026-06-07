@@ -16,6 +16,7 @@ import {
   infrastructureService,
 } from "@/core/services/infrastructure.service";
 import { cubaProvinces, getMunicipalitiesByProvince } from "@/constants/cubaGeography";
+import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 import { FetchError } from "@/lib/fetchClient";
 import { 
   StudentCreateRequest, 
@@ -1015,7 +1016,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         ...(roomAssigned ? [queryClient.invalidateQueries({ queryKey: ["active-assignments"] })] : []),
       ]);
 
-      router.push("/dashboard");
+      router.push(DASHBOARD_ROUTES.estudiantes);
     } catch (error) {
       console.error("Error submitting student", error);
 
@@ -1467,7 +1468,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
         <div className="p-6 bg-[var(--color-surface-container-lowest)] border-t border-[var(--color-outline-variant)]/20 flex items-center justify-between mt-auto">
           <Button 
             variant="ghost" 
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push(DASHBOARD_ROUTES.estudiantes)}
             className="text-slate-500 hover:text-error hover:bg-error/10"
             type="button"
           >

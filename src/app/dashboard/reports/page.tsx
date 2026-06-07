@@ -1,9 +1,6 @@
-import { ReportsManagement } from "@/features/reports/components/ReportsManagement";
+import { redirect } from "next/navigation";
+import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 
-export default function ReportsPage() {
-  return (
-    <div className="w-full px-8 py-4">
-      <ReportsManagement />
-    </div>
-  );
+export default function ReportsLegacyRedirectPage() {
+  redirect(DASHBOARD_ROUTES.reportes);
 }

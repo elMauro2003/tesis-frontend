@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePathname, useRouter } from "next/navigation";
 import { Role } from "@/types/auth";
+import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 import { canAccessRoute } from "@/configs/routes";
 
 interface RoleGuardProps {
@@ -38,7 +39,7 @@ export const RoleGuard = ({ children, allowedRoles }: RoleGuardProps) => {
 
     if (!hasAccess) {
       // Si no tiene acceso, lo rebotamos al dashboard genérico o devolvemos 403
-      router.replace("/dashboard?error=unauthorized");
+      router.replace(`${DASHBOARD_ROUTES.home}?error=unauthorized`);
     }
   }, [user, isAuthenticated, isLoading, pathname, allowedRoles, router]);
 

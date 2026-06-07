@@ -1,3 +1,4 @@
+import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 import { Role } from "@/types/auth";
 
 /**
@@ -11,7 +12,7 @@ export const PUBLIC_ROUTES = [
 /**
  * Ruta por defecto a la que se redirige tras un login exitoso.
  */
-export const DEFAULT_LOGIN_REDIRECT = "/dashboard/reports";
+export const DEFAULT_LOGIN_REDIRECT = DASHBOARD_ROUTES.home;
 
 /**
  * Mapeo estricto de rutas base con los roles permitidos.
