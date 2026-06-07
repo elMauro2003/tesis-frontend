@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { communicationService } from "@/core/services/communication.service";
+import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
@@ -14,7 +15,6 @@ import { AnnouncementFormModal } from "@/features/announcements/components/Annou
 import { DeleteAnnouncementModal } from "@/features/announcements/components/DeleteAnnouncementModal";
 import { DEFAULT_ANNOUNCEMENTS_PAGE_SIZE } from "@/features/announcements/constants";
 import {
-  AnnouncementCategoryFilter,
   AnnouncementStatusFilter,
   AnnouncementVisibilityFilter,
   AnnouncementWithCategory,
@@ -31,25 +31,27 @@ const visibilityOptions = [
   { value: "private", label: "Solo internos" },
 ];
 
-const categoryOptions = [
-  { value: "all", label: "Todas" },
-  { value: "urgent", label: "Urgentes" },
-  { value: "informative", label: "Informativas" },
-  { value: "important", label: "Importantes" },
-];
-
 const statusOptions = [
   { value: "active", label: "Activos" },
   { value: "archived", label: "Archivados" },
 ];
 
-const announcementSearchTarget = (announcement: Information) =>
-  `${announcement.title} ${announcement.content}`.toLowerCase();
+const toApiVisibilityFilter = (filter: AnnouncementVisibilityFilter) => {
+  if (filter === "public") {
+    return true;
+  }
+
+  if (filter === "private") {
+    return false;
+  }
+
+  return undefined;
+};
 
 export function AnnouncementsManagement() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState<AnnouncementVisibilityFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<AnnouncementCategoryFilter>("all");
   const [statusFilter, setStatusFilter] = useState<AnnouncementStatusFilter>("active");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_ANNOUNCEMENTS_PAGE_SIZE);
@@ -57,9 +59,21 @@ export function AnnouncementsManagement() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Information | null>(null);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 450);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const apiIsPublic = toApiVisibilityFilter(visibilityFilter);
+
   const announcementsQuery = useQuery({
-    queryKey: ["announcements"],
-    queryFn: () => communicationService.getAllInformations(),
+    queryKey: ["announcements", { is_public: apiIsPublic, search: debouncedSearch }],
+    queryFn: () =>
+      communicationService.getAllInformations({
+        is_public: apiIsPublic,
+        search: debouncedSearch || undefined,
+        ordering: "-created_at",
+      }),
     staleTime: 60 * 1000,
   });
 
@@ -71,23 +85,11 @@ export function AnnouncementsManagement() {
   }, [announcementsQuery.data?.results]);
 
   const filteredAnnouncements = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
     return announcementsWithCategory.filter((announcement) => {
-      const matchesSearch = term.length === 0 || announcementSearchTarget(announcement).includes(term);
-      const matchesVisibility =
-        visibilityFilter === "all" ||
-        (visibilityFilter === "public" && announcement.is_public) ||
-        (visibilityFilter === "private" && !announcement.is_public);
-      const matchesCategory = categoryFilter === "all" || announcement.category === categoryFilter;
       const archived = isAnnouncementArchived(announcement);
-      const matchesStatus =
-        (statusFilter === "active" && !archived) ||
-        (statusFilter === "archived" && archived);
-
-      return matchesSearch && matchesVisibility && matchesCategory && matchesStatus;
+      return statusFilter === "active" ? !archived : archived;
     });
-  }, [announcementsWithCategory, search, visibilityFilter, categoryFilter, statusFilter]);
+  }, [announcementsWithCategory, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAnnouncements.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -114,11 +116,6 @@ export function AnnouncementsManagement() {
     resetPage();
   };
 
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value as AnnouncementCategoryFilter);
-    resetPage();
-  };
-
   const handleStatusChange = (value: string) => {
     setStatusFilter(value as AnnouncementStatusFilter);
     resetPage();
@@ -126,6 +123,13 @@ export function AnnouncementsManagement() {
 
   const handlePageSizeChange = (value: number) => {
     setPageSize(value);
+    resetPage();
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setVisibilityFilter("all");
+    setStatusFilter("active");
     resetPage();
   };
 
@@ -147,10 +151,8 @@ export function AnnouncementsManagement() {
   const isLoading = announcementsQuery.isLoading;
   const isError = announcementsQuery.isError;
   const hasFiltersApplied =
-    search.trim().length > 0 ||
-    visibilityFilter !== "all" ||
-    categoryFilter !== "all" ||
-    statusFilter !== "active";
+    debouncedSearch.length > 0 || visibilityFilter !== "all" || statusFilter !== "active";
+  const isTrulyEmpty = !hasFiltersApplied && announcementsWithCategory.length === 0;
 
   return (
     <div className="w-full space-y-8">
@@ -177,18 +179,11 @@ export function AnnouncementsManagement() {
           />
         }
         right={
-          <>
-            <DashboardSegmentedFilter
-              value={categoryFilter}
-              onValueChange={handleCategoryChange}
-              options={categoryOptions}
-            />
-            <DashboardSegmentedFilter
-              value={statusFilter}
-              onValueChange={handleStatusChange}
-              options={statusOptions}
-            />
-          </>
+          <DashboardSegmentedFilter
+            value={statusFilter}
+            onValueChange={handleStatusChange}
+            options={statusOptions}
+          />
         }
       />
 
@@ -233,15 +228,25 @@ export function AnnouncementsManagement() {
             </div>
           ) : filteredAnnouncements.length === 0 ? (
             <DashboardEmptyState
-              title={hasFiltersApplied ? "Sin resultados" : "No hay anuncios para mostrar"}
+              title={hasFiltersApplied ? "Sin resultados" : "El tablón está vacío"}
               description={
                 hasFiltersApplied
-                  ? "Ajuste los filtros o la búsqueda para encontrar otros comunicados."
-                  : "Cree el primer anuncio para comenzar a informar a la comunidad estudiantil."
+                  ? "Ningún anuncio coincide con los filtros o la búsqueda actuales."
+                  : "Aún no hay comunicados publicados. Use el botón «Nuevo anuncio» en la cabecera para crear el primero."
               }
               icon={hasFiltersApplied ? "filter_alt_off" : "campaign"}
-              actionLabel="Nuevo anuncio"
-              onAction={openCreateModal}
+              secondaryAction={
+                hasFiltersApplied ? (
+                  <Button type="button" variant="neutral" onClick={handleClearFilters}>
+                    <span className="material-symbols-outlined text-lg">filter_alt_off</span>
+                    Limpiar filtros
+                  </Button>
+                ) : isTrulyEmpty ? (
+                  <p className="text-xs italic text-[var(--color-outline)]">
+                    Los comunicados aparecerán aquí en cuanto se publiquen.
+                  </p>
+                ) : undefined
+              }
             />
           ) : (
             <div className="mx-auto max-w-3xl space-y-8">

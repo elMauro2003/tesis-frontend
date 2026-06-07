@@ -7,49 +7,26 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/shared/FormField";
 import { Textarea } from "@/components/ui/textarea";
+import { AnnouncementCategoryPicker } from "@/features/announcements/components/AnnouncementCategoryPicker";
+import { AnnouncementVisibilityPicker } from "@/features/announcements/components/AnnouncementVisibilityPicker";
+import { ANNOUNCEMENT_CATEGORY_EXPIRY_DAYS } from "@/features/announcements/constants";
 import { communicationService } from "@/core/services/communication.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Information } from "@/types/models";
-
-type AnnouncementFormValues = {
-  title: string;
-  content: string;
-  expires_date: string;
-  is_public: boolean;
-};
+import {
+  AnnouncementFormValues,
+  buildInformationPayload,
+  createEmptyAnnouncementFormValues,
+  getExpiryDateForCategory,
+  isAnnouncementFormValid,
+  normalizeAnnouncementFormValues,
+} from "@/features/announcements/utils/announcementForm";
 
 interface AnnouncementFormModalProps {
   announcement: Information | null;
   open: boolean;
   onClose: () => void;
 }
-
-const emptyValues: AnnouncementFormValues = {
-  title: "",
-  content: "",
-  expires_date: "",
-  is_public: true,
-};
-
-const toDateInputValue = (value?: string) => {
-  if (!value) {
-    return "";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "";
-  }
-
-  return parsed.toISOString().slice(0, 10);
-};
-
-const normalizeValues = (announcement: Information | null): AnnouncementFormValues => ({
-  title: announcement?.title ?? "",
-  content: announcement?.content ?? "",
-  expires_date: toDateInputValue(announcement?.expires_date),
-  is_public: announcement?.is_public ?? true,
-});
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof FetchError) {
@@ -65,24 +42,19 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export function AnnouncementFormModal({ announcement, open, onClose }: AnnouncementFormModalProps) {
   const queryClient = useQueryClient();
-  const [values, setValues] = useState<AnnouncementFormValues>(emptyValues);
+  const [values, setValues] = useState<AnnouncementFormValues>(createEmptyAnnouncementFormValues());
 
   const isEditing = Boolean(announcement);
 
   useEffect(() => {
     if (open) {
-      setValues(normalizeValues(announcement));
+      setValues(normalizeAnnouncementFormValues(announcement));
     }
   }, [announcement, open]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      await communicationService.createInformation({
-        title: values.title.trim(),
-        content: values.content.trim(),
-        expires_date: values.expires_date,
-        is_public: values.is_public,
-      });
+      await communicationService.createInformation(buildInformationPayload(values));
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -104,12 +76,7 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
         return;
       }
 
-      await communicationService.updateInformation(announcement.id, {
-        title: values.title.trim(),
-        content: values.content.trim(),
-        expires_date: values.expires_date,
-        is_public: values.is_public,
-      });
+      await communicationService.updateInformation(announcement.id, buildInformationPayload(values));
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["announcements"] });
@@ -126,14 +93,36 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
   });
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const isValid = useMemo(() => isAnnouncementFormValid(values), [values]);
 
-  const isValid = useMemo(
-    () => values.title.trim().length > 0 && values.content.trim().length > 0 && values.expires_date.length > 0,
-    [values.content, values.expires_date, values.title]
-  );
+  const handleCategoryChange = (category: AnnouncementFormValues["category"]) => {
+    setValues((current) => ({
+      ...current,
+      category,
+      expires_date: getExpiryDateForCategory(category, current.published_date),
+    }));
+  };
+
+  const handlePublishedDateChange = (publishedDate: string) => {
+    setValues((current) => ({
+      ...current,
+      published_date: publishedDate,
+      expires_date: getExpiryDateForCategory(current.category, publishedDate),
+    }));
+  };
 
   const handleSubmit = () => {
     if (!isValid || isSubmitting) {
+      if (!values.title.trim() || !values.content.trim()) {
+        toast.error("Faltan campos obligatorios", {
+          description: "Complete el título y el contenido del anuncio.",
+        });
+        return;
+      }
+
+      toast.error("Revise las fechas del anuncio", {
+        description: "La fecha de expiración debe ser igual o posterior a la de publicación.",
+      });
       return;
     }
 
@@ -146,7 +135,7 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} maxWidthClassName="max-w-2xl">
+    <BottomSheet open={open} onClose={onClose} maxWidthClassName="max-w-3xl">
       <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
         <div className="border-b border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)] p-6">
           <div className="flex items-start justify-between gap-4">
@@ -156,8 +145,8 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
               </h3>
               <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
                 {isEditing
-                  ? "Actualice el contenido del comunicado seleccionado."
-                  : "Redacte un comunicado para publicarlo en el tablón institucional."}
+                  ? "Actualice el contenido, las fechas y la visibilidad del comunicado."
+                  : "Configure el tipo, redacte el mensaje y programe su vigencia en el tablón."}
               </p>
             </div>
             <button
@@ -171,12 +160,20 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
           </div>
         </div>
 
-        <div className="space-y-6 p-6">
+        <div className="max-h-[70vh] space-y-6 overflow-y-auto p-6">
+          <AnnouncementCategoryPicker value={values.category} onValueChange={handleCategoryChange} />
+
+          <AnnouncementVisibilityPicker
+            value={values.is_public}
+            onValueChange={(isPublic) => setValues((current) => ({ ...current, is_public: isPublic }))}
+          />
+
           <FormField
             id="announcement-title"
             label="Título"
             icon="title"
             value={values.title}
+            maxLength={200}
             onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
             placeholder="Ej. Cierre temporal del comedor"
           />
@@ -197,29 +194,34 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
             />
           </div>
 
-          <FormField
-            id="announcement-expires-date"
-            label="Fecha de expiración"
-            icon="event"
-            type="date"
-            value={values.expires_date}
-            onChange={(event) => setValues((current) => ({ ...current, expires_date: event.target.value }))}
-          />
-
-          <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-4">
-            <input
-              type="checkbox"
-              checked={values.is_public}
-              onChange={(event) => setValues((current) => ({ ...current, is_public: event.target.checked }))}
-              className="h-4 w-4 rounded border-[var(--color-outline-variant)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/30"
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              id="announcement-published-date"
+              label="Fecha de publicación"
+              icon="calendar_today"
+              type="date"
+              value={values.published_date}
+              onChange={(event) => handlePublishedDateChange(event.target.value)}
             />
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-on-surface)]">Visible para estudiantes</p>
-              <p className="text-xs text-[var(--color-on-surface-variant)]">
-                Si se desactiva, el anuncio quedará como comunicado interno del panel.
-              </p>
-            </div>
-          </label>
+
+            <FormField
+              id="announcement-expires-date"
+              label="Fecha de expiración"
+              icon="event_busy"
+              type="date"
+              min={values.published_date}
+              value={values.expires_date}
+              onChange={(event) => setValues((current) => ({ ...current, expires_date: event.target.value }))}
+            />
+          </div>
+
+          <p className="rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-xs leading-relaxed text-[var(--color-on-surface-variant)]">
+            El tipo seleccionado sugiere una vigencia de{" "}
+            <span className="font-semibold text-[var(--color-on-surface)]">
+              {ANNOUNCEMENT_CATEGORY_EXPIRY_DAYS[values.category]} días
+            </span>
+            . Puede ajustar la fecha de expiración manualmente antes de publicar.
+          </p>
         </div>
 
         <div className="flex flex-col-reverse gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/40 p-6 sm:flex-row sm:justify-end">

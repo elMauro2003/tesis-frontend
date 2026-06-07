@@ -1,12 +1,22 @@
 import { fetchClient } from "@/lib/fetchClient";
-import { Information, PaginatedResponse } from "@/types/models";
+import { Information, InformationWritePayload, PaginatedResponse } from "@/types/models";
+
+export type GetInformationsFilters = {
+  is_public?: boolean;
+  search?: string;
+  ordering?: string;
+  page?: number;
+  page_size?: number;
+};
 
 export const communicationService = {
-  getInformations: (filters?: { is_public?: boolean; expires_date?: string; page?: number }): Promise<PaginatedResponse<Information>> => {
+  getInformations: (filters?: GetInformationsFilters): Promise<PaginatedResponse<Information>> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([k, v]) => {
-        if (v !== undefined) params.append(k, String(v));
+        if (v !== undefined && v !== "") {
+          params.append(k, String(v));
+        }
       });
     }
     const qs = params.toString();
@@ -17,15 +27,19 @@ export const communicationService = {
   
   getPublicInformations: (): Promise<PaginatedResponse<Information>> => fetchClient("/api/v1/informaciones/publicas/"),
 
-  createInformation: (data: Omit<Information, "id" | "created_at">): Promise<Information> => fetchClient("/api/v1/informaciones/", { method: "POST", body: JSON.stringify(data) }),
-  
-  updateInformation: (id: number, data: Partial<Information>): Promise<Information> => fetchClient(`/api/v1/informaciones/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+  createInformation: (data: InformationWritePayload): Promise<Information> =>
+    fetchClient("/api/v1/informaciones/", { method: "POST", body: JSON.stringify(data) }),
+
+  updateInformation: (id: number, data: Partial<InformationWritePayload>): Promise<Information> =>
+    fetchClient(`/api/v1/informaciones/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
   
   deleteInformation: (id: number): Promise<void> => fetchClient(`/api/v1/informaciones/${id}/`, { method: "DELETE" }),
 
-  getAllInformations: async (filters?: { is_public?: boolean }): Promise<PaginatedResponse<Information>> => {
+  getAllInformations: async (
+    filters: Omit<GetInformationsFilters, "page" | "page_size"> = {}
+  ): Promise<PaginatedResponse<Information>> => {
     const pageSize = 100;
-    const firstPage = await communicationService.getInformations({ ...filters, page: 1 });
+    const firstPage = await communicationService.getInformations({ ...filters, page: 1, page_size: pageSize });
 
     if (!firstPage.next) {
       return firstPage;
@@ -35,7 +49,7 @@ export const communicationService = {
     const totalPages = Math.max(1, Math.ceil(firstPage.count / effectivePageSize));
     const remainingPages = await Promise.all(
       Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
-        communicationService.getInformations({ ...filters, page })
+        communicationService.getInformations({ ...filters, page, page_size: pageSize })
       )
     );
 

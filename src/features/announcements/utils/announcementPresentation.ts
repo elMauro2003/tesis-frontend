@@ -1,5 +1,6 @@
 import { Information } from "@/types/models";
 import { AnnouncementCategory } from "@/features/announcements/types";
+import { getCategoryFromDates } from "@/features/announcements/utils/announcementForm";
 
 const dateFormatter = new Intl.DateTimeFormat("es-ES", {
   day: "numeric",
@@ -7,7 +8,11 @@ const dateFormatter = new Intl.DateTimeFormat("es-ES", {
   year: "numeric",
 });
 
-export const formatAnnouncementDate = (value: string) => {
+export const formatAnnouncementDate = (value?: string | null) => {
+  if (!value) {
+    return "Fecha no disponible";
+  }
+
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return "Fecha no disponible";
@@ -16,7 +21,11 @@ export const formatAnnouncementDate = (value: string) => {
   return dateFormatter.format(parsed);
 };
 
-export const getDaysUntilExpiry = (expiresDate: string) => {
+export const getDaysUntilExpiry = (expiresDate?: string | null) => {
+  if (!expiresDate) {
+    return null;
+  }
+
   const expiry = new Date(expiresDate);
   if (Number.isNaN(expiry.getTime())) {
     return null;
@@ -34,19 +43,8 @@ export const isAnnouncementArchived = (announcement: Information) => {
   return daysUntilExpiry !== null && daysUntilExpiry < 0;
 };
 
-export const getAnnouncementCategory = (announcement: Information): AnnouncementCategory => {
-  const daysUntilExpiry = getDaysUntilExpiry(announcement.expires_date);
-
-  if (daysUntilExpiry !== null && daysUntilExpiry <= 7) {
-    return "urgent";
-  }
-
-  if (!announcement.is_public) {
-    return "important";
-  }
-
-  return "informative";
-};
+export const getAnnouncementCategory = (announcement: Information): AnnouncementCategory =>
+  getCategoryFromDates(announcement.published_date, announcement.expires_date);
 
 export const getAnnouncementDisplayDate = (announcement: Information) =>
-  formatAnnouncementDate(announcement.created_at ?? announcement.expires_date);
+  formatAnnouncementDate(announcement.published_date ?? announcement.created_at ?? announcement.expires_date);

@@ -225,10 +225,22 @@ export interface Information {
   id: number;
   title: string;
   content: string;
-  created_at: string;
-  expires_date: string;
+  published_date?: string | null;
+  expires_date?: string | null;
   is_public: boolean;
+  created_by?: number;
+  created_by_name?: string;
+  created_at?: string;
+  updated_at?: string;
 }
+
+export type InformationWritePayload = {
+  title: string;
+  content: string;
+  published_date?: string | null;
+  expires_date?: string | null;
+  is_public?: boolean;
+};
 
 export interface Report {
   id: number;
