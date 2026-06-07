@@ -33,8 +33,17 @@ export const complaintService = {
     return fetchClient<Complaint>(`/api/v1/quejas/${id}/`);
   },
 
-  getMyComplaints: (): Promise<PaginatedResponse<Complaint>> => {
-    return fetchClient<PaginatedResponse<Complaint>>("/api/v1/quejas/mis-quejas/");
+  getMyComplaints: (filters: Pick<GetComplaintsFilters, "page" | "page_size"> = {}): Promise<PaginatedResponse<Complaint>> => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    return fetchClient<PaginatedResponse<Complaint>>(
+      `/api/v1/quejas/mis-quejas/${queryString ? `?${queryString}` : ""}`
+    );
   },
 
   getPublicComplaints: (): Promise<PaginatedResponse<Complaint>> => {

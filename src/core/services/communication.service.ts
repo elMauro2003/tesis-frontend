@@ -25,7 +25,18 @@ export const communicationService = {
 
   getInformationById: (id: number): Promise<Information> => fetchClient(`/api/v1/informaciones/${id}/`),
   
-  getPublicInformations: (): Promise<PaginatedResponse<Information>> => fetchClient("/api/v1/informaciones/publicas/"),
+  getPublicInformations: (filters?: Pick<GetInformationsFilters, "page" | "page_size">): Promise<PaginatedResponse<Information>> => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v !== undefined) {
+          params.append(k, String(v));
+        }
+      });
+    }
+    const qs = params.toString();
+    return fetchClient(`/api/v1/informaciones/publicas/${qs ? `?${qs}` : ""}`);
+  },
 
   createInformation: (data: InformationWritePayload): Promise<Information> =>
     fetchClient("/api/v1/informaciones/", { method: "POST", body: JSON.stringify(data) }),

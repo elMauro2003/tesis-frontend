@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { canAccessRoute, getDefaultRouteForRoles } from "@/configs/permissions";
+import {
+  canAccessRoute,
+  getDefaultRouteForRoles,
+  isDashboardRoute,
+  isPortalRoute,
+  isStudentOnly,
+} from "@/configs/permissions";
+import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PUBLIC_ROUTES } from "@/configs/routes";
 import {
   ACCESS_TOKEN_COOKIE,
@@ -26,9 +33,9 @@ function resolveRequestRoles(request: NextRequest) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isProtectedRoute = isDashboardRoute(pathname) || isPortalRoute(pathname);
 
-  if (!isPublicRoute && !isDashboardRoute) {
+  if (!isPublicRoute && !isProtectedRoute) {
     return NextResponse.next();
   }
 
@@ -49,15 +56,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (roles.length > 0 && !canAccessRoute(pathname, roles)) {
-    const fallbackUrl = new URL(getDefaultRouteForRoles(roles), request.url);
-    fallbackUrl.searchParams.set("error", "unauthorized");
-    return NextResponse.redirect(fallbackUrl);
+  if (roles.length > 0) {
+    if (isStudentOnly(roles) && isDashboardRoute(pathname)) {
+      return NextResponse.redirect(new URL(PORTAL_ROUTES.home, request.url));
+    }
+
+    if (!isStudentOnly(roles) && isPortalRoute(pathname)) {
+      return NextResponse.redirect(new URL(getDefaultRouteForRoles(roles), request.url));
+    }
+
+    if (!canAccessRoute(pathname, roles)) {
+      const fallbackUrl = new URL(getDefaultRouteForRoles(roles), request.url);
+      fallbackUrl.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(fallbackUrl);
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: ["/dashboard/:path*", "/portal/:path*", "/auth/:path*"],
 };

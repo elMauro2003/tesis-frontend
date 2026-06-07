@@ -1,4 +1,5 @@
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
+import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { Role } from "@/types/auth";
 
 export type PermissionAction = "view" | "create" | "update" | "delete";
@@ -13,7 +14,23 @@ export type Feature =
   | "complaints_manage"
   | "announcements"
   | "announcements_manage"
-  | "admin";
+  | "admin"
+  | "evaluations_self"
+  | "room_duties_self"
+  | "portal_profile";
+
+const STUDENT_ROLE = ["estudiante"] as const satisfies readonly Role[];
+
+const STAFF_ROLES = [
+  "instructor",
+  "directivo",
+  "subdirector",
+  "comunicador",
+  "decano",
+  "ppa",
+  "pg",
+  "admin",
+] as const satisfies readonly Role[];
 
 type FeaturePermissions = Partial<Record<PermissionAction, readonly Role[]>>;
 
@@ -82,6 +99,16 @@ const FEATURE_PERMISSIONS: Record<Feature, FeaturePermissions> = {
     update: ["admin"],
     delete: ["admin"],
   },
+  evaluations_self: {
+    view: STUDENT_ROLE,
+  },
+  room_duties_self: {
+    view: STUDENT_ROLE,
+  },
+  portal_profile: {
+    view: STUDENT_ROLE,
+    update: STUDENT_ROLE,
+  },
 };
 
 export interface NavItemConfig {
@@ -136,7 +163,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     icon: "emergency_home",
     feature: "complaints",
     labelByRole: {
-      estudiante: "Mis quejas",
       subdirector: "Gestión de quejas",
     },
   },
@@ -146,7 +172,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     icon: "campaign",
     feature: "announcements",
     labelByRole: {
-      estudiante: "Comunicados",
       instructor: "Comunicados",
       decano: "Comunicados",
       ppa: "Comunicados",
@@ -155,13 +180,56 @@ export const NAV_ITEMS: NavItemConfig[] = [
   },
 ];
 
+export interface PortalNavItemConfig {
+  href: string;
+  label: string;
+  icon: string;
+  feature: Feature;
+}
+
+export const PORTAL_NAV_ITEMS: PortalNavItemConfig[] = [
+  {
+    href: PORTAL_ROUTES.evaluaciones,
+    label: "Evaluaciones",
+    icon: "emoji_events",
+    feature: "evaluations_self",
+  },
+  {
+    href: PORTAL_ROUTES.quejas,
+    label: "Quejas",
+    icon: "emergency_home",
+    feature: "complaints",
+  },
+  {
+    href: PORTAL_ROUTES.anuncios,
+    label: "Anuncios",
+    icon: "campaign",
+    feature: "announcements",
+  },
+  {
+    href: PORTAL_ROUTES.cuartelerias,
+    label: "Cuartelerías",
+    icon: "cleaning_services",
+    feature: "room_duties_self",
+  },
+];
+
 const DEFAULT_ROUTE_PRIORITY: { roles: readonly Role[]; route: string }[] = [
   { roles: ["admin", "directivo"], route: DASHBOARD_ROUTES.reportes },
   { roles: ["subdirector"], route: DASHBOARD_ROUTES.quejas },
   { roles: ["comunicador"], route: DASHBOARD_ROUTES.anuncios },
   { roles: ["instructor", "decano", "ppa", "pg"], route: DASHBOARD_ROUTES.estudiantes },
-  { roles: ["estudiante"], route: DASHBOARD_ROUTES.quejas },
+  { roles: ["estudiante"], route: PORTAL_ROUTES.home },
 ];
+
+export const PORTAL_ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
+  "/portal/evaluaciones": FEATURE_PERMISSIONS.evaluations_self.view!,
+  "/portal/quejas": STUDENT_ROLE,
+  "/portal/quejas/nueva": STUDENT_ROLE,
+  "/portal/anuncios": STUDENT_ROLE,
+  "/portal/cuartelerias": FEATURE_PERMISSIONS.room_duties_self.view!,
+  "/portal/perfil": FEATURE_PERMISSIONS.portal_profile.view!,
+};
 
 export const ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/dashboard/reportes": FEATURE_PERMISSIONS.reports.view!,
@@ -224,7 +292,27 @@ export function getNavItemsForRoles(userRoles: Role[]): NavItemConfig[] {
   return NAV_ITEMS.filter((item) => can(userRoles, item.feature, "view"));
 }
 
+export function isStudentOnly(userRoles: Role[]): boolean {
+  return userRoles.includes("estudiante") && !hasAnyRole(userRoles, STAFF_ROLES);
+}
+
+export function isPortalRoute(pathname: string): boolean {
+  return pathname === "/portal" || pathname.startsWith("/portal/");
+}
+
+export function isDashboardRoute(pathname: string): boolean {
+  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+}
+
+export function getPortalNavItemsForRoles(userRoles: Role[]): PortalNavItemConfig[] {
+  return PORTAL_NAV_ITEMS.filter((item) => can(userRoles, item.feature, "view"));
+}
+
 export function getDefaultRouteForRoles(userRoles: Role[]): string {
+  if (isStudentOnly(userRoles)) {
+    return PORTAL_ROUTES.home;
+  }
+
   for (const entry of DEFAULT_ROUTE_PRIORITY) {
     if (hasAnyRole(userRoles, entry.roles) && canAccessRoute(entry.route, userRoles)) {
       return entry.route;
@@ -232,12 +320,45 @@ export function getDefaultRouteForRoles(userRoles: Role[]): string {
   }
 
   const navItems = getNavItemsForRoles(userRoles);
-  return navItems[0]?.href ?? DASHBOARD_ROUTES.quejas;
+  return navItems[0]?.href ?? DASHBOARD_ROUTES.reportes;
 }
 
 const STUDENT_EDIT_ROUTE = /^\/dashboard\/estudiantes\/[^/]+\/editar(?:\/|$)/;
+const PORTAL_ANNOUNCEMENT_DETAIL_ROUTE = /^\/portal\/anuncios\/[^/]+(?:\/|$)/;
+
+export function canAccessPortalRoute(pathname: string, userRoles: Role[]): boolean {
+  if (!isStudentOnly(userRoles)) {
+    return false;
+  }
+
+  if (pathname === "/portal" || pathname === "/portal/") {
+    return true;
+  }
+
+  if (PORTAL_ANNOUNCEMENT_DETAIL_ROUTE.test(pathname)) {
+    return true;
+  }
+
+  const matchedRoute = Object.keys(PORTAL_ROUTE_PERMISSIONS)
+    .sort((a, b) => b.length - a.length)
+    .find((route) => pathname === route || pathname.startsWith(`${route}/`));
+
+  if (!matchedRoute) {
+    return false;
+  }
+
+  return hasAnyRole(userRoles, PORTAL_ROUTE_PERMISSIONS[matchedRoute]);
+}
 
 export function canAccessRoute(pathname: string, userRoles: Role[]): boolean {
+  if (isPortalRoute(pathname)) {
+    return canAccessPortalRoute(pathname, userRoles);
+  }
+
+  if (isStudentOnly(userRoles)) {
+    return false;
+  }
+
   if (pathname === "/dashboard" || pathname === "/dashboard/") {
     return getNavItemsForRoles(userRoles).length > 0;
   }

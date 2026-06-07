@@ -21,7 +21,14 @@ export const evaluationService = {
 
   getEvaluationById: (id: number): Promise<Evaluation> => fetchClient(`/api/v1/evaluaciones/${id}/`),
   
-  getMyEvaluations: (): Promise<PaginatedResponse<Evaluation>> => fetchClient("/api/v1/evaluaciones/mis-evaluaciones/"),
+  getMyEvaluations: (filters: Pick<GetEvaluationsFilters, "page" | "page_size"> = {}): Promise<PaginatedResponse<Evaluation>> => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined) params.append(k, String(v));
+    });
+    const qs = params.toString();
+    return fetchClient(`/api/v1/evaluaciones/mis-evaluaciones/${qs ? `?${qs}` : ""}`);
+  },
 
   createEvaluation: (data: Omit<Evaluation, "id">): Promise<Evaluation> => fetchClient("/api/v1/evaluaciones/", { method: "POST", body: JSON.stringify(data) }),
   
