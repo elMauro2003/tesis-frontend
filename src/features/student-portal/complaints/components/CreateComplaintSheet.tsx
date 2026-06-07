@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -10,37 +10,69 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { complaintService } from "@/core/services/complaint.service";
 import { FetchError } from "@/lib/fetchClient";
+import { Complaint } from "@/types/models";
 
 interface CreateComplaintSheetProps {
   open: boolean;
   onClose: () => void;
+  complaint?: Complaint | null;
 }
 
-export function CreateComplaintSheet({ open, onClose }: CreateComplaintSheetProps) {
+export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplaintSheetProps) {
   const queryClient = useQueryClient();
+  const isEditing = Boolean(complaint);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [type, setType] = useState<"administrativa" | "educativa">("administrativa");
   const [description, setDescription] = useState("");
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      complaintService.createComplaint({
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (complaint) {
+      setDate(complaint.date);
+      setType((complaint.type as "administrativa" | "educativa") || "administrativa");
+      setDescription(complaint.description);
+      return;
+    }
+
+    setDate(new Date().toISOString().split("T")[0]);
+    setType("administrativa");
+    setDescription("");
+  }, [complaint, open]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
         date,
         type,
         description: description.trim(),
-      }),
+      };
+
+      if (complaint) {
+        return complaintService.updateComplaint(complaint.id, payload);
+      }
+
+      return complaintService.createComplaint(payload);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["portal", "complaints"] });
-      await queryClient.invalidateQueries({ queryKey: ["portal", "complaints", "pending-count"] });
-      toast.success("Queja registrada", {
-        description: "Su solicitud fue enviada correctamente.",
+      toast.success(isEditing ? "Queja actualizada" : "Queja registrada", {
+        description: isEditing
+          ? "Los cambios fueron guardados correctamente."
+          : "Su solicitud fue enviada correctamente.",
       });
-      setDescription("");
       onClose();
     },
     onError: (error) => {
-      const message = error instanceof FetchError ? error.message : "No se pudo registrar la queja.";
-      toast.error("Error al registrar", { description: message });
+      const message =
+        error instanceof FetchError
+          ? error.message
+          : isEditing
+            ? "No se pudo actualizar la queja."
+            : "No se pudo registrar la queja.";
+      toast.error("Error", { description: message });
     },
   });
 
@@ -54,11 +86,16 @@ export function CreateComplaintSheet({ open, onClose }: CreateComplaintSheetProp
       return;
     }
 
-    createMutation.mutate();
+    saveMutation.mutate();
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Nueva queja" subtitle="Presente una queja o sugerencia">
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={isEditing ? "Editar queja" : "Nueva queja"}
+      subtitle={isEditing ? "Actualice los detalles de su solicitud." : "Presente una queja o sugerencia."}
+    >
       <form onSubmit={handleSubmit} className="space-y-4 p-6">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -99,8 +136,8 @@ export function CreateComplaintSheet({ open, onClose }: CreateComplaintSheetProp
           <Button type="button" variant="cancel" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" variant="confirm" disabled={createMutation.isPending}>
-            {createMutation.isPending ? "Enviando..." : "Enviar queja"}
+          <Button type="submit" variant="confirm" disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Enviar queja"}
           </Button>
         </footer>
       </form>

@@ -1,5 +1,7 @@
 import { Complaint } from "@/types/models";
 
+export const DAILY_COMPLAINT_LIMIT = 3;
+
 export const COMPLAINT_STATUS_LABELS: Record<Complaint["status"], string> = {
   pendiente: "Pendiente",
   en_proceso: "En proceso",
@@ -30,4 +32,52 @@ export function getComplaintStatusTone(status: Complaint["status"]) {
   if (status === "pendiente") return "warning" as const;
   if (status === "rechazada") return "error" as const;
   return "primary" as const;
+}
+
+export function getComplaintBorderClass(status: Complaint["status"]) {
+  if (status === "resuelta") return "border-l-green-700";
+  if (status === "rechazada") return "border-l-error";
+  return "border-l-primary";
+}
+
+export function getComplaintTitle(description: string) {
+  const trimmed = description.trim();
+  if (trimmed.length <= 72) {
+    return trimmed;
+  }
+
+  return `${trimmed.slice(0, 72).trimEnd()}…`;
+}
+
+export function getBuildingLabel(complaint: Complaint) {
+  return complaint.building_name?.trim() || "Residencia";
+}
+
+export function countTodayComplaints(complaints: Complaint[]) {
+  const today = new Date().toISOString().split("T")[0];
+
+  return complaints.filter((complaint) => {
+    if (complaint.date === today) {
+      return true;
+    }
+
+    const createdAt = (complaint as { created_at?: string }).created_at;
+    return createdAt?.startsWith(today) ?? false;
+  }).length;
+}
+
+export function canEditComplaint(status: Complaint["status"]) {
+  return status === "pendiente" || status === "en_proceso";
+}
+
+export function formatComplaintDateShort(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+  }).format(parsed);
 }

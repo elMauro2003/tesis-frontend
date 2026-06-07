@@ -46,8 +46,19 @@ export const complaintService = {
     );
   },
 
-  getPublicComplaints: (): Promise<PaginatedResponse<Complaint>> => {
-    return fetchClient<PaginatedResponse<Complaint>>("/api/v1/quejas/visibles/");
+  getPublicComplaints: (
+    filters: Pick<GetComplaintsFilters, "page" | "page_size"> = {}
+  ): Promise<PaginatedResponse<Complaint>> => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    return fetchClient<PaginatedResponse<Complaint>>(
+      `/api/v1/quejas/visibles/${queryString ? `?${queryString}` : ""}`
+    );
   },
 
   createComplaint: (data: Partial<Complaint>): Promise<Complaint> => {
@@ -55,6 +66,17 @@ export const complaintService = {
       method: "POST",
       body: JSON.stringify(data),
     });
+  },
+
+  updateComplaint: (id: number, data: Partial<Complaint>): Promise<Complaint> => {
+    return fetchClient<Complaint>(`/api/v1/quejas/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteComplaint: (id: number): Promise<void> => {
+    return fetchClient<void>(`/api/v1/quejas/${id}/`, { method: "DELETE" });
   },
 
   updateComplaintStatus: (id: number, status: string): Promise<Complaint> => {
