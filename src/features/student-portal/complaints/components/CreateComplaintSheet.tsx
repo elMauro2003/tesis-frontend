@@ -27,7 +27,7 @@ interface CreateComplaintSheetProps {
 
 export function CreateComplaintSheet({ open, onClose, complaint }: CreateComplaintSheetProps) {
   const queryClient = useQueryClient();
-  const buildingsQuery = useComplaintBuildings();
+  const buildingsQuery = useComplaintBuildings(open);
   const isEditing = Boolean(complaint);
 
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
