@@ -4,10 +4,27 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormField } from "@/components/shared/FormField";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { authService } from "@/core/services/auth.service";
 import { useAuthStore } from "@/store/useAuthStore";
 import { DEFAULT_LOGIN_REDIRECT } from "@/configs/routes";
+
+function LoginBrandDecorations() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+      <div className="absolute top-1/3 -right-16 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+      <div className="absolute bottom-0 left-1/4 h-48 w-48 rounded-full bg-primary-fixed/20 blur-3xl" />
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+    </div>
+  );
+}
 
 function LoginFormContent() {
   const router = useRouter();
@@ -27,87 +44,109 @@ function LoginFormContent() {
 
     try {
       const response = await authService.login({ username, password });
-      
-      // Guardar el estado de autenticación en nuestra store global
       setCredentials(response.user, response.access, response.refresh);
 
-      // Redirigir al URL de retorno o al dashboard por defecto
       const callbackUrl = searchParams.get("callbackUrl");
       router.replace(callbackUrl || DEFAULT_LOGIN_REDIRECT);
-    } catch (err: any) {
-      setError(
-        err.message || "Credenciales incorrectas. Verifique e intente nuevamente."
-      );
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Credenciales incorrectas. Verifique e intente nuevamente.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen w-full flex-col md:flex-row overflow-hidden bg-surface text-on-surface">
-      {/* Left Column: Brand Section */}
-      <section className="relative w-full md:w-1/2 bg-brand-gradient flex flex-col justify-between p-8 md:p-16 overflow-hidden">
-        {/* Decorative Elements */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 right-0 w-64 h-64 bg-primary-fixed rounded-full blur-3xl"></div>
-        </div>
-        {/* Brand Identity */}
-        <div className="relative z-10">
-          <div className="mb-12 inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 glass-effect">
-            <span className="material-symbols-outlined text-white text-5xl">
-              school
-            </span>
+    <main className="flex min-h-[100dvh] w-full flex-col bg-surface text-on-surface md:h-[100dvh] md:max-h-[100dvh] md:flex-row md:overflow-hidden">
+      {/* Brand panel */}
+      <section className="relative flex shrink-0 flex-col bg-primary-gradient md:h-full md:w-1/2 md:overflow-hidden md:p-10 lg:p-14">
+        <LoginBrandDecorations />
+
+        {/* Mobile: compact hero */}
+        <div className="relative z-10 px-6 pb-10 pt-[max(2.5rem,env(safe-area-inset-top))] md:hidden">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 glass-effect">
+              <span
+                className="material-symbols-outlined text-3xl text-white"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                school
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+                UCLV
+              </p>
+              <h1 className="font-headline text-2xl font-extrabold tracking-tight text-white">
+                Residencias
+              </h1>
+            </div>
           </div>
-          <h1 className="font-headline text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-4">
-            UCLV Residencias
-          </h1>
-          <p className="text-white/80 text-lg md:text-xl font-medium max-w-md leading-relaxed">
-            Portal Inteligente de Gestión Académica y Residencial
+          <p className="mt-5 max-w-xs text-sm font-medium leading-relaxed text-white/85">
+            Portal de gestión académica y residencial universitaria.
           </p>
         </div>
-        {/* Hero Image Integration */}
-        <div className="relative z-10 w-full aspect-video md:aspect-auto md:h-64 rounded-2xl overflow-hidden my-12 group">
-          <img
-            alt="Campus Universitario"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-xn_e2FN_422IOWmt7Rkrttm0o0JPr_RZc-venmHvTv6HudKTK7z5WYQKq2eP8TLVPDRXv0E-FlXSS2iNQ_0um1Mjx59Kyg2BGIzSM8Pl8axTqbwF7MPfBmiozB_RqWcPI5z75UDsXt2qoG4lSkgkfLYDTF8cdW1ynKhN3M9gk0UIWetl0_MQTEDtphyjAFNiza6TVVqRj2-slot30psEv50oye2PwA9bwALCcROzWtyY_Ad_rFuOvomgr8NIcRYWQPkIKnl8wg"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
-        </div>
-        {/* Subtle Brand Footer */}
-        <div className="relative z-10">
-          <p className="text-white/60 text-sm font-medium tracking-wide">
+
+        {/* Desktop: full brand column */}
+        <div className="relative z-10 hidden h-full min-h-0 flex-col justify-between gap-6 md:flex">
+          <div className="shrink-0">
+            <div className="mb-8 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 glass-effect lg:mb-10 lg:h-20 lg:w-20">
+              <span
+                className="material-symbols-outlined text-4xl text-white lg:text-5xl"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                school
+              </span>
+            </div>
+            <h1 className="mb-3 font-headline text-4xl font-extrabold tracking-tight text-white lg:mb-4 lg:text-5xl xl:text-6xl">
+              UCLV Residencias
+            </h1>
+            <p className="max-w-md text-base font-medium leading-relaxed text-white/80 lg:text-lg">
+              Portal Inteligente de Gestión Académica y Residencial
+            </p>
+          </div>
+
+          <div className="group relative min-h-0 max-h-44 flex-1 overflow-hidden rounded-2xl lg:max-h-52 xl:max-h-60">
+            <img
+              alt="Campus universitario"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-xn_e2FN_422IOWmt7Rkrttm0o0JPr_RZc-venmHvTv6HudKTK7z5WYQKq2eP8TLVPDRXv0E-FlXSS2iNQ_0um1Mjx59Kyg2BGIzSM8Pl8axTqbwF7MPfBmiozB_RqWcPI5z75UDsXt2qoG4lSkgkfLYDTF8cdW1ynKhN3M9gk0UIWetl0_MQTEDtphyjAFNiza6TVVqRj2-slot30psEv50oye2PwA9bwALCcROzWtyY_Ad_rFuOvomgr8NIcRYWQPkIKnl8wg"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/70 to-transparent" />
+          </div>
+
+          <p className="shrink-0 text-sm font-medium tracking-wide text-white/60">
             © 2026 Universidad Central &quot;Marta Abreu&quot; de Las Villas.
           </p>
         </div>
       </section>
 
-      {/* Right Column: Login Form */}
-      <section className="w-full md:w-1/2 bg-surface-container-lowest flex flex-col justify-center items-center p-8 md:p-20">
-        <div className="w-full max-w-md">
-          {/* Header Text */}
-          <div className="mb-10 text-center md:text-left">
-            <h2 className="font-headline text-3xl font-bold text-on-surface mb-3 tracking-tight">
-              Iniciar Sesión
+      {/* Login form */}
+      <section className="relative z-20 -mt-6 flex flex-1 flex-col rounded-t-[1.75rem] bg-surface-container-lowest px-6 py-8 shadow-[0_-12px_40px_rgba(0,55,176,0.08)] md:mt-0 md:h-full md:min-h-0 md:w-1/2 md:justify-center md:overflow-y-auto md:rounded-none md:shadow-none md:px-12 md:py-8 lg:px-20 lg:py-10">
+        <div className="mx-auto flex w-full max-w-md flex-col justify-center pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-0">
+          <div className="mb-6 text-center md:mb-8 md:text-left">
+            <h2 className="mb-2 font-headline text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">
+              Iniciar sesión
             </h2>
-            <p className="text-on-surface-variant font-medium">
+            <p className="text-sm font-medium text-on-surface-variant sm:text-base">
               Ingrese sus credenciales institucionales para acceder al sistema
             </p>
           </div>
-          {/* Login Form */}
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="p-4 bg-error-container text-on-error-container rounded-lg text-sm font-medium">
+
+          <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
+            {error ? (
+              <div className="rounded-xl bg-error-container p-4 text-sm font-medium text-error">
                 {error}
               </div>
-            )}
+            ) : null}
 
-            {/* Username Field */}
             <FormField
               id="username"
               name="username"
-              label="Usuario o Correo Institucional"
+              label="Usuario o correo institucional"
               icon="person"
               placeholder="ej. admin@uclv.cu"
               type="text"
@@ -115,9 +154,9 @@ function LoginFormContent() {
               onChange={(e) => setUsername(e.target.value)}
               disabled={isLoading}
               required
+              autoComplete="username"
             />
 
-            {/* Password Field */}
             <FormField
               id="password"
               name="password"
@@ -129,12 +168,14 @@ function LoginFormContent() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
               required
+              autoComplete="current-password"
               rightElement={
                 <button
-                  className="h-full px-2 flex items-center justify-center text-outline hover:text-on-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded cursor-pointer"
+                  className="flex h-full cursor-pointer items-center justify-center rounded px-2 text-outline transition-colors hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoading}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
                   <span className="material-symbols-outlined text-[22px]">
                     {showPassword ? "visibility_off" : "visibility"}
@@ -143,59 +184,21 @@ function LoginFormContent() {
               }
             />
 
-            {/* Form Options */}
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center space-x-3 group">
-                <Checkbox
-                  id="remember"
-                  className="w-5 h-5 rounded-lg border-outline-variant text-primary data-[state=checked]:bg-primary data-[state=checked]:text-on-primary focus-visible:ring-primary/20 bg-surface-container-low transition-all data-[state=checked]:border-none shadow-none"
-                />
-                <label
-                  htmlFor="remember"
-                  className="text-sm font-semibold text-on-surface-variant group-hover:text-on-surface transition-colors cursor-pointer"
-                >
-                  Recordar sesión
-                </label>
-              </div>
-              <a
-                className="text-sm font-bold text-primary hover:text-primary-container transition-colors"
-                href="#"
-              >
-                ¿Olvidó su contraseña?
-              </a>
-            </div>
-
-            {/* Submit Button */}
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 h-auto bg-primary text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-primary-container shadow-none hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98] transition-all duration-300"
+              className="flex h-auto w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 font-bold text-white shadow-none transition-all duration-300 hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98]"
             >
-              <span>{isLoading ? "Autenticando..." : "Acceder al Sistema"}</span>
+              <span>{isLoading ? "Autenticando…" : "Acceder al sistema"}</span>
               <span className="material-symbols-outlined">
                 {isLoading ? "hourglass_empty" : "login"}
               </span>
             </Button>
           </form>
-          {/* Access Notice */}
-          <div className="mt-12 p-6 bg-surface-container-low rounded-2xl flex items-start gap-4">
-            <div className="p-2 bg-surface-container-high rounded-xl text-primary">
-              <span className="material-symbols-outlined">info</span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-on-surface uppercase tracking-wider">
-                Aviso de Seguridad
-              </p>
-              <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-                El acceso a esta plataforma es exclusivo para estudiantes y
-                personal autorizado. Si no posee credenciales, contacte a la{" "}
-                <span className="text-primary font-bold">
-                  Dirección de Residencia Estudiantil
-                </span>
-                .
-              </p>
-            </div>
-          </div>
+
+          <p className="mt-6 text-center text-[11px] font-medium text-outline md:hidden">
+            © 2026 UCLV · Marta Abreu de Las Villas
+          </p>
         </div>
       </section>
     </main>
@@ -204,11 +207,13 @@ function LoginFormContent() {
 
 export default function Login() {
   return (
-    <Suspense fallback={
-      <div className="flex h-screen w-full items-center justify-center bg-surface">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-[100dvh] w-full items-center justify-center bg-surface">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
       <LoginFormContent />
     </Suspense>
   );

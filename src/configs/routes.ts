@@ -11,7 +11,7 @@ export const PUBLIC_ROUTES = [
 /**
  * Ruta por defecto a la que se redirige tras un login exitoso.
  */
-export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard/reports";
 
 /**
  * Mapeo estricto de rutas base con los roles permitidos.
