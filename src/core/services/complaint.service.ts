@@ -120,6 +120,29 @@ export const complaintService = {
     return normalizeComplaint(response);
   },
 
+  /**
+   * Envía la respuesta y, si no se desea marcar como resuelta, restaura el estado previo.
+   * La API siempre marca la queja como resuelta al responder; el segundo paso solo aplica
+   * cuando markResolved es false.
+   */
+  respondToComplaintWithOptions: async (
+    id: number,
+    responseText: string,
+    options: { markResolved: boolean; previousStatus: Complaint["status"] }
+  ): Promise<Complaint> => {
+    const responded = await complaintService.respondToComplaint(id, responseText);
+
+    if (
+      !options.markResolved &&
+      options.previousStatus !== "resuelta" &&
+      responded.status === "resuelta"
+    ) {
+      return complaintService.updateComplaintStatus(id, options.previousStatus);
+    }
+
+    return responded;
+  },
+
   updateComplaintVisibility: async (id: number, visibility: boolean): Promise<Complaint> => {
     const response = await fetchClient<Complaint>(`/api/v1/quejas/${id}/visibilidad/`, {
       method: "PATCH",

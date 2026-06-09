@@ -26,13 +26,28 @@ export function useComplaintMutations() {
   };
 
   const respondMutation = useMutation({
-    mutationFn: async ({ id, response }: { id: number; response: string }) => {
-      return complaintService.respondToComplaint(id, response);
+    mutationFn: async ({
+      id,
+      response,
+      markResolved = true,
+      previousStatus = "pendiente",
+    }: {
+      id: number;
+      response: string;
+      markResolved?: boolean;
+      previousStatus?: Complaint["status"];
+    }) => {
+      return complaintService.respondToComplaintWithOptions(id, response, {
+        markResolved,
+        previousStatus,
+      });
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await invalidateComplaints();
       toast.success("Respuesta enviada", {
-        description: "La queja fue respondida correctamente.",
+        description: variables.markResolved
+          ? "La queja fue respondida y marcada como solucionada."
+          : "La queja fue respondida correctamente.",
       });
     },
     onError: (error) => {

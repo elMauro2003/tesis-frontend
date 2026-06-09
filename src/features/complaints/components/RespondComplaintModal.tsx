@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ComplaintActionDialog } from "@/features/complaints/components/ComplaintActionDialog";
 import { useComplaintMutations } from "@/features/complaints/hooks/useComplaintMutations";
@@ -13,7 +14,6 @@ import {
   getComplaintTypeLabel,
 } from "@/features/complaints/utils/complaintDashboard";
 import { Complaint } from "@/types/models";
-import { toast } from "sonner";
 
 const MIN_RESPONSE_LENGTH = 10;
 const MAX_RESPONSE_LENGTH = 2000;
@@ -26,26 +26,25 @@ interface RespondComplaintModalProps {
 
 export function RespondComplaintModal({ complaint, open, onClose }: RespondComplaintModalProps) {
   const formId = useId();
+  const resolveCheckboxId = `${formId}-mark-resolved`;
   const [response, setResponse] = useState("");
   const [markResolved, setMarkResolved] = useState(true);
-  const { respondMutation, statusMutation } = useComplaintMutations();
+  const { respondMutation } = useComplaintMutations();
 
   useEffect(() => {
     if (!open) {
-      setResponse(complaint?.response ?? "");
-      setMarkResolved(true);
-      respondMutation.reset();
-      statusMutation.reset();
       return;
     }
 
     setResponse(complaint?.response ?? "");
     setMarkResolved(complaint?.status !== "resuelta");
+    respondMutation.reset();
   }, [open, complaint?.id, complaint?.response, complaint?.status]);
 
   const trimmed = response.trim();
   const isValid = trimmed.length >= MIN_RESPONSE_LENGTH && trimmed.length <= MAX_RESPONSE_LENGTH;
-  const isPending = respondMutation.isPending || statusMutation.isPending;
+  const isPending = respondMutation.isPending;
+  const showResolveCheckbox = complaint?.status !== "resuelta";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -55,24 +54,14 @@ export function RespondComplaintModal({ complaint, open, onClose }: RespondCompl
     }
 
     respondMutation.mutate(
-      { id: complaint.id, response: trimmed },
       {
-        onSuccess: () => {
-          if (markResolved && complaint.status !== "resuelta") {
-            statusMutation.mutate(
-              { id: complaint.id, status: "resuelta" },
-              {
-                onSuccess: () => onClose(),
-              }
-            );
-            return;
-          }
-
-          onClose();
-        },
-        onError: () => {
-          toast.error("No se pudo enviar la respuesta");
-        },
+        id: complaint.id,
+        response: trimmed,
+        markResolved: showResolveCheckbox ? markResolved : false,
+        previousStatus: complaint.status,
+      },
+      {
+        onSuccess: () => onClose(),
       }
     );
   };
@@ -144,16 +133,23 @@ export function RespondComplaintModal({ complaint, open, onClose }: RespondCompl
             Mínimo {MIN_RESPONSE_LENGTH} caracteres · {trimmed.length}/{MAX_RESPONSE_LENGTH}
           </p>
 
-          <label className="flex cursor-pointer items-start gap-3">
-            <Checkbox
-              checked={markResolved}
-              onCheckedChange={(checked) => setMarkResolved(checked === true)}
-              className="mt-0.5"
-            />
-            <span className="text-sm font-medium leading-snug text-[var(--color-on-surface-variant)]">
-              Marcar automáticamente el estado de esta queja como &ldquo;Solucionada&rdquo; al enviar la respuesta
-            </span>
-          </label>
+          {showResolveCheckbox ? (
+            <div className="flex items-start gap-3 rounded-xl border border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/60 p-3">
+              <Checkbox
+                id={resolveCheckboxId}
+                checked={markResolved}
+                onCheckedChange={(checked) => setMarkResolved(checked === true)}
+                className="mt-0.5"
+              />
+              <Label
+                htmlFor={resolveCheckboxId}
+                className="cursor-pointer text-sm font-medium leading-snug text-[var(--color-on-surface-variant)]"
+              >
+                Marcar automáticamente el estado de esta queja como &ldquo;Solucionada&rdquo; al enviar la
+                respuesta
+              </Label>
+            </div>
+          ) : null}
         </div>
       </form>
     </ComplaintActionDialog>

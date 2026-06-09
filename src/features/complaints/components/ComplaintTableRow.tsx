@@ -88,8 +88,8 @@ export function ComplaintTableRow({
                 variant="ghost"
                 size="icon"
                 className={cn(actionButtonClass, "hover:text-[var(--color-success)]")}
-                title="Asignar responsable"
-                aria-label="Asignar responsable"
+                title="Asignar responsable (próximamente)"
+                aria-label="Asignar responsable (próximamente)"
                 onClick={() => onAssign(complaint)}
               >
                 <span className="material-symbols-outlined text-[20px]">person_add</span>
