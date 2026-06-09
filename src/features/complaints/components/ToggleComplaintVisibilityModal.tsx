@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ComplaintActionDialog } from "@/features/complaints/components/ComplaintActionDialog";
 import { useComplaintMutations } from "@/features/complaints/hooks/useComplaintMutations";
-import { getComplaintTitle } from "@/features/complaints/utils/complaintDashboard";
 import { Complaint } from "@/types/models";
+import { cn } from "@/utils/helpers/shadcn/index";
 
 interface ToggleComplaintVisibilityModalProps {
   complaint: Complaint | null;
@@ -13,28 +13,48 @@ interface ToggleComplaintVisibilityModalProps {
   onClose: () => void;
 }
 
+const VISIBILITY_OPTIONS = [
+  {
+    value: false,
+    label: "Privada",
+    description: "Solo el estudiante emisor y la administración pueden verla.",
+    icon: "lock",
+  },
+  {
+    value: true,
+    label: "Pública",
+    description: "Visible en el muro para todos los residentes (oculta datos personales).",
+    icon: "public",
+  },
+] as const;
+
 export function ToggleComplaintVisibilityModal({
   complaint,
   open,
   onClose,
 }: ToggleComplaintVisibilityModalProps) {
   const { visibilityMutation } = useComplaintMutations();
-  const isPublic = Boolean(complaint?.visibility ?? complaint?.is_public);
-  const nextVisibility = !isPublic;
+  const currentVisibility = Boolean(complaint?.visibility ?? complaint?.is_public);
+  const [selectedVisibility, setSelectedVisibility] = useState(currentVisibility);
 
   useEffect(() => {
     if (!open) {
       visibilityMutation.reset();
+      return;
     }
-  }, [open]);
 
-  const handleConfirm = () => {
-    if (!complaint || visibilityMutation.isPending) {
+    setSelectedVisibility(Boolean(complaint?.visibility ?? complaint?.is_public));
+  }, [open, complaint?.id, complaint?.visibility, complaint?.is_public]);
+
+  const hasChanges = complaint ? selectedVisibility !== currentVisibility : false;
+
+  const handleSave = () => {
+    if (!complaint || !hasChanges || visibilityMutation.isPending) {
       return;
     }
 
     visibilityMutation.mutate(
-      { id: complaint.id, visibility: nextVisibility },
+      { id: complaint.id, visibility: selectedVisibility },
       {
         onSuccess: () => {
           onClose();
@@ -44,54 +64,84 @@ export function ToggleComplaintVisibilityModal({
   };
 
   return (
-    <BottomSheet open={open && !!complaint} onClose={onClose} maxWidthClassName="max-w-md">
-      <div className="overflow-hidden rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
-        <div className="flex items-start gap-4 bg-[var(--color-primary-selected)]/40 p-6">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-selected)] text-[var(--color-primary)]">
-            <span className="material-symbols-outlined text-2xl">shield_lock</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-headline text-xl font-extrabold leading-tight text-[var(--color-primary-dark)]">
-              {nextVisibility ? "Hacer pública la queja" : "Marcar como privada"}
-            </h3>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--color-on-surface-variant)]">
-              {nextVisibility
-                ? "La queja aparecerá en el archivo visible del portal estudiantil."
-                : "Solo la administración podrá consultar esta queja."}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="cursor-pointer text-[var(--color-outline)] transition-colors hover:text-[var(--color-on-surface)]"
-            onClick={onClose}
-            aria-label="Cerrar modal"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        <div className="space-y-4 p-6">
-          <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Queja</p>
-            <p className="mt-2 text-base font-bold text-[var(--color-primary-dark)]">
-              {complaint ? getComplaintTitle(complaint.description) : "—"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col-reverse gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/40 p-6 sm:flex-row sm:justify-end">
+    <ComplaintActionDialog
+      open={open}
+      onClose={onClose}
+      title="Nivel de visibilidad"
+      complaint={complaint}
+      icon="shield_lock"
+      iconWrapperClassName="bg-[var(--color-primary-selected)] text-[var(--color-primary-dark)]"
+      maxWidthClassName="max-w-sm"
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="cancel" onClick={onClose} disabled={visibilityMutation.isPending}>
             Cancelar
           </Button>
-          <Button type="button" variant="confirm" onClick={handleConfirm} disabled={visibilityMutation.isPending}>
-            {visibilityMutation.isPending
-              ? "Guardando..."
-              : nextVisibility
-                ? "Confirmar visibilidad pública"
-                : "Confirmar visibilidad privada"}
+          <Button
+            type="button"
+            variant="confirm"
+            onClick={handleSave}
+            disabled={!hasChanges || visibilityMutation.isPending}
+          >
+            {visibilityMutation.isPending ? "Guardando..." : "Guardar cambios"}
           </Button>
         </div>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {VISIBILITY_OPTIONS.map((option) => {
+          const active = selectedVisibility === option.value;
+
+          return (
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => setSelectedVisibility(option.value)}
+              className={cn(
+                "relative flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all",
+                active
+                  ? "border-2 border-[var(--color-primary)] bg-[var(--color-primary-selected)]/40"
+                  : "border-[var(--color-outline-variant)]/25 bg-[var(--color-surface-container-lowest)] hover:border-[var(--color-outline-variant)]/50"
+              )}
+            >
+              {active ? (
+                <span
+                  className="material-symbols-outlined absolute right-4 top-4 text-xl text-[var(--color-primary)]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  check_circle
+                </span>
+              ) : null}
+              <span
+                className={cn(
+                  "material-symbols-outlined shrink-0",
+                  active ? "text-[var(--color-primary-dark)]" : "text-[var(--color-outline)]"
+                )}
+              >
+                {option.icon}
+              </span>
+              <div className="min-w-0 pr-8">
+                <p
+                  className={cn(
+                    "text-sm font-bold",
+                    active ? "text-[var(--color-primary-dark)]" : "text-[var(--color-on-surface)]"
+                  )}
+                >
+                  {option.label}
+                </p>
+                <p
+                  className={cn(
+                    "mt-0.5 line-clamp-3 text-[10px] leading-relaxed",
+                    active ? "text-[var(--color-primary-dark)]/80" : "text-[var(--color-on-surface-variant)]"
+                  )}
+                >
+                  {option.description}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
-    </BottomSheet>
+    </ComplaintActionDialog>
   );
 }

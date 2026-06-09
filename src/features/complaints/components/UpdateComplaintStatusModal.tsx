@@ -1,15 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useId, useState } from "react";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ComplaintActionDialog } from "@/features/complaints/components/ComplaintActionDialog";
 import { useComplaintMutations } from "@/features/complaints/hooks/useComplaintMutations";
-import {
-  COMPLAINT_STATUS_UPDATE_OPTIONS,
-  getComplaintTitle,
-} from "@/features/complaints/utils/complaintDashboard";
+import { COMPLAINT_STATUS_CARD_OPTIONS } from "@/features/complaints/utils/complaintDashboard";
 import { Complaint } from "@/types/models";
+import { cn } from "@/utils/helpers/shadcn/index";
 
 interface UpdateComplaintStatusModalProps {
   complaint: Complaint | null;
@@ -18,7 +15,6 @@ interface UpdateComplaintStatusModalProps {
 }
 
 export function UpdateComplaintStatusModal({ complaint, open, onClose }: UpdateComplaintStatusModalProps) {
-  const formId = useId();
   const [status, setStatus] = useState<Complaint["status"]>("pendiente");
   const { statusMutation } = useComplaintMutations();
 
@@ -33,9 +29,7 @@ export function UpdateComplaintStatusModal({ complaint, open, onClose }: UpdateC
 
   const hasChanges = complaint ? status !== complaint.status : false;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleSave = () => {
     if (!complaint || !hasChanges || statusMutation.isPending) {
       return;
     }
@@ -51,21 +45,22 @@ export function UpdateComplaintStatusModal({ complaint, open, onClose }: UpdateC
   };
 
   return (
-    <BottomSheet
-      open={open && !!complaint}
+    <ComplaintActionDialog
+      open={open}
       onClose={onClose}
-      title="Actualizar estado"
-      subtitle="Seleccione el nuevo estado de seguimiento para la queja."
-      maxWidthClassName="max-w-md"
+      title="Modificar estado"
+      complaint={complaint}
+      icon="published_with_changes"
+      iconWrapperClassName="bg-[var(--color-primary-selected)] text-[var(--color-primary)]"
       footer={
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="cancel" onClick={onClose} disabled={statusMutation.isPending}>
             Cancelar
           </Button>
           <Button
-            type="submit"
-            form={formId}
+            type="button"
             variant="confirm"
+            onClick={handleSave}
             disabled={!hasChanges || statusMutation.isPending}
           >
             {statusMutation.isPending ? "Guardando..." : "Guardar estado"}
@@ -73,35 +68,59 @@ export function UpdateComplaintStatusModal({ complaint, open, onClose }: UpdateC
         </div>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-5 p-6">
-        <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Queja</p>
-          <p className="mt-2 text-sm font-semibold text-[var(--color-primary-dark)]">
-            {complaint ? getComplaintTitle(complaint.description) : "—"}
-          </p>
-        </div>
+      <div className="space-y-2.5">
+        {COMPLAINT_STATUS_CARD_OPTIONS.map((option) => {
+          const active = status === option.value;
 
-        <div className="space-y-2">
-          <label
-            htmlFor={`${formId}-status`}
-            className="ml-1 block text-[10px] font-bold uppercase tracking-widest text-[var(--color-on-surface-variant)]"
-          >
-            Estado
-          </label>
-          <Select value={status} onValueChange={(value) => setStatus(value as Complaint["status"])}>
-            <SelectTrigger id={`${formId}-status`} className="h-12 rounded-2xl border-0 bg-[var(--color-surface-container-low)]">
-              <SelectValue placeholder="Seleccionar estado" />
-            </SelectTrigger>
-            <SelectContent>
-              {COMPLAINT_STATUS_UPDATE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </form>
-    </BottomSheet>
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setStatus(option.value)}
+              className={cn(
+                "group flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-all",
+                active
+                  ? "border-2 border-[var(--color-primary)] bg-[var(--color-primary-selected)]/50 shadow-sm"
+                  : "border-[var(--color-outline-variant)]/25 bg-[var(--color-surface-container-lowest)] hover:bg-[var(--color-surface-container-low)]"
+              )}
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <span
+                  className={cn(
+                    "material-symbols-outlined shrink-0 text-[var(--color-outline)]",
+                    active ? "text-[var(--color-primary)]" : option.hoverIconClass
+                  )}
+                >
+                  {option.icon}
+                </span>
+                <div className="min-w-0">
+                  <p
+                    className={cn(
+                      "text-sm font-bold leading-none",
+                      active ? "text-[var(--color-primary-dark)]" : "text-[var(--color-on-surface)]"
+                    )}
+                  >
+                    {option.label}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 line-clamp-2 text-[10px] leading-relaxed",
+                      active ? "text-[var(--color-primary)]/80" : "text-[var(--color-on-surface-variant)]"
+                    )}
+                  >
+                    {option.description}
+                  </p>
+                </div>
+              </div>
+              {active ? (
+                <span className="material-symbols-outlined shrink-0 text-[var(--color-primary)]">check_circle</span>
+              ) : (
+                <span className="h-5 w-5 shrink-0 rounded-full border-2 border-[var(--color-outline-variant)]/40" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </ComplaintActionDialog>
   );
 }

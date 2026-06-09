@@ -29,6 +29,49 @@ export const COMPLAINT_STATUS_UPDATE_OPTIONS = [
   { value: "rechazada", label: "Rechazada" },
 ] as const;
 
+export const COMPLAINT_STATUS_CARD_OPTIONS = [
+  {
+    value: "pendiente" as const,
+    label: "Aceptada",
+    description: "La queja es válida y ha sido admitida.",
+    icon: "assignment_turned_in",
+    hoverIconClass: "group-hover:text-teal-600",
+  },
+  {
+    value: "en_proceso" as const,
+    label: "En proceso",
+    description: "El personal técnico está trabajando en la incidencia.",
+    icon: "sync",
+    hoverIconClass: "group-hover:text-[var(--color-primary)]",
+  },
+  {
+    value: "resuelta" as const,
+    label: "Solucionada",
+    description: "La incidencia ha sido resuelta satisfactoriamente.",
+    icon: "task_alt",
+    hoverIconClass: "group-hover:text-[var(--color-success)]",
+  },
+  {
+    value: "rechazada" as const,
+    label: "Rechazada",
+    description: "La queja no procede, está duplicada o es inválida.",
+    icon: "cancel",
+    hoverIconClass: "group-hover:text-[var(--color-error)]",
+  },
+];
+
+export function formatComplaintDateCompact(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "short",
+  }).format(parsed);
+}
+
 export function isClosedComplaintStatus(status: Complaint["status"]) {
   return status === "resuelta" || status === "rechazada";
 }

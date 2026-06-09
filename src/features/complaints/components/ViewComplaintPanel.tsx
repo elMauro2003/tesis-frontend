@@ -88,7 +88,7 @@ export function ViewComplaintPanel({
               </p>
               <h3
                 id="complaint-panel-title"
-                className="mt-1 font-headline text-2xl font-bold leading-tight text-[var(--color-primary-dark)]"
+                className="mt-1 line-clamp-3 break-words font-headline text-xl font-bold leading-snug text-[var(--color-primary-dark)] sm:text-2xl"
               >
                 {complaint?.description}
               </h3>
@@ -135,7 +135,9 @@ export function ViewComplaintPanel({
 
           <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Descripción</p>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--color-on-surface)]">{complaint?.description}</p>
+            <p className="mt-3 break-words text-sm leading-relaxed text-[var(--color-on-surface)]">
+              {complaint?.description}
+            </p>
           </div>
 
           {complaint?.response ? (

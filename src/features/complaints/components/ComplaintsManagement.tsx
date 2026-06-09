@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
@@ -12,6 +11,7 @@ import { DashboardFilterSelectSkeleton, DashboardTableSkeleton } from "@/compone
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { ComplaintTableRow } from "@/features/complaints/components/ComplaintTableRow";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { AssignComplaintModal } from "@/features/complaints/components/AssignComplaintModal";
 import { RespondComplaintModal } from "@/features/complaints/components/RespondComplaintModal";
 import { ToggleComplaintVisibilityModal } from "@/features/complaints/components/ToggleComplaintVisibilityModal";
 import { UpdateComplaintStatusModal } from "@/features/complaints/components/UpdateComplaintStatusModal";
@@ -62,6 +62,7 @@ function ManagerComplaintsView() {
   const [respondComplaint, setRespondComplaint] = useState<Complaint | null>(null);
   const [statusComplaint, setStatusComplaint] = useState<Complaint | null>(null);
   const [visibilityComplaint, setVisibilityComplaint] = useState<Complaint | null>(null);
+  const [assignComplaint, setAssignComplaint] = useState<Complaint | null>(null);
 
   const buildingsQuery = useDashboardComplaintBuildings(canView);
 
@@ -146,10 +147,9 @@ function ManagerComplaintsView() {
     setVisibilityComplaint(complaint);
   };
 
-  const handleAssign = (_complaint: Complaint) => {
-    toast.info("Asignación de responsables", {
-      description: "Esta función estará disponible en una próxima iteración del módulo.",
-    });
+  const openAssignModal = (complaint: Complaint) => {
+    if (!canManage) return;
+    setAssignComplaint(complaint);
   };
 
   return (
@@ -208,26 +208,35 @@ function ManagerComplaintsView() {
       />
 
       <section className="overflow-hidden rounded-xl bg-[var(--color-surface-container-lowest)] shadow-[0_20px_40px_rgba(0,55,176,0.04)]">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed border-collapse text-left">
+            <colgroup>
+              <col className="w-[28%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[8%]" />
+              <col className="w-[14%]" />
+              <col className="w-[28%]" />
+            </colgroup>
             <thead className="bg-[var(--color-surface-container-low)]/40">
               <tr>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                   Asunto y emisor
                 </th>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                   Fecha
                 </th>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                   Categoría
                 </th>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
-                  Visibilidad
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  <span className="sr-only">Visibilidad</span>
+                  <span aria-hidden>Vis.</span>
                 </th>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                   Estado
                 </th>
-                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
                   Acción
                 </th>
               </tr>
@@ -268,7 +277,7 @@ function ManagerComplaintsView() {
                     canManage={canManage}
                     onView={setViewComplaint}
                     onToggleVisibility={openVisibilityModal}
-                    onAssign={handleAssign}
+                    onAssign={openAssignModal}
                     onUpdateStatus={openStatusModal}
                     onRespond={openRespondModal}
                   />
@@ -321,6 +330,12 @@ function ManagerComplaintsView() {
             complaint={visibilityComplaint}
             open={Boolean(visibilityComplaint)}
             onClose={() => setVisibilityComplaint(null)}
+          />
+
+          <AssignComplaintModal
+            complaint={assignComplaint}
+            open={Boolean(assignComplaint)}
+            onClose={() => setAssignComplaint(null)}
           />
         </>
       ) : null}

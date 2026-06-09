@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ComplaintStatusBadge } from "@/features/complaints/components/ComplaintStatusBadge";
 import { ComplaintVisibilityCell } from "@/features/complaints/components/ComplaintVisibilityCell";
 import {
-  formatComplaintDate,
+  formatComplaintDateCompact,
   getComplaintSenderSubtitle,
   getComplaintTitle,
   getComplaintTypeLabel,
@@ -13,7 +13,7 @@ import {
 import { cn } from "@/utils/helpers/shadcn/index";
 
 const actionButtonClass =
-  "h-8 w-8 shrink-0 text-[var(--color-outline)] hover:bg-[var(--color-surface-container-low)]";
+  "h-8 w-8 shrink-0 p-0 text-[var(--color-outline)] hover:bg-[var(--color-surface-container-low)]";
 
 interface ComplaintTableRowProps {
   complaint: Complaint;
@@ -38,41 +38,47 @@ export function ComplaintTableRow({
 
   return (
     <tr className="group transition-colors hover:bg-[var(--color-primary-selected)]/30">
-      <td className="px-6 py-5">
-        <div className="flex min-w-0 flex-col">
-          <span className="text-sm font-bold text-[var(--color-primary-dark)] transition-colors group-hover:text-[var(--color-primary)]">
+      <td className="px-4 py-3.5 align-top">
+        <div className="min-w-0">
+          <p
+            className="line-clamp-2 break-words text-sm font-bold leading-snug text-[var(--color-primary-dark)] transition-colors group-hover:text-[var(--color-primary)]"
+            title={getComplaintTitle(complaint.description)}
+          >
             {getComplaintTitle(complaint.description)}
-          </span>
-          <span className="mt-0.5 text-xs text-[var(--color-on-secondary-container)]">
+          </p>
+          <p className="mt-0.5 line-clamp-1 break-words text-xs text-[var(--color-on-secondary-container)]">
             {getComplaintSenderSubtitle(complaint)}
-          </span>
+          </p>
         </div>
       </td>
-      <td className="px-6 py-5 text-sm font-medium text-[var(--color-on-surface-variant)]">
-        {formatComplaintDate(complaint.date)}
+      <td className="px-3 py-3.5 align-top text-sm font-medium whitespace-nowrap text-[var(--color-on-surface-variant)]">
+        {formatComplaintDateCompact(complaint.date)}
       </td>
-      <td className="px-6 py-5">
-        <span className="inline-flex items-center rounded-full bg-[var(--color-surface-container-high)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-on-surface)]">
+      <td className="px-3 py-3.5 align-top">
+        <span
+          className="inline-flex max-w-full items-center truncate rounded-full bg-[var(--color-surface-container-high)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-on-surface)]"
+          title={getComplaintTypeLabel(complaint)}
+        >
           {getComplaintTypeLabel(complaint)}
         </span>
       </td>
-      <td className="px-6 py-5">
-        <ComplaintVisibilityCell complaint={complaint} />
+      <td className="px-3 py-3.5 align-top">
+        <ComplaintVisibilityCell complaint={complaint} compact />
       </td>
-      <td className="px-6 py-5">
-        <ComplaintStatusBadge complaint={complaint} />
+      <td className="px-3 py-3.5 align-top">
+        <ComplaintStatusBadge complaint={complaint} className="px-2 py-0.5 text-[10px]" />
       </td>
-      <td className="px-6 py-5">
-        <div className="flex items-center justify-end gap-1">
+      <td className="px-4 py-3.5 align-top">
+        <div className="flex items-center justify-end gap-1.5">
           {canManage ? (
-            <>
+            <div className="flex items-center gap-1.5">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className={cn(actionButtonClass, "hover:text-amber-600")}
-                title={isPublic ? "Marcar como privada" : "Marcar como pública"}
-                aria-label={isPublic ? "Marcar como privada" : "Marcar como pública"}
+                title={isPublic ? "Cambiar visibilidad" : "Cambiar visibilidad"}
+                aria-label="Cambiar visibilidad"
                 onClick={() => onToggleVisibility(complaint)}
               >
                 <span className="material-symbols-outlined text-[20px]">shield_lock</span>
@@ -110,7 +116,10 @@ export function ComplaintTableRow({
               >
                 <span className="material-symbols-outlined text-[20px]">reply</span>
               </Button>
-            </>
+            </div>
+          ) : null}
+          {canManage ? (
+            <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--color-outline-variant)]/25" aria-hidden />
           ) : null}
           <Button
             type="button"
