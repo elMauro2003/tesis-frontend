@@ -1,66 +1,73 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useComplaintsForRole } from "@/features/complaints/hooks/useComplaintsForRole";
-import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
+import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
-import { DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
+import { DashboardFilterSelectSkeleton, DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
+import { ComplaintTableRow } from "@/features/complaints/components/ComplaintTableRow";
+import { RespondComplaintModal } from "@/features/complaints/components/RespondComplaintModal";
+import { StudentComplaintsPanel } from "@/features/complaints/components/StudentComplaintsPanel";
+import { ToggleComplaintVisibilityModal } from "@/features/complaints/components/ToggleComplaintVisibilityModal";
+import { UpdateComplaintStatusModal } from "@/features/complaints/components/UpdateComplaintStatusModal";
+import { ViewComplaintPanel } from "@/features/complaints/components/ViewComplaintPanel";
+import { useComplaintsForRole } from "@/features/complaints/hooks/useComplaintsForRole";
+import { useDashboardComplaintBuildings } from "@/features/complaints/hooks/useDashboardComplaintBuildings";
+import {
+  COMPLAINT_STATUS_SEGMENT_OPTIONS,
+  COMPLAINT_TYPE_FILTER_OPTIONS,
+  ComplaintStatusSegment,
+} from "@/features/complaints/utils/complaintDashboard";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Complaint } from "@/types/models";
-import { toast } from "sonner";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "Estado: Todos" },
-  { value: "pendiente", label: "Estado: Pendiente" },
-  { value: "en_proceso", label: "Estado: En proceso" },
-  { value: "resuelta", label: "Estado: Resuelta" },
-  { value: "rechazada", label: "Estado: Rechazada" },
-];
+export function ComplaintsManagement() {
+  const { canManageComplaints } = usePermissions();
+  const isManager = canManageComplaints();
 
-const TYPE_OPTIONS = [
-  { value: "all", label: "Tipo: Todos" },
-  { value: "administrativa", label: "Tipo: Administrativa" },
-  { value: "educativa", label: "Tipo: Educativa" },
-];
-
-const STATUS_LABELS: Record<Complaint["status"], string> = {
-  pendiente: "Pendiente",
-  en_proceso: "En proceso",
-  resuelta: "Resuelta",
-  rechazada: "Rechazada",
-};
-
-const formatComplaintDate = (value: string) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
+  if (!isManager) {
+    return (
+      <div className="w-full space-y-8">
+        <DashboardPageHeader
+          title="Mis quejas"
+          description="Revise el estado de sus quejas y presente nuevas solicitudes cuando sea necesario."
+          topBadge="Atención estudiantil"
+          searchValue=""
+          onSearchChange={() => {}}
+          searchPlaceholder="Buscar en mis quejas..."
+          showSearch={false}
+        />
+        <StudentComplaintsPanel />
+      </div>
+    );
   }
 
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(parsed);
-};
+  return <ManagerComplaintsView />;
+}
 
-export function ComplaintsManagement() {
-  const { can, canManageComplaints } = usePermissions();
-  const isManager = canManageComplaints();
-  const canCreateComplaint = can("complaints", "create");
-
+function ManagerComplaintsView() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [buildingFilter, setBuildingFilter] = useState("all");
+  const [statusSegment, setStatusSegment] = useState<ComplaintStatusSegment>("pendiente");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  const [viewComplaint, setViewComplaint] = useState<Complaint | null>(null);
+  const [respondComplaint, setRespondComplaint] = useState<Complaint | null>(null);
+  const [statusComplaint, setStatusComplaint] = useState<Complaint | null>(null);
+  const [visibilityComplaint, setVisibilityComplaint] = useState<Complaint | null>(null);
+
+  const buildingsQuery = useDashboardComplaintBuildings(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 450);
@@ -69,11 +76,12 @@ export function ComplaintsManagement() {
 
   const complaintsQuery = useComplaintsForRole({
     search: debouncedSearch || undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
     type: typeFilter !== "all" ? typeFilter : undefined,
+    building: buildingFilter !== "all" ? Number(buildingFilter) : undefined,
     ordering: "-date",
     page,
     page_size: pageSize,
+    statusSegment,
   });
 
   const complaints = complaintsQuery.data?.results ?? [];
@@ -89,19 +97,33 @@ export function ComplaintsManagement() {
 
   const resetPage = () => setPage(1);
 
+  const buildingOptions = useMemo(() => {
+    const dynamic = (buildingsQuery.data ?? []).map((building) => ({
+      value: String(building.id),
+      label: `Edificio: ${building.label}`,
+    }));
+
+    return [{ value: "all", label: "Edificio: Todos" }, ...dynamic];
+  }, [buildingsQuery.data]);
+
   const handleClearFilters = () => {
     setSearch("");
     setDebouncedSearch("");
-    setStatusFilter("all");
     setTypeFilter("all");
+    setBuildingFilter("all");
+    setStatusSegment("all");
     resetPage();
   };
 
   const hasFiltersApplied =
-    debouncedSearch.length > 0 || statusFilter !== "all" || typeFilter !== "all";
+    debouncedSearch.length > 0 ||
+    typeFilter !== "all" ||
+    buildingFilter !== "all" ||
+    statusSegment !== "pendiente";
 
   const isLoading = complaintsQuery.isLoading;
   const isError = complaintsQuery.isError;
+  const isFiltersLoading = buildingsQuery.isLoading;
 
   const emptyTitle = useMemo(() => {
     if (hasFiltersApplied) {
@@ -111,55 +133,43 @@ export function ComplaintsManagement() {
     return "No hay quejas registradas";
   }, [hasFiltersApplied]);
 
+  const openRespondModal = (complaint: Complaint) => {
+    setViewComplaint(null);
+    setRespondComplaint(complaint);
+  };
+
+  const openStatusModal = (complaint: Complaint) => {
+    setViewComplaint(null);
+    setStatusComplaint(complaint);
+  };
+
+  const openVisibilityModal = (complaint: Complaint) => {
+    setVisibilityComplaint(complaint);
+  };
+
+  const handleAssign = (_complaint: Complaint) => {
+    toast.info("Asignación de responsables", {
+      description: "Esta función estará disponible en una próxima iteración del módulo.",
+    });
+  };
+
   return (
     <div className="w-full space-y-8">
       <DashboardPageHeader
-        title={isManager ? "Gestión de quejas" : "Mis quejas"}
-        description={
-          isManager
-            ? "Consulte y gestione las quejas presentadas por la comunidad estudiantil."
-            : "Revise el estado de sus quejas y presente nuevas solicitudes cuando sea necesario."
-        }
+        title="Gestión de quejas"
+        description="Consulte y gestione las quejas presentadas por la comunidad estudiantil."
         topBadge="Atención estudiantil"
         searchValue={search}
         onSearchChange={(value) => {
           setSearch(value);
           resetPage();
         }}
-        searchPlaceholder={
-          isManager
-            ? "Buscar queja por descripción o estudiante..."
-            : "Buscar en mis quejas..."
-        }
-        actionLabel={canCreateComplaint ? "Nueva queja" : undefined}
-        actionIcon="add"
-        onAction={
-          canCreateComplaint
-            ? () => {
-                toast.info("Registro de quejas", {
-                  description: "El formulario de creación estará disponible en una próxima iteración.",
-                });
-              }
-            : undefined
-        }
-        showSearch={isManager}
+        searchPlaceholder="Buscar por asunto, número de queja o estudiante..."
       />
 
-      {isManager ? (
-        <DashboardFiltersBar
-          left={
-            <DashboardFilterSelect
-              className="w-full sm:w-56"
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                resetPage();
-              }}
-              placeholder="Estado"
-              options={STATUS_OPTIONS}
-            />
-          }
-          right={
+      <DashboardFiltersBar
+        left={
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
             <DashboardFilterSelect
               className="w-full sm:w-56"
               value={typeFilter}
@@ -167,48 +177,74 @@ export function ComplaintsManagement() {
                 setTypeFilter(value);
                 resetPage();
               }}
-              placeholder="Tipo"
-              options={TYPE_OPTIONS}
+              placeholder="Categoría"
+              options={COMPLAINT_TYPE_FILTER_OPTIONS}
             />
-          }
-        />
-      ) : null}
-
-      <section className="overflow-hidden rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)]">
-        <div className="flex items-center justify-between gap-4 bg-[var(--color-surface-container-low)] px-6 py-5">
-          <div>
-            <h2 className="text-base font-bold text-[var(--color-primary-dark)]">
-              {isManager ? "Bandeja de quejas" : "Mis solicitudes"}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
-              {isLoading ? "Cargando quejas..." : `${totalItems} queja${totalItems === 1 ? "" : "s"} registrada${totalItems === 1 ? "" : "s"}`}
-            </p>
+            {isFiltersLoading ? (
+              <DashboardFilterSelectSkeleton className="w-full sm:w-56" />
+            ) : (
+              <DashboardFilterSelect
+                className="w-full sm:w-56"
+                value={buildingFilter}
+                onValueChange={(value) => {
+                  setBuildingFilter(value);
+                  resetPage();
+                }}
+                placeholder="Edificio"
+                options={buildingOptions}
+              />
+            )}
           </div>
-        </div>
+        }
+        right={
+          <DashboardSegmentedFilter
+            value={statusSegment}
+            onValueChange={(value) => {
+              setStatusSegment(value as ComplaintStatusSegment);
+              resetPage();
+            }}
+            options={[...COMPLAINT_STATUS_SEGMENT_OPTIONS]}
+          />
+        }
+      />
 
+      <section className="overflow-hidden rounded-xl bg-[var(--color-surface-container-lowest)] shadow-[0_20px_40px_rgba(0,55,176,0.04)]">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-[var(--color-surface-container-low)]/70">
+          <table className="min-w-full border-collapse text-left">
+            <thead className="bg-[var(--color-surface-container-low)]/40">
               <tr>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Fecha</th>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Tipo</th>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Estado</th>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Descripción</th>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">Edificio</th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Asunto y emisor
+                </th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Fecha
+                </th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Categoría
+                </th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Visibilidad
+                </th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Estado
+                </th>
+                <th className="border-b border-[var(--color-outline-variant)]/10 px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
+                  Acción
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-outline-variant)]/10">
               {isError ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-[var(--color-on-surface-variant)]">
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-[var(--color-on-surface-variant)]">
                     No fue posible cargar las quejas. Intente nuevamente.
                   </td>
                 </tr>
               ) : isLoading ? (
-                <DashboardTableSkeleton rows={5} columns={5} />
+                <DashboardTableSkeleton rows={5} columns={6} />
               ) : complaints.length === 0 ? (
                 <TableEmptyState
-                  colSpan={5}
+                  colSpan={6}
                   title={emptyTitle}
                   description={
                     hasFiltersApplied
@@ -227,21 +263,16 @@ export function ComplaintsManagement() {
                 />
               ) : (
                 complaints.map((complaint) => (
-                  <tr key={complaint.id} className="hover:bg-[var(--color-primary-selected)]/40 transition-colors">
-                    <td className="px-6 py-5 text-sm text-[var(--color-on-surface-variant)]">
-                      {formatComplaintDate(complaint.date)}
-                    </td>
-                    <td className="px-6 py-5 text-sm capitalize text-[var(--color-on-surface)]">{complaint.type}</td>
-                    <td className="px-6 py-5">
-                      <span className="inline-flex rounded-full bg-[var(--color-surface-container-high)] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-on-surface-variant)]">
-                        {STATUS_LABELS[complaint.status]}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-sm text-[var(--color-on-surface)]">{complaint.description}</td>
-                    <td className="px-6 py-5 text-sm text-[var(--color-on-surface-variant)]">
-                      {complaint.building_name ?? "—"}
-                    </td>
-                  </tr>
+                  <ComplaintTableRow
+                    key={complaint.id}
+                    complaint={complaint}
+                    canManage
+                    onView={setViewComplaint}
+                    onToggleVisibility={openVisibilityModal}
+                    onAssign={handleAssign}
+                    onUpdateStatus={openStatusModal}
+                    onRespond={openRespondModal}
+                  />
                 ))
               )}
             </tbody>
@@ -264,6 +295,32 @@ export function ComplaintsManagement() {
           />
         ) : null}
       </section>
+
+      <ViewComplaintPanel
+        complaint={viewComplaint}
+        onClose={() => setViewComplaint(null)}
+        canManage
+        onRespond={openRespondModal}
+        onUpdateStatus={openStatusModal}
+      />
+
+      <RespondComplaintModal
+        complaint={respondComplaint}
+        open={Boolean(respondComplaint)}
+        onClose={() => setRespondComplaint(null)}
+      />
+
+      <UpdateComplaintStatusModal
+        complaint={statusComplaint}
+        open={Boolean(statusComplaint)}
+        onClose={() => setStatusComplaint(null)}
+      />
+
+      <ToggleComplaintVisibilityModal
+        complaint={visibilityComplaint}
+        open={Boolean(visibilityComplaint)}
+        onClose={() => setVisibilityComplaint(null)}
+      />
     </div>
   );
 }
