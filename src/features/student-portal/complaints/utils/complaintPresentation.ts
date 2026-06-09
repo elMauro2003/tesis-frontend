@@ -43,7 +43,7 @@ export function getComplaintStatusTone(status: Complaint["status"]) {
 }
 
 export function getComplaintBorderClass(status: Complaint["status"]) {
-  if (status === "resuelta") return "border-l-green-700";
+  if (status === "resuelta") return "border-l-success";
   if (status === "rechazada") return "border-l-error";
   return "border-l-primary";
 }

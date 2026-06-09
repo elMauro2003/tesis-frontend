@@ -1,6 +1,15 @@
-import { Evaluation } from "@/types/models/operations.types";
+import { Evaluation } from "@/types/models";
 
 export type GradeCode = "B" | "R" | "M" | string;
+
+export type PortalEvaluation = {
+  id: number;
+  date: string;
+  grade: string;
+  grade_display?: string;
+  comment: string;
+  evaluator_name?: string;
+};
 
 const GRADE_LABELS: Record<string, string> = {
   B: "Bien",
@@ -13,6 +22,23 @@ const GRADE_TONES = {
   R: "warning",
   M: "error",
 } as const;
+
+export function normalizePortalEvaluation(item: Evaluation): PortalEvaluation {
+  return {
+    id: item.id,
+    date: item.date,
+    grade: String(item.grade ?? ""),
+    grade_display: item.grade_display,
+    comment: item.comment ?? item.comments ?? "",
+    evaluator_name: item.created_by_name,
+  };
+}
+
+export function sortEvaluationsByDateDesc(evaluations: PortalEvaluation[]) {
+  return [...evaluations].sort(
+    (left, right) => new Date(right.date).getTime() - new Date(left.date).getTime()
+  );
+}
 
 export function formatEvaluationDate(value: string) {
   const parsed = new Date(value);
@@ -41,12 +67,12 @@ export function getGradeTone(grade: GradeCode) {
   return GRADE_TONES[normalized] ?? "neutral";
 }
 
-export function getOverallEvaluationLabel(evaluations: Evaluation[]) {
+export function getOverallEvaluationLabel(evaluations: PortalEvaluation[]) {
   if (evaluations.length === 0) {
     return "Sin datos";
   }
 
-  const scores = evaluations.map((item) => gradeToScore(String(item.grade)));
+  const scores = evaluations.map((item) => gradeToScore(item.grade));
   const average = scores.reduce((sum, value) => sum + value, 0) / scores.length;
 
   if (average >= 2.5) return "Sobresaliente";
@@ -54,12 +80,12 @@ export function getOverallEvaluationLabel(evaluations: Evaluation[]) {
   return "En mejora";
 }
 
-export function getAverageGradeScore(evaluations: Evaluation[]) {
+export function getAverageGradeScore(evaluations: PortalEvaluation[]) {
   if (evaluations.length === 0) {
     return null;
   }
 
-  const scores = evaluations.map((item) => gradeToScore(String(item.grade)));
+  const scores = evaluations.map((item) => gradeToScore(item.grade));
   return scores.reduce((sum, value) => sum + value, 0) / scores.length;
 }
 
@@ -77,9 +103,9 @@ function gradeToScore(grade: string) {
   return 2;
 }
 
-export function getEvaluationTitle(evaluation: Evaluation) {
-  if (evaluation.created_by?.trim()) {
-    return `Evaluación — ${evaluation.created_by}`;
+export function getEvaluationTitle(evaluation: PortalEvaluation) {
+  if (evaluation.evaluator_name?.trim()) {
+    return `Evaluación — ${evaluation.evaluator_name}`;
   }
 
   return "Evaluación de residencia";

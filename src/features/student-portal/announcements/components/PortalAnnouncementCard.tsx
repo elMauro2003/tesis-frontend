@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { CollapsibleText } from "@/components/student-portal/CollapsibleText";
+import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { cn } from "@/utils/helpers/shadcn/index";
 import {
   getPortalAnnouncementCategory,
@@ -13,9 +15,14 @@ import { Information } from "@/types/models";
 interface PortalAnnouncementCardProps {
   announcement: Information;
   className?: string;
+  showDetailLink?: boolean;
 }
 
-export function PortalAnnouncementCard({ announcement, className }: PortalAnnouncementCardProps) {
+export function PortalAnnouncementCard({
+  announcement,
+  className,
+  showDetailLink = true,
+}: PortalAnnouncementCardProps) {
   const category = getPortalAnnouncementCategory(announcement);
   const categoryConfig = getPortalAnnouncementCategoryConfig(announcement);
   const footerIconClassName = getPortalAnnouncementFooterIconClassName(category);
@@ -43,7 +50,16 @@ export function PortalAnnouncementCard({ announcement, className }: PortalAnnoun
 
       <div className="mb-8">
         <h2 className="mb-4 font-headline text-2xl font-bold leading-tight text-on-surface">
-          {announcement.title}
+          {showDetailLink ? (
+            <Link
+              href={PORTAL_ROUTES.anuncioDetalle(announcement.id)}
+              className="transition-colors hover:text-primary"
+            >
+              {announcement.title}
+            </Link>
+          ) : (
+            announcement.title
+          )}
         </h2>
         <CollapsibleText
           text={announcement.content}
@@ -53,7 +69,21 @@ export function PortalAnnouncementCard({ announcement, className }: PortalAnnoun
         />
       </div>
 
-      <footer className="flex justify-end border-t border-outline-variant/15 pt-4">
+      <footer
+        className={cn(
+          "flex border-t border-outline-variant/15 pt-4",
+          showDetailLink ? "items-center justify-between" : "justify-end"
+        )}
+      >
+        {showDetailLink ? (
+          <Link
+            href={PORTAL_ROUTES.anuncioDetalle(announcement.id)}
+            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-primary transition-opacity hover:opacity-80"
+          >
+            Ver detalle
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        ) : null}
         <span
           className={cn(
             "material-symbols-outlined opacity-60 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6",

@@ -33,10 +33,3 @@ export const getPortalAnnouncementFooterIconClassName = (category: AnnouncementC
 
 export const getPortalAnnouncementDisplayDate = (announcement: Information) =>
   formatAnnouncementDate(announcement.published_date);
-
-export const sortAnnouncementsByPublishedDateDesc = (announcements: Information[]) =>
-  [...announcements].sort((left, right) => {
-    const leftTime = new Date(left.published_date ?? 0).getTime();
-    const rightTime = new Date(right.published_date ?? 0).getTime();
-    return rightTime - leftTime;
-  });

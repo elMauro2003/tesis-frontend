@@ -177,10 +177,17 @@ export interface Teacher {
 export interface Evaluation {
   id: number;
   student: Student | number;
+  student_name?: string;
   date: string;
-  grade: number; // e.g. 2, 3, 4, 5
+  grade: "B" | "R" | "M" | string;
+  grade_display?: string;
+  comment?: string | null;
   comments?: string;
-  evaluator_id: number;
+  created_by?: number;
+  created_by_name?: string;
+  evaluator_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Complaint {

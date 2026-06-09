@@ -5,6 +5,5 @@ export const PORTAL_ROUTES = {
   quejasNueva: "/portal/quejas/nueva",
   quejasVisibles: "/portal/quejas/visibles",
   anuncios: "/portal/anuncios",
-  anunciosArchivados: "/portal/anuncios/archivados",
   anuncioDetalle: (id: number | string) => `/portal/anuncios/${id}`,
 } as const;

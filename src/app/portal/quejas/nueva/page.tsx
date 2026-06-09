@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
+import { PortalBackLink } from "@/components/student-portal/PortalBackLink";
+import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
+import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
+import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
 import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hooks/useDailyComplaintQuota";
 
@@ -33,7 +37,16 @@ export default function NuevaQuejaPage() {
   };
 
   if (dailyQuota.isLoading || !canShowForm) {
-    return null;
+    return (
+      <PortalPageShell>
+        <PortalBackLink href={PORTAL_ROUTES.quejas} label="Volver a quejas" />
+        <PortalSectionTitle
+          title="Nueva queja"
+          description="Comprobando disponibilidad para registrar su queja."
+        />
+        <PortalListSkeleton count={1} />
+      </PortalPageShell>
+    );
   }
 
   return <CreateComplaintSheet open onClose={handleClose} />;

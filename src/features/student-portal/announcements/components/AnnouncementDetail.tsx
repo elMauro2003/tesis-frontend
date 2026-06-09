@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { communicationService } from "@/core/services/communication.service";
 import { PortalAnnouncementCard } from "@/features/student-portal/announcements/components/PortalAnnouncementCard";
+import { PortalBackLink } from "@/components/student-portal/PortalBackLink";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalAnnouncementListSkeleton } from "@/components/student-portal/PortalSkeleton";
@@ -41,17 +41,25 @@ export function AnnouncementDetail({ id }: AnnouncementDetailProps) {
     );
   }
 
+  const announcement = announcementQuery.data;
+
+  if (!announcement.is_public) {
+    return (
+      <PortalPageShell>
+        <PortalBackLink href={PORTAL_ROUTES.anuncios} label="Volver al tablón" />
+        <PortalEmptyState
+          icon="lock"
+          title="Comunicado no disponible"
+          description="Este anuncio no está publicado en el tablón estudiantil."
+        />
+      </PortalPageShell>
+    );
+  }
+
   return (
     <PortalPageShell>
-      <Link
-        href={PORTAL_ROUTES.anuncios}
-        className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-primary"
-      >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
-        Volver al tablón
-      </Link>
-
-      <PortalAnnouncementCard announcement={announcementQuery.data} />
+      <PortalBackLink href={PORTAL_ROUTES.anuncios} label="Volver al tablón" />
+      <PortalAnnouncementCard announcement={announcement} showDetailLink={false} />
     </PortalPageShell>
   );
 }

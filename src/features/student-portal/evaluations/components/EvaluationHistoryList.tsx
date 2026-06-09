@@ -1,20 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalListCard } from "@/components/student-portal/PortalListCard";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { PortalStatusBadge } from "@/components/student-portal/PortalStatusBadge";
-import { Evaluation } from "@/types/models/operations.types";
+import { EvaluationDetailSheet } from "@/features/student-portal/evaluations/components/EvaluationDetailSheet";
 import {
   formatEvaluationDate,
   getEvaluationTitle,
   getGradeLabel,
   getGradeTone,
+  PortalEvaluation,
 } from "@/features/student-portal/evaluations/utils/evaluationPresentation";
 
 interface EvaluationHistoryListProps {
-  evaluations: Evaluation[];
+  evaluations: PortalEvaluation[];
   isLoading?: boolean;
   isError?: boolean;
   hasMore?: boolean;
@@ -32,6 +34,8 @@ export function EvaluationHistoryList({
   onLoadMore,
   onRetry,
 }: EvaluationHistoryListProps) {
+  const [selectedEvaluation, setSelectedEvaluation] = useState<PortalEvaluation | null>(null);
+
   if (isError) {
     return (
       <PortalEmptyState
@@ -58,29 +62,38 @@ export function EvaluationHistoryList({
   }
 
   return (
-    <div className="space-y-3">
-      {evaluations.map((evaluation) => {
-        const tone = getGradeTone(String(evaluation.grade));
+    <>
+      <div className="space-y-3">
+        {evaluations.map((evaluation) => {
+          const tone = getGradeTone(evaluation.grade);
 
-        return (
-          <PortalListCard
-            key={evaluation.id}
-            title={getEvaluationTitle(evaluation)}
-            subtitle={formatEvaluationDate(evaluation.date)}
-            description={evaluation.comment || undefined}
-            badge={
-              <PortalStatusBadge
-                label={getGradeLabel(String(evaluation.grade), evaluation.grade_display)}
-                tone={tone}
-              />
-            }
-          />
-        );
-      })}
+          return (
+            <PortalListCard
+              key={evaluation.id}
+              title={getEvaluationTitle(evaluation)}
+              subtitle={formatEvaluationDate(evaluation.date)}
+              description={evaluation.comment || undefined}
+              onClick={() => setSelectedEvaluation(evaluation)}
+              badge={
+                <PortalStatusBadge
+                  label={getGradeLabel(evaluation.grade, evaluation.grade_display)}
+                  tone={tone}
+                />
+              }
+            />
+          );
+        })}
 
-      {onLoadMore ? (
-        <PortalLoadMore onClick={onLoadMore} isLoading={isFetchingMore} hasMore={hasMore} />
-      ) : null}
-    </div>
+        {onLoadMore ? (
+          <PortalLoadMore onClick={onLoadMore} isLoading={isFetchingMore} hasMore={hasMore} />
+        ) : null}
+      </div>
+
+      <EvaluationDetailSheet
+        evaluation={selectedEvaluation}
+        open={Boolean(selectedEvaluation)}
+        onClose={() => setSelectedEvaluation(null)}
+      />
+    </>
   );
 }

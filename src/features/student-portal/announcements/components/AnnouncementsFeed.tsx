@@ -7,6 +7,7 @@ import { isActivePublicAnnouncement } from "@/features/student-portal/announceme
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
+import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
 import { PortalAnnouncementListSkeleton } from "@/components/student-portal/PortalSkeleton";
 
 export function AnnouncementsFeed() {
@@ -21,14 +22,10 @@ export function AnnouncementsFeed() {
 
   return (
     <PortalPageShell>
-      <header className="mb-8 text-left md:mb-12">
-        <h1 className="font-headline text-3xl font-extrabold tracking-tight text-primary md:text-4xl">
-          Tablón de Anuncios
-        </h1>
-        <p className="mt-2 text-base font-medium text-on-surface-variant opacity-80 md:text-lg">
-          Informaciones importantes de la administración
-        </p>
-      </header>
+      <PortalSectionTitle
+        title="Tablón de Anuncios"
+        description="Informaciones importantes de la administración"
+      />
 
       {announcementsQuery.isError ? (
         <PortalEmptyState

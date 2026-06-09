@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
+import { PortalStatusBadge } from "@/components/student-portal/PortalStatusBadge";
 import { Complaint } from "@/types/models";
 import {
   COMPLAINT_STATUS_LABELS,
   getBuildingLabel,
+  getComplaintStatusTone,
   getComplaintTitle,
 } from "@/features/student-portal/complaints/utils/complaintPresentation";
 
@@ -49,9 +51,11 @@ export function VisibleComplaintsPanel({
           onRetry={onRetry}
         />
       ) : preview.length === 0 ? (
-        <p className="text-sm text-on-surface-variant">
-          No hay quejas visibles publicadas por la administración.
-        </p>
+        <PortalEmptyState
+          icon="public_off"
+          title="Sin quejas visibles"
+          description="No hay quejas publicadas por la administración en este momento."
+        />
       ) : (
         <div className="space-y-5">
           {preview.map((complaint, index) => (
@@ -66,24 +70,13 @@ export function VisibleComplaintsPanel({
                 <h4 className="line-clamp-2 font-headline text-sm font-bold text-on-surface-variant transition-colors group-hover:text-primary">
                   {getComplaintTitle(complaint.description)}
                 </h4>
-                <div className="mt-2 flex items-center gap-1.5">
-                  {complaint.status === "resuelta" ? (
-                    <span
-                      className="material-symbols-outlined text-xs text-green-600"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      check_circle
-                    </span>
-                  ) : null}
-                  <span
-                    className={
-                      complaint.status === "resuelta"
-                        ? "text-[10px] font-bold uppercase text-green-700"
-                        : "text-[10px] font-bold uppercase text-on-surface-variant"
-                    }
-                  >
-                    {COMPLAINT_STATUS_LABELS[complaint.status]}
-                  </span>
+                <div className="mt-2">
+                  <PortalStatusBadge
+                    label={COMPLAINT_STATUS_LABELS[complaint.status]}
+                    tone={getComplaintStatusTone(complaint.status)}
+                    showDot={complaint.status === "resuelta"}
+                    className="px-2 py-0.5 text-[10px] uppercase tracking-wide"
+                  />
                 </div>
               </div>
               {index < preview.length - 1 ? (

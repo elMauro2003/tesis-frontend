@@ -6,6 +6,7 @@ import { PortalBackLink } from "@/components/student-portal/PortalBackLink";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
+import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
 import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { PublicComplaintCard } from "@/features/student-portal/complaints/components/PublicComplaintCard";
 import { useAllPublicComplaints } from "@/features/student-portal/complaints/hooks/useAllPublicComplaints";
@@ -60,15 +61,10 @@ export function PublicComplaintsArchive() {
     <PortalPageShell>
       <PortalBackLink href={PORTAL_ROUTES.quejas} label="Volver a quejas" />
 
-      <header className="mb-6">
-        <h1 className="mb-3 font-headline text-3xl font-bold tracking-tight text-primary md:text-4xl md:text-5xl">
-          Archivo Público de Quejas
-        </h1>
-        <p className="max-w-2xl text-base leading-relaxed text-on-surface-variant md:text-lg">
-          Consulta el historial de incidencias resueltas por la administración para fomentar la
-          transparencia y el bienestar colectivo en nuestra comunidad universitaria.
-        </p>
-      </header>
+      <PortalSectionTitle
+        title="Archivo Público de Quejas"
+        description="Consulta el historial de incidencias resueltas por la administración para fomentar la transparencia y el bienestar colectivo en nuestra comunidad universitaria."
+      />
 
       <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
         <span>
