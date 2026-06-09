@@ -13,8 +13,8 @@ export interface ComplaintsQueryFilters extends GetComplaintsFilters {
 }
 
 export function useComplaintsForRole(filters: ComplaintsQueryFilters = {}) {
-  const { can, canManageComplaints } = usePermissions();
-  const isManager = canManageComplaints();
+  const { canAccessDashboardComplaints } = usePermissions();
+  const isManager = canAccessDashboardComplaints();
   const { statusSegment = "all", ...apiFilters } = filters;
 
   return useQuery({
@@ -57,7 +57,7 @@ export function useComplaintsForRole(filters: ComplaintsQueryFilters = {}) {
         page_size: apiFilters.page_size,
       });
     },
-    enabled: can("complaints", "view"),
+    enabled: isManager,
     staleTime: 60 * 1000,
   });
 }

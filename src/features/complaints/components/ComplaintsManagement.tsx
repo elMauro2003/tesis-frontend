@@ -11,8 +11,8 @@ import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { DashboardFilterSelectSkeleton, DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { ComplaintTableRow } from "@/features/complaints/components/ComplaintTableRow";
+import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
 import { RespondComplaintModal } from "@/features/complaints/components/RespondComplaintModal";
-import { StudentComplaintsPanel } from "@/features/complaints/components/StudentComplaintsPanel";
 import { ToggleComplaintVisibilityModal } from "@/features/complaints/components/ToggleComplaintVisibilityModal";
 import { UpdateComplaintStatusModal } from "@/features/complaints/components/UpdateComplaintStatusModal";
 import { ViewComplaintPanel } from "@/features/complaints/components/ViewComplaintPanel";
@@ -30,23 +30,15 @@ const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export function ComplaintsManagement() {
-  const { canManageComplaints } = usePermissions();
-  const isManager = canManageComplaints();
+  const { canAccessDashboardComplaints } = usePermissions();
 
-  if (!isManager) {
+  if (!canAccessDashboardComplaints()) {
     return (
-      <div className="w-full space-y-8">
-        <DashboardPageHeader
-          title="Mis quejas"
-          description="Revise el estado de sus quejas y presente nuevas solicitudes cuando sea necesario."
-          topBadge="Atención estudiantil"
-          searchValue=""
-          onSearchChange={() => {}}
-          searchPlaceholder="Buscar en mis quejas..."
-          showSearch={false}
-        />
-        <StudentComplaintsPanel />
-      </div>
+      <DashboardEmptyState
+        title="Acceso no autorizado"
+        description="No tiene permisos para consultar la gestión de quejas en el dashboard."
+        icon="lock"
+      />
     );
   }
 
@@ -54,6 +46,10 @@ export function ComplaintsManagement() {
 }
 
 function ManagerComplaintsView() {
+  const { canAccessDashboardComplaints, canManageComplaints } = usePermissions();
+  const canView = canAccessDashboardComplaints();
+  const canManage = canManageComplaints();
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -67,7 +63,7 @@ function ManagerComplaintsView() {
   const [statusComplaint, setStatusComplaint] = useState<Complaint | null>(null);
   const [visibilityComplaint, setVisibilityComplaint] = useState<Complaint | null>(null);
 
-  const buildingsQuery = useDashboardComplaintBuildings(true);
+  const buildingsQuery = useDashboardComplaintBuildings(canView);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 450);
@@ -134,16 +130,19 @@ function ManagerComplaintsView() {
   }, [hasFiltersApplied]);
 
   const openRespondModal = (complaint: Complaint) => {
+    if (!canManage) return;
     setViewComplaint(null);
     setRespondComplaint(complaint);
   };
 
   const openStatusModal = (complaint: Complaint) => {
+    if (!canManage) return;
     setViewComplaint(null);
     setStatusComplaint(complaint);
   };
 
   const openVisibilityModal = (complaint: Complaint) => {
+    if (!canManage) return;
     setVisibilityComplaint(complaint);
   };
 
@@ -156,7 +155,7 @@ function ManagerComplaintsView() {
   return (
     <div className="w-full space-y-8">
       <DashboardPageHeader
-        title="Gestión de quejas"
+        title="Quejas"
         description="Consulte y gestione las quejas presentadas por la comunidad estudiantil."
         topBadge="Atención estudiantil"
         searchValue={search}
@@ -266,7 +265,7 @@ function ManagerComplaintsView() {
                   <ComplaintTableRow
                     key={complaint.id}
                     complaint={complaint}
-                    canManage
+                    canManage={canManage}
                     onView={setViewComplaint}
                     onToggleVisibility={openVisibilityModal}
                     onAssign={handleAssign}
@@ -299,28 +298,32 @@ function ManagerComplaintsView() {
       <ViewComplaintPanel
         complaint={viewComplaint}
         onClose={() => setViewComplaint(null)}
-        canManage
+        canManage={canManage}
         onRespond={openRespondModal}
         onUpdateStatus={openStatusModal}
       />
 
-      <RespondComplaintModal
-        complaint={respondComplaint}
-        open={Boolean(respondComplaint)}
-        onClose={() => setRespondComplaint(null)}
-      />
+      {canManage ? (
+        <>
+          <RespondComplaintModal
+            complaint={respondComplaint}
+            open={Boolean(respondComplaint)}
+            onClose={() => setRespondComplaint(null)}
+          />
 
-      <UpdateComplaintStatusModal
-        complaint={statusComplaint}
-        open={Boolean(statusComplaint)}
-        onClose={() => setStatusComplaint(null)}
-      />
+          <UpdateComplaintStatusModal
+            complaint={statusComplaint}
+            open={Boolean(statusComplaint)}
+            onClose={() => setStatusComplaint(null)}
+          />
 
-      <ToggleComplaintVisibilityModal
-        complaint={visibilityComplaint}
-        open={Boolean(visibilityComplaint)}
-        onClose={() => setVisibilityComplaint(null)}
-      />
+          <ToggleComplaintVisibilityModal
+            complaint={visibilityComplaint}
+            open={Boolean(visibilityComplaint)}
+            onClose={() => setVisibilityComplaint(null)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

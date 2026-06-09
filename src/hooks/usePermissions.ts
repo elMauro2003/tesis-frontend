@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
   can,
+  canAccessDashboardComplaints,
   canManageAnnouncements,
   canManageComplaints,
   canManageRooms,
@@ -23,6 +24,7 @@ export function usePermissions() {
       user,
       can: (feature: Feature, action: PermissionAction = "view") => can(roles, feature, action),
       isReadOnly: (feature: Feature) => isReadOnlyForFeature(roles, feature),
+      canAccessDashboardComplaints: () => canAccessDashboardComplaints(roles),
       canManageComplaints: () => canManageComplaints(roles),
       canManageAnnouncements: () => canManageAnnouncements(roles),
       canManageRooms: () => canManageRooms(roles),

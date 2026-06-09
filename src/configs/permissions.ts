@@ -34,6 +34,9 @@ type FeaturePermissions = Partial<Record<PermissionAction, readonly Role[]>>;
 
 const DIRECTIVE_ROLES = ["directivo", "admin"] as const satisfies readonly Role[];
 
+/** Roles con acceso al módulo de gestión de quejas en el dashboard. */
+export const DASHBOARD_COMPLAINTS_ROLES = ["directivo", "subdirector", "admin"] as const satisfies readonly Role[];
+
 const FEATURE_PERMISSIONS: Record<Feature, FeaturePermissions> = {
   reports: {
     view: DIRECTIVE_ROLES,
@@ -69,8 +72,8 @@ const FEATURE_PERMISSIONS: Record<Feature, FeaturePermissions> = {
     update: ["estudiante"],
   },
   complaints_manage: {
-    view: ["subdirector", "admin"],
-    update: ["subdirector", "admin"],
+    view: DASHBOARD_COMPLAINTS_ROLES,
+    update: DASHBOARD_COMPLAINTS_ROLES,
   },
   announcements: {
     view: [
@@ -152,10 +155,8 @@ export const NAV_ITEMS: NavItemConfig[] = [
     href: DASHBOARD_ROUTES.quejas,
     label: "Quejas",
     icon: "emergency_home",
-    feature: "complaints",
-    labelByRole: {
-      subdirector: "Gestión de quejas",
-    },
+    feature: "complaints_manage",
+    filledIcon: true,
   },
   {
     href: DASHBOARD_ROUTES.anuncios,
@@ -222,7 +223,7 @@ export const ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/dashboard/cuartos": FEATURE_PERMISSIONS.rooms.view!,
   "/dashboard/estudiantes/nueva": FEATURE_PERMISSIONS.students.create!,
   "/dashboard/estudiantes": FEATURE_PERMISSIONS.students.view!,
-  "/dashboard/quejas": FEATURE_PERMISSIONS.complaints.view!,
+  "/dashboard/quejas": FEATURE_PERMISSIONS.complaints_manage.view!,
   "/dashboard/anuncios": FEATURE_PERMISSIONS.announcements.view!,
   "/dashboard/administracion": FEATURE_PERMISSIONS.admin.view!,
 };
@@ -271,8 +272,24 @@ export function getNavLabelForRoles(item: NavItemConfig, userRoles: Role[]): str
   return item.label;
 }
 
+export function canAccessDashboardComplaints(userRoles: Role[]): boolean {
+  if (isStudentOnly(userRoles)) {
+    return false;
+  }
+
+  return can(userRoles, "complaints_manage", "view");
+}
+
+export function canAccessNavItem(userRoles: Role[], item: NavItemConfig): boolean {
+  if (item.href === DASHBOARD_ROUTES.quejas) {
+    return canAccessDashboardComplaints(userRoles);
+  }
+
+  return can(userRoles, item.feature, "view");
+}
+
 export function getNavItemsForRoles(userRoles: Role[]): NavItemConfig[] {
-  return NAV_ITEMS.filter((item) => can(userRoles, item.feature, "view"));
+  return NAV_ITEMS.filter((item) => canAccessNavItem(userRoles, item));
 }
 
 export function isStudentOnly(userRoles: Role[]): boolean {
@@ -362,7 +379,7 @@ export function canAccessRoute(pathname: string, userRoles: Role[]): boolean {
 }
 
 export function canManageComplaints(userRoles: Role[]): boolean {
-  return can(userRoles, "complaints_manage", "view");
+  return canAccessDashboardComplaints(userRoles) && can(userRoles, "complaints_manage", "update");
 }
 
 export function canManageAnnouncements(userRoles: Role[]): boolean {
