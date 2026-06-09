@@ -1,5 +1,7 @@
 "use client";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 interface PortalLoadMoreProps {
   onClick: () => void;
   isLoading?: boolean;
@@ -12,15 +14,18 @@ export function PortalLoadMore({ onClick, isLoading = false, hasMore = true }: P
   }
 
   return (
-    <div className="flex justify-center py-4">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={isLoading}
-        className="text-xs font-bold uppercase tracking-widest text-outline transition-colors hover:text-primary disabled:opacity-50"
-      >
-        {isLoading ? "Cargando..." : "Cargar más registros"}
-      </button>
+    <div className="flex justify-center py-4" aria-live="polite">
+      {isLoading ? (
+        <Skeleton className="h-4 w-44" aria-label="Cargando más registros" />
+      ) : (
+        <button
+          type="button"
+          onClick={onClick}
+          className="text-xs font-bold uppercase tracking-widest text-outline transition-colors hover:text-primary"
+        >
+          Cargar más registros
+        </button>
+      )}
     </div>
   );
 }

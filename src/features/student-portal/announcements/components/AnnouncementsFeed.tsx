@@ -8,10 +8,12 @@ import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
-import { PortalAnnouncementListSkeleton } from "@/components/student-portal/PortalSkeleton";
+import { PortalAnnouncementsPageSkeleton } from "@/components/student-portal/PortalSkeleton";
 
 export function AnnouncementsFeed() {
   const announcementsQuery = usePublicAnnouncements();
+  const isInitialLoading = announcementsQuery.isLoading && !announcementsQuery.data;
+
   const announcements =
     announcementsQuery.data?.pages
       .flatMap((page) => page.results)
@@ -19,6 +21,14 @@ export function AnnouncementsFeed() {
 
   const hasMore = Boolean(announcementsQuery.hasNextPage);
   const showBoardFooter = !hasMore && announcements.length > 0;
+
+  if (isInitialLoading) {
+    return (
+      <PortalPageShell>
+        <PortalAnnouncementsPageSkeleton />
+      </PortalPageShell>
+    );
+  }
 
   return (
     <PortalPageShell>
@@ -33,8 +43,6 @@ export function AnnouncementsFeed() {
           title="No se pudieron cargar los anuncios"
           onRetry={() => announcementsQuery.refetch()}
         />
-      ) : announcementsQuery.isLoading ? (
-        <PortalAnnouncementListSkeleton count={3} />
       ) : announcements.length === 0 ? (
         <PortalEmptyState
           icon="campaign"

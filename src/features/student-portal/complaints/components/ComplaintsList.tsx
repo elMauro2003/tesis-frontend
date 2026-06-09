@@ -8,7 +8,11 @@ import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
-import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
+import {
+  PortalActionButtonSkeleton,
+  PortalComplaintsPageSkeleton,
+  PortalQuotaBadgeSkeleton,
+} from "@/components/student-portal/PortalSkeleton";
 import { Button } from "@/components/ui/button";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
 import { DeleteComplaintModal } from "@/features/student-portal/complaints/components/DeleteComplaintModal";
@@ -32,6 +36,10 @@ export function ComplaintsList() {
 
   const complaints = complaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
   const publicComplaints = publicComplaintsQuery.data?.pages.flatMap((page) => page.results) ?? [];
+
+  const isInitialLoading =
+    (complaintsQuery.isLoading && !complaintsQuery.data) ||
+    (publicComplaintsQuery.isLoading && !publicComplaintsQuery.data);
 
   const { remainingToday, canCreate, limit: dailyLimit, isLoading: isQuotaLoading, isError: isQuotaError, refetch: refetchQuota } =
     dailyQuota;
@@ -83,13 +91,9 @@ export function ComplaintsList() {
     setDeletingComplaint(complaint);
   };
 
-  const quotaBadgeLabel = isQuotaLoading
-    ? "Comprobando cupo diario..."
-    : isQuotaError
-      ? "Cupo diario no disponible"
-      : `Quejas disponibles hoy: ${remainingToday} de ${dailyLimit}`;
-
-  const quotaBadge = (
+  const quotaBadge = isQuotaLoading ? (
+    <PortalQuotaBadgeSkeleton />
+  ) : (
     <span
       className={
         isQuotaError
@@ -97,7 +101,9 @@ export function ComplaintsList() {
           : "self-start rounded-full bg-primary-fixed px-4 py-2 text-xs font-bold text-on-primary-fixed"
       }
     >
-      {quotaBadgeLabel}
+      {isQuotaError
+        ? "Cupo diario no disponible"
+        : `Quejas disponibles hoy: ${remainingToday} de ${dailyLimit}`}
       {isQuotaError ? (
         <button
           type="button"
@@ -111,7 +117,9 @@ export function ComplaintsList() {
   );
 
   const newComplaintAction =
-    canCreate && !isQuotaLoading ? (
+    isQuotaLoading ? (
+      <PortalActionButtonSkeleton />
+    ) : canCreate ? (
       <Button asChild variant="primary" className="w-full sm:w-auto">
         <Link href={PORTAL_ROUTES.quejasNueva}>
           <span className="material-symbols-outlined text-lg">add</span>
@@ -124,6 +132,14 @@ export function ComplaintsList() {
         Nueva queja
       </Button>
     );
+
+  if (isInitialLoading) {
+    return (
+      <PortalPageShell>
+        <PortalComplaintsPageSkeleton />
+      </PortalPageShell>
+    );
+  }
 
   return (
     <PortalPageShell>
@@ -151,8 +167,6 @@ export function ComplaintsList() {
               title="No se pudieron cargar las quejas"
               onRetry={() => complaintsQuery.refetch()}
             />
-          ) : complaintsQuery.isLoading ? (
-            <PortalListSkeleton count={3} />
           ) : complaints.length === 0 ? (
             <PortalEmptyState
               icon="emergency_home"

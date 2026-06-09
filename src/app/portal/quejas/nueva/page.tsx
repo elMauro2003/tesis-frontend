@@ -7,7 +7,7 @@ import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PortalBackLink } from "@/components/student-portal/PortalBackLink";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
-import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
+import { PortalComplaintFormSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { CreateComplaintSheet } from "@/features/student-portal/complaints/components/CreateComplaintSheet";
 import { useDailyComplaintQuota } from "@/features/student-portal/complaints/hooks/useDailyComplaintQuota";
 
@@ -44,7 +44,9 @@ export default function NuevaQuejaPage() {
           title="Nueva queja"
           description="Comprobando disponibilidad para registrar su queja."
         />
-        <PortalListSkeleton count={1} />
+        <div className="rounded-xl bg-surface-container-lowest shadow-[var(--shadow-ambient)]">
+          <PortalComplaintFormSkeleton />
+        </div>
       </PortalPageShell>
     );
   }

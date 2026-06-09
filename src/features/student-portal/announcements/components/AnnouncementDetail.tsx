@@ -23,6 +23,7 @@ export function AnnouncementDetail({ id }: AnnouncementDetailProps) {
   if (announcementQuery.isLoading) {
     return (
       <PortalPageShell>
+        <PortalBackLink href={PORTAL_ROUTES.anuncios} label="Volver al tablón" />
         <PortalAnnouncementListSkeleton count={1} />
       </PortalPageShell>
     );
@@ -31,6 +32,7 @@ export function AnnouncementDetail({ id }: AnnouncementDetailProps) {
   if (announcementQuery.isError || !announcementQuery.data) {
     return (
       <PortalPageShell>
+        <PortalBackLink href={PORTAL_ROUTES.anuncios} label="Volver al tablón" />
         <PortalEmptyState
           icon="error"
           title="Anuncio no disponible"

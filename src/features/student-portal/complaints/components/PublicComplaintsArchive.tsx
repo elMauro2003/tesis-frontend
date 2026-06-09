@@ -7,7 +7,7 @@ import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalLoadMore } from "@/components/student-portal/PortalLoadMore";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
-import { PortalListSkeleton } from "@/components/student-portal/PortalSkeleton";
+import { PortalPublicArchivePageSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { PublicComplaintCard } from "@/features/student-portal/complaints/components/PublicComplaintCard";
 import { useAllPublicComplaints } from "@/features/student-portal/complaints/hooks/useAllPublicComplaints";
 import {
@@ -26,6 +26,7 @@ export function PublicComplaintsArchive() {
   const [buildingFilter, setBuildingFilter] = useState("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const publicComplaintsQuery = useAllPublicComplaints();
+  const isInitialLoading = publicComplaintsQuery.isLoading && !publicComplaintsQuery.data;
 
   const allComplaints = publicComplaintsQuery.data?.results ?? [];
 
@@ -56,6 +57,14 @@ export function PublicComplaintsArchive() {
     setSearch("");
     setBuildingFilter("all");
   };
+
+  if (isInitialLoading) {
+    return (
+      <PortalPageShell>
+        <PortalPublicArchivePageSkeleton />
+      </PortalPageShell>
+    );
+  }
 
   return (
     <PortalPageShell>
@@ -137,8 +146,6 @@ export function PublicComplaintsArchive() {
           title="No se pudieron cargar las quejas visibles"
           onRetry={() => publicComplaintsQuery.refetch()}
         />
-      ) : publicComplaintsQuery.isLoading ? (
-        <PortalListSkeleton count={3} />
       ) : filteredComplaints.length === 0 ? (
         <PortalEmptyState
           icon="public"
@@ -157,7 +164,7 @@ export function PublicComplaintsArchive() {
 
           <PortalLoadMore
             onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-            isLoading={false}
+            isLoading={publicComplaintsQuery.isFetching}
             hasMore={hasMoreToShow}
           />
         </section>

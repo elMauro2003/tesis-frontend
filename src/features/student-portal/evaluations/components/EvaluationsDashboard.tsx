@@ -3,6 +3,7 @@
 import { PortalKpiCard } from "@/components/student-portal/PortalKpiCard";
 import { PortalPageShell } from "@/components/student-portal/PortalPageShell";
 import { PortalSectionTitle } from "@/components/student-portal/PortalSectionTitle";
+import { PortalEvaluationsPageSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { EvaluationHistoryList } from "@/features/student-portal/evaluations/components/EvaluationHistoryList";
 import { useMyEvaluations } from "@/features/student-portal/evaluations/hooks/useMyEvaluations";
 import {
@@ -14,12 +15,21 @@ import {
 
 export function EvaluationsDashboard() {
   const evaluationsQuery = useMyEvaluations();
+  const isInitialLoading = evaluationsQuery.isLoading && !evaluationsQuery.data;
 
   const evaluations = sortEvaluationsByDateDesc(
     evaluationsQuery.data?.pages.flatMap((page) => page.results.map(normalizePortalEvaluation)) ?? []
   );
 
   const latestEvaluation = evaluations[0];
+
+  if (isInitialLoading) {
+    return (
+      <PortalPageShell>
+        <PortalEvaluationsPageSkeleton />
+      </PortalPageShell>
+    );
+  }
 
   return (
     <PortalPageShell>

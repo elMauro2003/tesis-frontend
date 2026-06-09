@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 import { PortalEmptyState } from "@/components/student-portal/PortalEmptyState";
 import { PortalStatusBadge } from "@/components/student-portal/PortalStatusBadge";
+import { PortalVisibleComplaintsPanelSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { Complaint } from "@/types/models";
 import {
   COMPLAINT_STATUS_LABELS,
@@ -27,6 +28,10 @@ export function VisibleComplaintsPanel({
 }: VisibleComplaintsPanelProps) {
   const preview = complaints.slice(0, 3);
 
+  if (isLoading) {
+    return <PortalVisibleComplaintsPanelSkeleton />;
+  }
+
   return (
     <aside className="rounded-xl bg-surface-container-low p-5 lg:sticky lg:top-24">
       <h2 className="mb-5 flex items-center gap-2 font-headline text-base font-extrabold uppercase tracking-tight text-on-surface">
@@ -34,16 +39,7 @@ export function VisibleComplaintsPanel({
         Quejas Visibles
       </h2>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="animate-pulse space-y-2">
-              <div className="h-3 w-20 rounded bg-surface-container-high" />
-              <div className="h-4 w-full rounded bg-surface-container-high" />
-            </div>
-          ))}
-        </div>
-      ) : isError ? (
+      {isError ? (
         <PortalEmptyState
           icon="error"
           title="No se pudieron cargar"

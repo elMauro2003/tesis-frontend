@@ -22,6 +22,7 @@ import {
 import { complaintService } from "@/core/services/complaint.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Complaint, ComplaintWritePayload } from "@/types/models";
+import { PortalComplaintFormSkeleton } from "@/components/student-portal/PortalSkeleton";
 import { cn } from "@/utils/helpers/shadcn/index";
 
 const MIN_DESCRIPTION_LENGTH = 15;
@@ -60,6 +61,8 @@ export function CreateComplaintSheet({
   const buildings = buildingsQuery.data ?? [];
   const selectedType = COMPLAINT_TYPE_OPTIONS.find((option) => option.value === type);
   const buildingsLoading = buildingsQuery.isLoading;
+  const profileLoading = studentProfileQuery.isLoading && !isEditing;
+  const isFormBootstrapping = open && !isEditing && (buildingsLoading || profileLoading);
   const buildingsUnavailable = !buildingsLoading && buildings.length === 0;
   const canCreateToday =
     isEditing || !dailyQuota.isReady || dailyQuota.remainingToday > 0;
@@ -245,6 +248,9 @@ export function CreateComplaintSheet({
         </div>
       }
     >
+      {isFormBootstrapping ? (
+        <PortalComplaintFormSkeleton />
+      ) : (
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 p-4">
         {isFollowUp ? (
           <div className="rounded-xl bg-primary-fixed/30 px-3 py-2 text-xs leading-relaxed text-on-primary-fixed">
@@ -399,6 +405,7 @@ export function CreateComplaintSheet({
           </p>
         </section>
       </form>
+      )}
     </BottomSheet>
   );
 }
