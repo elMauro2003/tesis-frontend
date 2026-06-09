@@ -1,33 +1,68 @@
 "use client";
 
-import Link from "next/link";
-import { PORTAL_ROUTES } from "@/configs/portalRoutes";
-import { formatAnnouncementDate } from "@/features/announcements/utils/announcementPresentation";
+import { CollapsibleText } from "@/components/student-portal/CollapsibleText";
+import { cn } from "@/utils/helpers/shadcn/index";
+import {
+  getPortalAnnouncementCategory,
+  getPortalAnnouncementCategoryConfig,
+  getPortalAnnouncementDisplayDate,
+  getPortalAnnouncementFooterIconClassName,
+} from "@/features/student-portal/announcements/utils/portalAnnouncementPresentation";
 import { Information } from "@/types/models";
 
 interface PortalAnnouncementCardProps {
   announcement: Information;
+  className?: string;
 }
 
-export function PortalAnnouncementCard({ announcement }: PortalAnnouncementCardProps) {
+export function PortalAnnouncementCard({ announcement, className }: PortalAnnouncementCardProps) {
+  const category = getPortalAnnouncementCategory(announcement);
+  const categoryConfig = getPortalAnnouncementCategoryConfig(announcement);
+  const footerIconClassName = getPortalAnnouncementFooterIconClassName(category);
+
   return (
-    <Link
-      href={PORTAL_ROUTES.anuncioDetalle(announcement.id)}
-      className="block rounded-xl bg-surface-container-lowest p-4 shadow-[var(--shadow-ambient)] transition-colors hover:bg-surface-container-low"
+    <article
+      className={cn(
+        "group rounded-2xl bg-surface-container-lowest p-6 shadow-[0_4px_20px_rgba(0,55,176,0.03)] transition-all duration-300 hover:shadow-[0_20px_40px_rgba(0,55,176,0.06)] md:p-8",
+        className
+      )}
     >
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <h2 className="font-headline text-base font-bold text-on-surface">{announcement.title}</h2>
-        <time className="shrink-0 text-xs text-outline">
-          {formatAnnouncementDate(announcement.published_date)}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest",
+            categoryConfig.badgeClassName
+          )}
+        >
+          {categoryConfig.label}
+        </span>
+        <time className="shrink-0 text-xs font-medium text-outline">
+          {getPortalAnnouncementDisplayDate(announcement)}
         </time>
       </div>
-      <p className="line-clamp-3 text-sm leading-relaxed text-on-surface-variant whitespace-pre-line">
-        {announcement.content}
-      </p>
-      <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-        Leer más
-        <span className="material-symbols-outlined text-sm">arrow_forward</span>
-      </span>
-    </Link>
+
+      <div className="mb-8">
+        <h2 className="mb-4 font-headline text-2xl font-bold leading-tight text-on-surface">
+          {announcement.title}
+        </h2>
+        <CollapsibleText
+          text={announcement.content}
+          className="text-[15px] text-on-surface-variant"
+          maxCharsBeforeCollapse={320}
+          clampLines={6}
+        />
+      </div>
+
+      <footer className="flex justify-end border-t border-outline-variant/15 pt-4">
+        <span
+          className={cn(
+            "material-symbols-outlined opacity-60 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6",
+            footerIconClassName
+          )}
+        >
+          {categoryConfig.icon}
+        </span>
+      </footer>
+    </article>
   );
 }
