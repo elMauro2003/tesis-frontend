@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         destination: "/dashboard/reportes",
         permanent: true,
       },
+      {
+        source: "/dashboard/buildings",
+        destination: "/dashboard/edificios",
+        permanent: true,
+      },
     ];
   },
 };

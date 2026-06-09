@@ -219,7 +219,6 @@ export const ROUTE_PERMISSIONS: Record<string, readonly Role[]> = {
   "/dashboard/reportes": FEATURE_PERMISSIONS.reports.view!,
   "/dashboard/sedes": FEATURE_PERMISSIONS.sites.view!,
   "/dashboard/edificios": FEATURE_PERMISSIONS.buildings.view!,
-  "/dashboard/buildings": FEATURE_PERMISSIONS.buildings.view!,
   "/dashboard/cuartos": FEATURE_PERMISSIONS.rooms.view!,
   "/dashboard/estudiantes/nueva": FEATURE_PERMISSIONS.students.create!,
   "/dashboard/estudiantes": FEATURE_PERMISSIONS.students.view!,
