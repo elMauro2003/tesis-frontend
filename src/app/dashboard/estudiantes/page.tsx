@@ -20,6 +20,11 @@ import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmented
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { SearchField } from "@/components/shared/SearchField";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
+import {
+  DashboardFilterSelectSkeleton,
+  DashboardSearchSuggestionsSkeleton,
+  DashboardTableSkeleton,
+} from "@/components/shared/DashboardSkeletons";
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -133,6 +138,7 @@ export default function DashboardPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [wings, setWings] = useState<Wing[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
@@ -385,7 +391,10 @@ export default function DashboardPage() {
     });
     return map;
   }, [visibleDetailsQuery.data, careers, faculties]);
-  const isLoading = studentsQuery.isLoading || (locationFilter !== 'all' && activeAssignmentsQuery.isLoading);
+  const isLoading =
+    studentsQuery.isLoading ||
+    catalogLoading ||
+    (needsAssignments && activeAssignmentsQuery.isLoading);
   const isError = studentsQuery.isError || activeAssignmentsQuery.isError;
   const error = (studentsQuery.error || activeAssignmentsQuery.error) as Error | null;
   const hasStudentFilters = facultyId !== 'all' || buildingId !== 'all' || gender !== 'all' || isMilitant !== 'all' || locationFilter !== 'all' || search.trim().length > 0;
@@ -398,33 +407,49 @@ export default function DashboardPage() {
   // Fetch careers and buildings for filters
   useEffect(() => {
     let mounted = true;
-    academicService.getFaculties()
-      .then((response) => { if (!mounted) return; setFaculties(response.results ?? []); })
-      .catch(() => {});
 
-    fetchAllPages<Career>('/api/v1/carreras/')
-      .then((items) => { if (!mounted) return; setCareers(items); })
-      .catch(() => {});
+    const loadCatalog = async () => {
+      setCatalogLoading(true);
 
-    fetchAllPages<Group>('/api/v1/grupos/')
-      .then((items) => { if (!mounted) return; setGroups(items); })
-      .catch(() => {});
+      const [facultiesResult, careersResult, groupsResult, yearsResult, buildingsResult, wingsResult, roomsResult] =
+        await Promise.allSettled([
+          academicService.getFaculties(),
+          fetchAllPages<Career>('/api/v1/carreras/'),
+          fetchAllPages<Group>('/api/v1/grupos/'),
+          fetchAllPages<AcademicYear>('/api/v1/anios-academicos/'),
+          infrastructureService.getAllBuildings(),
+          infrastructureService.getAllWings(),
+          infrastructureService.getAllRooms(),
+        ]);
 
-    fetchAllPages<AcademicYear>('/api/v1/anios-academicos/')
-      .then((items) => { if (!mounted) return; setAcademicYears(items); })
-      .catch(() => {});
+      if (!mounted) return;
 
-    infrastructureService.getAllBuildings()
-      .then((res) => { if (!mounted) return; setBuildings(res.results ?? []); })
-      .catch(() => {});
+      if (facultiesResult.status === 'fulfilled') {
+        setFaculties(facultiesResult.value.results ?? []);
+      }
+      if (careersResult.status === 'fulfilled') {
+        setCareers(careersResult.value);
+      }
+      if (groupsResult.status === 'fulfilled') {
+        setGroups(groupsResult.value);
+      }
+      if (yearsResult.status === 'fulfilled') {
+        setAcademicYears(yearsResult.value);
+      }
+      if (buildingsResult.status === 'fulfilled') {
+        setBuildings(buildingsResult.value.results ?? []);
+      }
+      if (wingsResult.status === 'fulfilled') {
+        setWings(wingsResult.value.results ?? []);
+      }
+      if (roomsResult.status === 'fulfilled') {
+        setRooms(roomsResult.value.results ?? []);
+      }
 
-    infrastructureService.getAllWings()
-      .then((res) => { if (!mounted) return; setWings(res.results ?? []); })
-      .catch(() => {});
+      setCatalogLoading(false);
+    };
 
-    infrastructureService.getAllRooms()
-      .then((res) => { if (!mounted) return; setRooms(res.results ?? []); })
-      .catch(() => {});
+    void loadCatalog();
 
     return () => { mounted = false; };
   }, []);
@@ -535,11 +560,7 @@ export default function DashboardPage() {
             {isSearchFocused && search.trim().length >= 2 && (
               <div ref={suggestionsRef} id="student-suggestions-listbox" role="listbox" aria-label="Sugerencias de estudiantes" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-[var(--shadow-ambient)] z-50 overflow-hidden border border-[var(--color-outline-variant)]/20">
                 {suggestionsQuery.isFetching ? (
-                  Array.from({ length: 4 }).map((_, idx) => (
-                    <div key={`suggestion-skeleton-${idx}`} className="px-4 py-3 animate-pulse">
-                      <div className="h-4 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
-                    </div>
-                  ))
+                  <DashboardSearchSuggestionsSkeleton />
                 ) : suggestions.length > 0 ? (
                   suggestions.map((s, idx) => (
                     <button
@@ -568,27 +589,36 @@ export default function DashboardPage() {
       <DashboardFiltersBar
         left={(
           <>
-            <DashboardFilterSelect
-              className="w-full sm:w-[220px]"
-              value={facultyId === 'all' ? 'all' : String(facultyId)}
-              onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}
-              placeholder="Todas las Facultades"
-              options={[
-                { value: 'all', label: 'Todas las Facultades' },
-                ...faculties.map((f) => ({ value: String(f.id), label: f.name })),
-              ]}
-            />
+            {catalogLoading ? (
+              <>
+                <DashboardFilterSelectSkeleton className="sm:w-[220px]" />
+                <DashboardFilterSelectSkeleton className="sm:w-[220px]" />
+              </>
+            ) : (
+              <>
+                <DashboardFilterSelect
+                  className="w-full sm:w-[220px]"
+                  value={facultyId === 'all' ? 'all' : String(facultyId)}
+                  onValueChange={(value) => setFacultyId(value === 'all' ? 'all' : Number(value))}
+                  placeholder="Todas las Facultades"
+                  options={[
+                    { value: 'all', label: 'Todas las Facultades' },
+                    ...faculties.map((f) => ({ value: String(f.id), label: f.name })),
+                  ]}
+                />
 
-            <DashboardFilterSelect
-              className="w-full sm:w-[220px]"
-              value={buildingId === 'all' ? 'all' : String(buildingId)}
-              onValueChange={(value) => setBuildingId(value === 'all' ? 'all' : Number(value))}
-              placeholder="Todos los Edificios"
-              options={[
-                { value: 'all', label: 'Todos los Edificios' },
-                ...buildings.map((b) => ({ value: String(b.id), label: b.name })),
-              ]}
-            />
+                <DashboardFilterSelect
+                  className="w-full sm:w-[220px]"
+                  value={buildingId === 'all' ? 'all' : String(buildingId)}
+                  onValueChange={(value) => setBuildingId(value === 'all' ? 'all' : Number(value))}
+                  placeholder="Todos los Edificios"
+                  options={[
+                    { value: 'all', label: 'Todos los Edificios' },
+                    ...buildings.map((b) => ({ value: String(b.id), label: b.name })),
+                  ]}
+                />
+              </>
+            )}
           </>
         )}
         right={(
@@ -620,21 +650,7 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-outline-variant/20">
               
               {isLoading ? (
-                // Skeleton rows
-                Array.from({length:6}).map((_, idx) => (
-                  <tr key={`skeleton-${idx}`} className="animate-pulse">
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[var(--color-surface-container-high)]" />
-                        <div className="h-4 w-56 bg-[var(--color-surface-container-high)] rounded" />
-                      </div>
-                    </td>
-                    <td className="px-6 py-5"><div className="h-4 w-20 bg-[var(--color-surface-container-high)] rounded" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-32 bg-[var(--color-surface-container-high)] rounded" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-16 bg-[var(--color-surface-container-high)] rounded" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-24 bg-[var(--color-surface-container-high)] rounded ml-auto" /></td>
-                  </tr>
-                ))
+                <DashboardTableSkeleton rows={6} columns={5} withAvatar />
               ) : isError ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-error">

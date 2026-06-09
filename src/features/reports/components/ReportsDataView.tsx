@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
+import { DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { REPORTS_RESULTS_PAGE_SIZE_OPTIONS } from "@/features/reports/constants";
 import type { ReportStudentRow } from "@/features/reports/utils/studentRows";
@@ -51,11 +52,7 @@ export function ReportsDataView({
           </thead>
           <tbody className="divide-y divide-outline-variant/10">
             {isLoading ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-sm text-outline">
-                  Cargando estudiantes…
-                </td>
-              </tr>
+              <DashboardTableSkeleton rows={6} columns={5} withAvatar />
             ) : isError ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-sm text-error">

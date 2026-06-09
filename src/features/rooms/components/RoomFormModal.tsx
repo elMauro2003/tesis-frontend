@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
+import { clearFieldError, FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,8 @@ type RoomFormValues = {
   capacity: string;
   isActive: boolean;
 };
+
+type RoomFormField = "location" | "number" | "capacity";
 
 const emptyValues: RoomFormValues = {
   siteId: "",
@@ -78,6 +82,7 @@ export function RoomFormModal({
 }: RoomFormModalProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<RoomFormValues>(emptyValues);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<RoomFormField> | null>(null);
   const isEditing = Boolean(room);
 
   const buildingsForSite = useMemo(() => {
@@ -149,6 +154,7 @@ export function RoomFormModal({
       capacity: String(room?.capacity ?? 4),
       isActive: room?.is_active ?? true,
     });
+    setFieldErrors(null);
     createMutation.reset();
     updateMutation.reset();
   }, [open, room, wings, buildings]);
@@ -160,19 +166,34 @@ export function RoomFormModal({
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const handleSubmit = () => {
-    if (!values.siteId || !values.buildingId || !values.wingId) {
-      toast.error("Falta la ubicación", { description: "Seleccione sede, edificio y ala." });
-      return;
-    }
-    if (!values.number.trim()) {
-      toast.error("Falta el número del cuarto", { description: "Escriba un identificador para continuar." });
-      return;
-    }
     const capacity = Number(values.capacity);
-    if (!Number.isFinite(capacity) || capacity < 1) {
-      toast.error("Capacidad inválida", { description: "La capacidad debe ser al menos 1." });
+    const errors = validateFields<RoomFormField>([
+      {
+        field: "location",
+        valid: Boolean(values.siteId && values.buildingId && values.wingId),
+        message: "Seleccione sede, edificio y ala.",
+      },
+      {
+        field: "number",
+        valid: !!values.number.trim(),
+        message: "Escriba un identificador para el cuarto.",
+      },
+      {
+        field: "capacity",
+        valid: Number.isFinite(capacity) && capacity >= 1,
+        message: "La capacidad debe ser al menos 1.",
+      },
+    ]);
+
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
+      });
       return;
     }
+
+    setFieldErrors(null);
 
     if (isEditing) {
       updateMutation.mutate();
@@ -205,9 +226,10 @@ export function RoomFormModal({
               </label>
               <Select
                 value={values.siteId === "" ? "" : String(values.siteId)}
-                onValueChange={(value) =>
-                  setValues((c) => ({ ...c, siteId: Number(value), buildingId: "", wingId: "" }))
-                }
+                onValueChange={(value) => {
+                  setValues((c) => ({ ...c, siteId: Number(value), buildingId: "", wingId: "" }));
+                  setFieldErrors((current) => clearFieldError(current, "location"));
+                }}
               >
                 <SelectTrigger className="min-w-0 max-w-full">
                   <SelectValue placeholder="Seleccione la sede" />
@@ -228,9 +250,10 @@ export function RoomFormModal({
                 </label>
                 <Select
                   value={values.buildingId === "" ? "" : String(values.buildingId)}
-                  onValueChange={(value) =>
-                    setValues((c) => ({ ...c, buildingId: Number(value), wingId: "" }))
-                  }
+                  onValueChange={(value) => {
+                    setValues((c) => ({ ...c, buildingId: Number(value), wingId: "" }));
+                    setFieldErrors((current) => clearFieldError(current, "location"));
+                  }}
                   disabled={values.siteId === ""}
                 >
                   <SelectTrigger className="min-w-0 max-w-full">
@@ -251,7 +274,10 @@ export function RoomFormModal({
                 </label>
                 <Select
                   value={values.wingId === "" ? "" : String(values.wingId)}
-                  onValueChange={(value) => setValues((c) => ({ ...c, wingId: Number(value) }))}
+                  onValueChange={(value) => {
+                    setValues((c) => ({ ...c, wingId: Number(value) }));
+                    setFieldErrors((current) => clearFieldError(current, "location"));
+                  }}
                   disabled={values.buildingId === ""}
                 >
                   <SelectTrigger className="min-w-0 max-w-full">
@@ -267,6 +293,7 @@ export function RoomFormModal({
                 </Select>
               </div>
             </div>
+            <FormFieldError message={fieldErrors?.location} />
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
@@ -276,10 +303,16 @@ export function RoomFormModal({
               </label>
               <Input
                 value={values.number}
-                onChange={(e) => setValues((c) => ({ ...c, number: e.target.value }))}
+                onChange={(e) => {
+                  const number = e.target.value;
+                  setValues((c) => ({ ...c, number }));
+                  setFieldErrors((current) => clearFieldError(current, "number"));
+                }}
                 placeholder="Ej. Apto 15 - Cama 2"
+                aria-invalid={Boolean(fieldErrors?.number)}
                 className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)]"
               />
+              <FormFieldError message={fieldErrors?.number} />
             </div>
             <div className="space-y-1">
               <label className="mb-1.5 ml-1 block text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">
@@ -289,9 +322,15 @@ export function RoomFormModal({
                 type="number"
                 min={1}
                 value={values.capacity}
-                onChange={(e) => setValues((c) => ({ ...c, capacity: e.target.value }))}
+                onChange={(e) => {
+                  const capacity = e.target.value;
+                  setValues((c) => ({ ...c, capacity }));
+                  setFieldErrors((current) => clearFieldError(current, "capacity"));
+                }}
+                aria-invalid={Boolean(fieldErrors?.capacity)}
                 className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)]"
               />
+              <FormFieldError message={fieldErrors?.capacity} />
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import { DashboardInsightsSkeleton } from "@/components/shared/DashboardSkeletons";
 import type { ReportInsight } from "@/features/reports/utils/reportAnalytics";
 import { Building } from "@/types/models";
 
@@ -13,11 +14,7 @@ export function ReportsDynamicInsights({
   isLoading,
 }: ReportsDynamicInsightsProps) {
   if (isLoading) {
-    return (
-      <div className="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-low/50 p-6">
-        <p className="text-sm text-outline">Calculando indicadores…</p>
-      </div>
-    );
+    return <DashboardInsightsSkeleton />;
   }
 
   if (insights.length === 0) {

@@ -7,7 +7,9 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/FormField";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { infrastructureService } from "@/core/services/infrastructure.service";
+import { clearFieldError, FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
 import { FetchError } from "@/lib/fetchClient";
 import { Building, Wing } from "@/types/models";
 
@@ -22,6 +24,8 @@ interface WingFormModalProps {
 type WingFormValues = {
   name: string;
 };
+
+type WingFormField = "name";
 
 const emptyValues: WingFormValues = {
   name: "",
@@ -61,6 +65,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export function WingFormModal({ wing, building, open, onClose, onSaved }: WingFormModalProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<WingFormValues>(emptyValues);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<WingFormField> | null>(null);
 
   const isEditing = Boolean(wing);
 
@@ -121,6 +126,7 @@ export function WingFormModal({ wing, building, open, onClose, onSaved }: WingFo
   useEffect(() => {
     if (open) {
       setValues(normalizeValues(wing ?? null));
+      setFieldErrors(null);
       createMutation.reset();
       updateMutation.reset();
     }
@@ -143,12 +149,23 @@ export function WingFormModal({ wing, building, open, onClose, onSaved }: WingFo
       return;
     }
 
-    if (!values.name.trim()) {
-      toast.error("Falta el nombre del ala", {
-        description: "Escriba el sufijo del nombre, por ejemplo Norte o B.",
+    const errors = validateFields<WingFormField>([
+      {
+        field: "name",
+        valid: !!values.name.trim(),
+        message: "Escriba el sufijo del nombre, por ejemplo Norte o B.",
+      },
+    ]);
+
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
       });
       return;
     }
+
+    setFieldErrors(null);
 
     if (isEditing) {
       updateMutation.mutate();
@@ -192,14 +209,20 @@ export function WingFormModal({ wing, building, open, onClose, onSaved }: WingFo
                 </div>
                 <Input
                   value={values.name}
-                  onChange={(event) => setValues((current) => ({ ...current, name: normalizeWingSuffix(event.target.value) }))}
+                  onChange={(event) => {
+                    const name = normalizeWingSuffix(event.target.value);
+                    setValues((current) => ({ ...current, name }));
+                    setFieldErrors((current) => clearFieldError(current, "name"));
+                  }}
                   onBlur={(event) => setValues((current) => ({ ...current, name: normalizeWingSuffix(event.target.value) }))}
                   placeholder="Ej. Norte"
                   aria-label="Nombre del ala"
+                  aria-invalid={Boolean(fieldErrors?.name)}
                   className="h-12 rounded-none border-0 bg-transparent px-4 shadow-none focus-visible:ring-0"
                 />
               </div>
             </div>
+            <FormFieldError message={fieldErrors?.name} />
             <p className="ml-1 text-xs text-[var(--color-on-surface-variant)]">
               Se guardará como <span className="font-semibold text-[var(--color-on-surface)]">{wingNamePreview}</span>
             </p>

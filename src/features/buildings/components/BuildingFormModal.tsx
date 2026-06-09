@@ -7,9 +7,11 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Building, BuildingGender, Site } from "@/types/models";
+import { clearFieldError, FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
 
 interface BuildingFormModalProps {
   building: Building | null;
@@ -24,6 +26,8 @@ type BuildingFormValues = {
   name: string;
   gender: BuildingGender | "";
 };
+
+type BuildingFormField = "siteId" | "name" | "gender";
 
 const emptyValues: BuildingFormValues = {
   siteId: "",
@@ -52,6 +56,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export function BuildingFormModal({ building, sites, open, onClose, onSaved }: BuildingFormModalProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<BuildingFormValues>(emptyValues);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<BuildingFormField> | null>(null);
 
   const isEditing = Boolean(building);
 
@@ -106,6 +111,7 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
   useEffect(() => {
     if (open) {
       setValues(normalizeValues(building));
+      setFieldErrors(null);
       createMutation.reset();
       updateMutation.reset();
     }
@@ -119,26 +125,33 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const handleSubmit = () => {
-    if (!values.siteId) {
-      toast.error("Falta la sede asociada", {
-        description: "Seleccione una sede para continuar.",
+    const errors = validateFields<BuildingFormField>([
+      {
+        field: "siteId",
+        valid: values.siteId !== "",
+        message: "Seleccione la sede asociada al edificio.",
+      },
+      {
+        field: "name",
+        valid: !!values.name.trim(),
+        message: "Escriba un nombre corto y descriptivo para el edificio.",
+      },
+      {
+        field: "gender",
+        valid: !!values.gender,
+        message: "Seleccione si el edificio es para varones, hembras o mixto.",
+      },
+    ]);
+
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
       });
       return;
     }
 
-    if (!values.name.trim()) {
-      toast.error("Falta el nombre del edificio", {
-        description: "Escriba un nombre corto y descriptivo para continuar.",
-      });
-      return;
-    }
-
-    if (!values.gender) {
-      toast.error("Falta el tipo de bloque", {
-        description: "Seleccione si el edificio es para varones, hembras o mixto.",
-      });
-      return;
-    }
+    setFieldErrors(null);
 
     if (isEditing) {
       updateMutation.mutate();
@@ -169,7 +182,10 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
             <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Sede asociada</label>
             <Select
               value={values.siteId === "" ? "" : String(values.siteId)}
-              onValueChange={(value) => setValues((current) => ({ ...current, siteId: Number(value) }))}
+              onValueChange={(value) => {
+                setValues((current) => ({ ...current, siteId: Number(value) }));
+                setFieldErrors((current) => clearFieldError(current, "siteId"));
+              }}
             >
               <SelectTrigger className="h-12 rounded-2xl border border-[var(--color-outline-variant)]/45 bg-[var(--color-surface-container-lowest)] px-4 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-surface-container-low)] focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] [&>span]:line-clamp-1">
                 <SelectValue placeholder="Seleccione una sede" />
@@ -182,6 +198,7 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
                 ))}
               </SelectContent>
             </Select>
+            <FormFieldError message={fieldErrors?.siteId} />
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
@@ -189,17 +206,26 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Identificador / Nombre</label>
               <Input
                 value={values.name}
-                onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+                onChange={(event) => {
+                  const name = event.target.value;
+                  setValues((current) => ({ ...current, name }));
+                  setFieldErrors((current) => clearFieldError(current, "name"));
+                }}
                 placeholder="Ej. Edificio U10"
+                aria-invalid={Boolean(fieldErrors?.name)}
                 className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)]"
               />
+              <FormFieldError message={fieldErrors?.name} />
             </div>
 
             <div className="space-y-1">
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Tipo de bloque</label>
               <Select
                 value={values.gender}
-                onValueChange={(value) => setValues((current) => ({ ...current, gender: value as BuildingGender }))}
+                onValueChange={(value) => {
+                  setValues((current) => ({ ...current, gender: value as BuildingGender }));
+                  setFieldErrors((current) => clearFieldError(current, "gender"));
+                }}
               >
                 <SelectTrigger className="h-12 rounded-2xl border border-[var(--color-outline-variant)]/45 bg-[var(--color-surface-container-lowest)] px-4 text-sm font-medium text-[var(--color-on-surface)] shadow-none transition-all outline-none hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-surface-container-low)] focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-0 data-[placeholder]:text-[var(--color-on-surface-variant)] [&>span]:line-clamp-1">
                   <SelectValue placeholder="Seleccione el tipo de bloque" />
@@ -210,6 +236,7 @@ export function BuildingFormModal({ building, sites, open, onClose, onSaved }: B
                   <SelectItem value="Mixto">Mixto</SelectItem>
                 </SelectContent>
               </Select>
+              <FormFieldError message={fieldErrors?.gender} />
             </div>
           </div>
         </div>

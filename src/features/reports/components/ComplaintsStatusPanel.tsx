@@ -1,3 +1,4 @@
+import { DashboardComplaintsChartSkeleton } from "@/components/shared/DashboardSkeletons";
 import { COMPLAINTS_LOOKBACK_DAYS } from "@/features/reports/constants";
 import type { ComplaintStatusBreakdown } from "@/features/reports/utils/metrics";
 
@@ -16,11 +17,7 @@ const statusLegend = [
 
 export function ComplaintsStatusPanel({ breakdown, isLoading }: ComplaintsStatusPanelProps) {
   if (isLoading) {
-    return (
-      <div className="rounded-2xl bg-surface-container-lowest p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-        <p className="text-sm text-outline">Cargando estado de quejas…</p>
-      </div>
-    );
+    return <DashboardComplaintsChartSkeleton />;
   }
 
   const segments = [

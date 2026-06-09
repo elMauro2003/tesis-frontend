@@ -1,3 +1,4 @@
+import { DashboardOccupancyChartSkeleton } from "@/components/shared/DashboardSkeletons";
 import type { BuildingOccupancyRow } from "@/features/reports/utils/metrics";
 
 interface OccupancyByBuildingChartProps {
@@ -7,11 +8,7 @@ interface OccupancyByBuildingChartProps {
 
 export function OccupancyByBuildingChart({ rows, isLoading }: OccupancyByBuildingChartProps) {
   if (isLoading) {
-    return (
-      <div className="rounded-2xl bg-surface-container-lowest p-8 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-        <p className="text-sm text-outline">Cargando ocupación por edificio…</p>
-      </div>
-    );
+    return <DashboardOccupancyChartSkeleton />;
   }
 
   if (rows.length === 0) {

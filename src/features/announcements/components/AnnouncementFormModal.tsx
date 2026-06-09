@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/shared/FormField";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { Textarea } from "@/components/ui/textarea";
 import { AnnouncementCategoryPicker } from "@/features/announcements/components/AnnouncementCategoryPicker";
 import { AnnouncementVisibilityPicker } from "@/features/announcements/components/AnnouncementVisibilityPicker";
@@ -15,12 +16,15 @@ import { FetchError } from "@/lib/fetchClient";
 import { Information } from "@/types/models";
 import {
   AnnouncementFormValues,
+  AnnouncementFormField,
   buildInformationPayload,
   createEmptyAnnouncementFormValues,
+  getAnnouncementFormFieldErrors,
   getExpiryDateForCategory,
   isAnnouncementFormValid,
   normalizeAnnouncementFormValues,
 } from "@/features/announcements/utils/announcementForm";
+import { clearFieldError, FieldErrors } from "@/utils/helpers/formFieldErrors";
 
 interface AnnouncementFormModalProps {
   announcement: Information | null;
@@ -43,12 +47,14 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export function AnnouncementFormModal({ announcement, open, onClose }: AnnouncementFormModalProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<AnnouncementFormValues>(createEmptyAnnouncementFormValues());
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<AnnouncementFormField> | null>(null);
 
   const isEditing = Boolean(announcement);
 
   useEffect(() => {
     if (open) {
       setValues(normalizeAnnouncementFormValues(announcement));
+      setFieldErrors(null);
     }
   }, [announcement, open]);
 
@@ -112,19 +118,20 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
   };
 
   const handleSubmit = () => {
-    if (!isValid || isSubmitting) {
-      if (!values.title.trim() || !values.content.trim()) {
-        toast.error("Faltan campos obligatorios", {
-          description: "Complete el título y el contenido del anuncio.",
-        });
-        return;
-      }
+    if (isSubmitting) {
+      return;
+    }
 
-      toast.error("Revise las fechas del anuncio", {
-        description: "La fecha de expiración debe ser igual o posterior a la de publicación.",
+    const errors = getAnnouncementFormFieldErrors(values);
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
       });
       return;
     }
+
+    setFieldErrors(null);
 
     if (isEditing) {
       updateMutation.mutate();
@@ -168,15 +175,23 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
             onValueChange={(isPublic) => setValues((current) => ({ ...current, is_public: isPublic }))}
           />
 
-          <FormField
-            id="announcement-title"
-            label="Título"
-            icon="title"
-            value={values.title}
-            maxLength={200}
-            onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
-            placeholder="Ej. Cierre temporal del comedor"
-          />
+          <div>
+            <FormField
+              id="announcement-title"
+              label="Título"
+              icon="title"
+              value={values.title}
+              maxLength={200}
+              aria-invalid={Boolean(fieldErrors?.title)}
+              onChange={(event) => {
+                const title = event.target.value;
+                setValues((current) => ({ ...current, title }));
+                setFieldErrors((current) => clearFieldError(current, "title"));
+              }}
+              placeholder="Ej. Cierre temporal del comedor"
+            />
+            <FormFieldError message={fieldErrors?.title} />
+          </div>
 
           <div className="space-y-2">
             <label
@@ -188,31 +203,51 @@ export function AnnouncementFormModal({ announcement, open, onClose }: Announcem
             <Textarea
               id="announcement-content"
               value={values.content}
-              onChange={(event) => setValues((current) => ({ ...current, content: event.target.value }))}
+              aria-invalid={Boolean(fieldErrors?.content)}
+              onChange={(event) => {
+                const content = event.target.value;
+                setValues((current) => ({ ...current, content }));
+                setFieldErrors((current) => clearFieldError(current, "content"));
+              }}
               placeholder="Escriba el cuerpo del anuncio..."
               className="min-h-40 rounded-2xl border-0 bg-[var(--color-surface-container-low)] px-4 py-4 text-sm font-medium text-[var(--color-on-surface)] shadow-none focus-visible:bg-[var(--color-surface-container-high)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20"
             />
+            <FormFieldError message={fieldErrors?.content} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              id="announcement-published-date"
-              label="Fecha de publicación"
-              icon="calendar_today"
-              type="date"
-              value={values.published_date}
-              onChange={(event) => handlePublishedDateChange(event.target.value)}
-            />
+            <div>
+              <FormField
+                id="announcement-published-date"
+                label="Fecha de publicación"
+                icon="calendar_today"
+                type="date"
+                value={values.published_date}
+                aria-invalid={Boolean(fieldErrors?.published_date)}
+                onChange={(event) => {
+                  handlePublishedDateChange(event.target.value);
+                  setFieldErrors((current) => clearFieldError(current, "published_date"));
+                }}
+              />
+              <FormFieldError message={fieldErrors?.published_date} />
+            </div>
 
-            <FormField
-              id="announcement-expires-date"
-              label="Fecha de expiración"
-              icon="event_busy"
-              type="date"
-              min={values.published_date}
-              value={values.expires_date}
-              onChange={(event) => setValues((current) => ({ ...current, expires_date: event.target.value }))}
-            />
+            <div>
+              <FormField
+                id="announcement-expires-date"
+                label="Fecha de expiración"
+                icon="event_busy"
+                type="date"
+                min={values.published_date}
+                value={values.expires_date}
+                aria-invalid={Boolean(fieldErrors?.expires_date)}
+                onChange={(event) => {
+                  setValues((current) => ({ ...current, expires_date: event.target.value }));
+                  setFieldErrors((current) => clearFieldError(current, "expires_date"));
+                }}
+              />
+              <FormFieldError message={fieldErrors?.expires_date} />
+            </div>
           </div>
 
           <p className="rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-xs leading-relaxed text-[var(--color-on-surface-variant)]">

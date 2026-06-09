@@ -7,6 +7,7 @@ import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
+import { DashboardFilterSelectSkeleton, DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { Building, BuildingGender, Room, Site, Wing } from "@/types/models";
@@ -405,23 +406,32 @@ export default function EdificiosPage() {
       <DashboardFiltersBar
         left={(
           <div className="flex flex-wrap items-center gap-3">
-            <DashboardFilterSelect
-              className="w-full sm:w-72"
-              value={siteFilter === "all" ? "all" : String(siteFilter)}
-              onValueChange={handleSiteChange}
-              placeholder="Sede: Todas"
-              options={[
-                { value: "all", label: "Sede: Todas" },
-                ...sites.map((site) => ({ value: String(site.id), label: site.name })),
-              ]}
-            />
-            <DashboardFilterSelect
-              className="w-full sm:w-72"
-              value={buildingTypeFilter}
-              onValueChange={handleBuildingTypeChange}
-              placeholder="Tipo de bloque: Todos"
-              options={BUILDING_GENDER_OPTIONS}
-            />
+            {loading ? (
+              <>
+                <DashboardFilterSelectSkeleton className="sm:w-72" />
+                <DashboardFilterSelectSkeleton className="sm:w-72" />
+              </>
+            ) : (
+              <>
+                <DashboardFilterSelect
+                  className="w-full sm:w-72"
+                  value={siteFilter === "all" ? "all" : String(siteFilter)}
+                  onValueChange={handleSiteChange}
+                  placeholder="Sede: Todas"
+                  options={[
+                    { value: "all", label: "Sede: Todas" },
+                    ...sites.map((site) => ({ value: String(site.id), label: site.name })),
+                  ]}
+                />
+                <DashboardFilterSelect
+                  className="w-full sm:w-72"
+                  value={buildingTypeFilter}
+                  onValueChange={handleBuildingTypeChange}
+                  placeholder="Tipo de bloque: Todos"
+                  options={BUILDING_GENDER_OPTIONS}
+                />
+              </>
+            )}
           </div>
         )}
       />
@@ -440,11 +450,7 @@ export default function EdificiosPage() {
             </thead>
             <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-[var(--color-on-surface-variant)]">
-                    Cargando edificios...
-                  </td>
-                </tr>
+                <DashboardTableSkeleton rows={6} columns={5} withAvatar />
               ) : error ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-sm text-[var(--color-error)]">

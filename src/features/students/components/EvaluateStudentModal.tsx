@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { evaluationService } from "@/core/services/evaluation.service";
+import { FetchError } from "@/lib/fetchClient";
 import { Student } from "@/types/models";
-// import { toast } from "sonner"; // If they use sonner, wait I don't know, let's omit if not sure
+import { clearFieldError, FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
+import { toast } from "sonner";
 
 interface EvaluateStudentModalProps {
   student: Student | null;
@@ -17,11 +20,14 @@ interface EvaluateStudentModalProps {
   onClose: () => void;
 }
 
+type EvaluateFormField = "date" | "grade";
+
 export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudentModalProps) {
   const queryClient = useQueryClient();
   const [grade, setGrade] = useState<string>("B");
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [comments, setComments] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<EvaluateFormField> | null>(null);
 
   const evaluateMutation = useMutation({
     mutationFn: async () => {
@@ -40,7 +46,19 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
         queryClient.invalidateQueries({ queryKey: ["students-visible-details"] }),
         queryClient.invalidateQueries({ queryKey: ["student-suggestions"] }),
       ]);
+      toast.success("Evaluación registrada", {
+        description: "La evaluación quedó guardada correctamente.",
+      });
       onClose();
+    },
+    onError: (error) => {
+      const description =
+        error instanceof FetchError
+          ? error.message
+          : error instanceof Error && error.message.trim()
+            ? error.message
+            : "No se pudo guardar la evaluación. Intente nuevamente.";
+      toast.error("Error al guardar", { description });
     },
   });
 
@@ -49,9 +67,36 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
       setGrade("B");
       setDate(new Date().toISOString().split("T")[0]);
       setComments("");
+      setFieldErrors(null);
       evaluateMutation.reset();
     }
   }, [open, evaluateMutation]);
+
+  const handleSubmit = () => {
+    const errors = validateFields<EvaluateFormField>([
+      {
+        field: "grade",
+        valid: grade === "B" || grade === "R" || grade === "M",
+        message: "Seleccione una evaluación válida.",
+      },
+      {
+        field: "date",
+        valid: !!date,
+        message: "Seleccione la fecha de la evaluación.",
+      },
+    ]);
+
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
+      });
+      return;
+    }
+
+    setFieldErrors(null);
+    evaluateMutation.mutate();
+  };
 
   const fullName = useMemo(() => {
     if (!student) return "Estudiante";
@@ -110,7 +155,13 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Evaluación</label>
-                <Select value={grade} onValueChange={setGrade}>
+                <Select
+                  value={grade}
+                  onValueChange={(value) => {
+                    setGrade(value);
+                    setFieldErrors((current) => clearFieldError(current, "grade"));
+                  }}
+                >
                   <SelectTrigger className="w-full h-11 rounded-lg bg-[var(--color-surface-container-lowest)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                     <SelectValue placeholder="Seleccionar evaluación" />
                   </SelectTrigger>
@@ -120,10 +171,21 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
                     <SelectItem value="M">Mal (M)</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormFieldError message={fieldErrors?.grade} />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1.5">Fecha</label>
-                <Input type="date" className="bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-medium" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input
+                  type="date"
+                  className="bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] font-medium"
+                  value={date}
+                  aria-invalid={Boolean(fieldErrors?.date)}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    setFieldErrors((current) => clearFieldError(current, "date"));
+                  }}
+                />
+                <FormFieldError message={fieldErrors?.date} />
               </div>
             </div>
             <div>
@@ -138,10 +200,10 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
           <Button type="button" variant="cancel" onClick={onClose}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             type="button"
             variant="confirm"
-            onClick={() => evaluateMutation.mutate()}
+            onClick={handleSubmit}
             disabled={evaluateMutation.isPending}
           >
             <span className="material-symbols-outlined text-lg">save</span>

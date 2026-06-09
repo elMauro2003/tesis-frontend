@@ -10,6 +10,7 @@ import { DeleteSiteModal } from "@/features/sites/components/DeleteSiteModal";
 import { SiteFormModal } from "@/features/sites/components/SiteFormModal";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { DashboardSiteGridSkeleton, DashboardStatsGridSkeleton } from "@/components/shared/DashboardSkeletons";
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -182,6 +183,11 @@ export function SitesManagement() {
   };
 
   const isLoadingSites = sitesQuery.isLoading;
+  const isLoadingStats =
+    sitesQuery.isLoading ||
+    buildingsQuery.isLoading ||
+    wingsQuery.isLoading ||
+    roomsQuery.isLoading;
   const hasSearch = search.trim().length > 0;
 
   return (
@@ -198,15 +204,19 @@ export function SitesManagement() {
         onAction={canCreateSite ? openCreateModal : undefined}
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] p-6">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">{stat.label}</p>
-            <p className="mt-3 font-headline text-3xl font-extrabold tracking-tight text-[var(--color-primary-dark)]">{stat.value}</p>
-            <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{stat.note}</p>
-          </div>
-        ))}
-      </section>
+      {isLoadingStats ? (
+        <DashboardStatsGridSkeleton />
+      ) : (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] p-6">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-outline)]">{stat.label}</p>
+              <p className="mt-3 font-headline text-3xl font-extrabold tracking-tight text-[var(--color-primary-dark)]">{stat.value}</p>
+              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{stat.note}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] shadow-[var(--shadow-ambient)] overflow-hidden">
         <div className="flex items-center justify-between gap-4 px-6 py-5 bg-[var(--color-surface-container-low)]">
@@ -227,15 +237,7 @@ export function SitesManagement() {
               No fue posible cargar las sedes en este momento. Intente nuevamente.
             </div>
           ) : isLoadingSites ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="animate-pulse rounded-2xl bg-[var(--color-surface-container-low)] p-6">
-                  <div className="h-14 w-14 rounded-full bg-[var(--color-surface-container-high)]" />
-                  <div className="mt-5 h-6 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
-                  <div className="mt-2 h-4 w-full rounded bg-[var(--color-surface-container-high)]" />
-                </div>
-              ))}
-            </div>
+            <DashboardSiteGridSkeleton />
           ) : filteredSites.length === 0 ? (
               <DashboardEmptyState
                 title={hasSearch ? "Sin resultados" : "No hay sedes para mostrar"}

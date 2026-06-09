@@ -1,6 +1,7 @@
 import { ANNOUNCEMENT_CATEGORY_EXPIRY_DAYS } from "@/features/announcements/constants";
 import { AnnouncementCategory } from "@/features/announcements/types";
 import { Information, InformationWritePayload } from "@/types/models";
+import { FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
 
 export type AnnouncementFormValues = {
   category: AnnouncementCategory;
@@ -124,6 +125,38 @@ export const buildInformationPayload = (values: AnnouncementFormValues): Informa
   expires_date: values.expires_date || null,
   is_public: values.is_public,
 });
+
+export type AnnouncementFormField = "title" | "content" | "published_date" | "expires_date";
+
+export const getAnnouncementFormFieldErrors = (
+  values: AnnouncementFormValues
+): FieldErrors<AnnouncementFormField> | null => {
+  const durationDays = getDurationDaysBetweenDates(values.published_date, values.expires_date);
+  const datesValid = durationDays !== null && durationDays >= 0;
+
+  return validateFields<AnnouncementFormField>([
+    {
+      field: "title",
+      valid: !!values.title.trim(),
+      message: "Escriba un título para el anuncio.",
+    },
+    {
+      field: "content",
+      valid: !!values.content.trim(),
+      message: "Escriba el contenido del anuncio.",
+    },
+    {
+      field: "published_date",
+      valid: !!values.published_date,
+      message: "Seleccione la fecha de publicación.",
+    },
+    {
+      field: "expires_date",
+      valid: !!values.expires_date && datesValid,
+      message: "La expiración debe ser igual o posterior a la publicación.",
+    },
+  ]);
+};
 
 export const isAnnouncementFormValid = (values: AnnouncementFormValues) => {
   if (!values.title.trim() || !values.content.trim()) {

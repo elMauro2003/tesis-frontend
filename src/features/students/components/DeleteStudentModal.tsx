@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { studentService } from "@/core/services/student.service";
+import { FetchError } from "@/lib/fetchClient";
 import { Student } from "@/types/models";
+import { toast } from "sonner";
 
 interface DeleteStudentModalProps {
   student: Student | null;
@@ -29,7 +31,19 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
         queryClient.invalidateQueries({ queryKey: ['students-visible-details'] }),
         queryClient.invalidateQueries({ queryKey: ['student-suggestions'] }),
       ]);
+      toast.success("Estudiante dado de baja", {
+        description: "La plaza qued? liberada en la residencia.",
+      });
       onClose();
+    },
+    onError: (error) => {
+      const description =
+        error instanceof FetchError
+          ? error.message
+          : error instanceof Error && error.message.trim()
+            ? error.message
+            : "No se pudo completar la baja. Intente nuevamente.";
+      toast.error("Error al dar de baja", { description });
     },
   });
 
@@ -45,14 +59,14 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
   }, [student]);
 
   const locationLabel = useMemo(() => {
-    if (!student) return 'Sin ubicación';
+    if (!student) return 'Sin ubicaci?n';
     if (student.current_room_info) {
       return `${student.current_room_info.building || 'Sin edificio'}${student.current_room_info.room_number ? ` - ${student.current_room_info.room_number}` : ''}`;
     }
     if (student.current_room) {
       return `${student.current_room.building || 'Sin edificio'}${student.current_room.number ? ` - ${student.current_room.number}` : ''}`;
     }
-    return student.group_name || 'Sin ubicación';
+    return student.group_name || 'Sin ubicaci?n';
   }, [student]);
 
   return (
@@ -78,27 +92,30 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
           <div className="bg-[var(--color-surface-container-low)] rounded-lg p-4 mb-6">
             <p className="text-sm font-semibold text-[var(--color-on-surface)]">Estudiante: {fullName}</p>
             <p className="text-sm text-[var(--color-on-surface-variant)]">CI: {student?.ci || '-'}</p>
-            <p className="text-sm text-[var(--color-on-surface-variant)]">Ubicación actual: {locationLabel}</p>
+            <p className="text-sm text-[var(--color-on-surface-variant)]">Ubicaci?n actual: {locationLabel}</p>
           </div>
           <p className="text-sm text-[var(--color-on-surface-variant)] mb-6">
-            Esta acción liberará inmediatamente la plaza del estudiante en el cuarto asignado. Su matrícula universitaria general se mantendrá activa, pero su estado en la residencia pasará a "Baja".
+            Esta acci?n liberar? inmediatamente la plaza del estudiante en el cuarto asignado. Su matr?cula universitaria general se mantendr? activa, pero su estado en la residencia pasar? a &quot;Baja&quot;.
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Motivo de la baja</label>
-              <Select defaultValue="Graduación">
+              <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Motivo de la baja (referencia interna)</label>
+              <Select defaultValue="Graduaci?n">
                 <SelectTrigger className="w-full h-10 rounded-lg bg-[var(--color-surface-container-low)] text-sm font-medium text-[var(--color-on-surface)] shadow-none">
                   <SelectValue placeholder="Seleccionar motivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Graduación">Graduación</SelectItem>
+                  <SelectItem value="Graduaci?n">Graduaci?n</SelectItem>
                   <SelectItem value="Abandono">Abandono</SelectItem>
-                  <SelectItem value="Sanción Disciplinaria">Sanción Disciplinaria</SelectItem>
+                  <SelectItem value="Sanci?n Disciplinaria">Sanci?n Disciplinaria</SelectItem>
                   <SelectItem value="Traslado">Traslado</SelectItem>
                   <SelectItem value="Otro">Otro</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="mt-1.5 ml-1 text-xs text-[var(--color-on-surface-variant)]">
+                Este dato es solo de referencia local; la API registra la baja sin motivo adicional.
+              </p>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5">Observaciones adicionales</label>

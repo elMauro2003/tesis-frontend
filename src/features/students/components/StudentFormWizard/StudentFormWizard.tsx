@@ -29,6 +29,7 @@ import {
   Wing,
   Room
 } from "@/types/models";
+import { DashboardFormWizardSkeleton } from "@/components/shared/DashboardSkeletons";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -151,6 +152,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [fetchingInitial, setFetchingInitial] = useState(!!initialStudentId);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
   const isEditing = !!initialStudentId;
   const [submissionStage, setSubmissionStage] = useState<SubmissionStage>("idle");
   const [persistedStudentId, setPersistedStudentId] = useState<number | null>(initialStudentId ?? null);
@@ -461,6 +463,7 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
   // Load Edit Data
   useEffect(() => {
     if (initialStudentId) {
+      setInitialLoadError(null);
       studentService.getStudentById(initialStudentId)
         .then(async (student) => {
           setPersistedStudentId(initialStudentId);
@@ -659,8 +662,15 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
 
           setFetchingInitial(false);
         })
-        .catch((e) => {
-          console.error(e);
+        .catch((error) => {
+          console.error(error);
+          const message =
+            error instanceof FetchError
+              ? error.message
+              : error instanceof Error && error.message.trim()
+                ? error.message
+                : "No se pudieron cargar los datos del estudiante.";
+          setInitialLoadError(message);
           setFetchingInitial(false);
         });
     }
@@ -1091,7 +1101,27 @@ export default function StudentFormWizard({ initialStudentId }: StudentFormWizar
     }
   };
 
-  if (fetchingInitial) return <div className="p-10">Cargando datos del estudiante...</div>;
+  if (fetchingInitial) {
+    return <DashboardFormWizardSkeleton />;
+  }
+
+  if (initialLoadError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center rounded-xl bg-[var(--color-surface-container-lowest)] p-10 text-center shadow-[var(--shadow-ambient)]">
+        <span className="material-symbols-outlined mb-4 text-4xl text-[var(--color-error)]">error</span>
+        <h3 className="font-headline text-xl font-bold text-[var(--color-on-surface)]">No se pudo cargar el estudiante</h3>
+        <p className="mt-2 max-w-md text-sm text-[var(--color-on-surface-variant)]">{initialLoadError}</p>
+        <Button
+          type="button"
+          variant="neutral"
+          className="mt-6"
+          onClick={() => router.push(DASHBOARD_ROUTES.estudiantes)}
+        >
+          Volver al listado
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

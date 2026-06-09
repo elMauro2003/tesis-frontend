@@ -8,6 +8,7 @@ import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
+import { DashboardTableSkeleton } from "@/components/shared/DashboardSkeletons";
 import { TableEmptyState } from "@/components/shared/TableEmptyState";
 import { Complaint } from "@/types/models";
 import { toast } from "sonner";
@@ -204,15 +205,7 @@ export function ComplaintsManagement() {
                   </td>
                 </tr>
               ) : isLoading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index} className="animate-pulse">
-                    <td className="px-6 py-5"><div className="h-4 w-24 rounded bg-[var(--color-surface-container-high)]" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-20 rounded bg-[var(--color-surface-container-high)]" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-24 rounded bg-[var(--color-surface-container-high)]" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-64 rounded bg-[var(--color-surface-container-high)]" /></td>
-                    <td className="px-6 py-5"><div className="h-4 w-28 rounded bg-[var(--color-surface-container-high)]" /></td>
-                  </tr>
-                ))
+                <DashboardTableSkeleton rows={5} columns={5} />
               ) : complaints.length === 0 ? (
                 <TableEmptyState
                   colSpan={5}

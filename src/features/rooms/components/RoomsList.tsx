@@ -2,6 +2,7 @@
 
 import { Room, RoomAssignment } from "@/types/models";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { DashboardRoomListSkeleton } from "@/components/shared/DashboardSkeletons";
 import { RoomListRow } from "@/features/rooms/components/RoomListRow";
 
 export type EnrichedRoom = {
@@ -53,12 +54,7 @@ export function RoomsList({
       </div>
 
       {loading ? (
-        Array.from({ length: 5 }).map((_, index) => (
-          <div
-            key={`room-skeleton-${index}`}
-            className="h-[88px] animate-pulse rounded-xl bg-[var(--color-surface-container-low)]"
-          />
-        ))
+        <DashboardRoomListSkeleton />
       ) : error ? (
         <div className="rounded-xl bg-[var(--color-surface-container-lowest)] p-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
           <p className="text-sm text-[var(--color-error)]">{error}</p>

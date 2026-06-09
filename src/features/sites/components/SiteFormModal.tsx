@@ -7,15 +7,19 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FormFieldError } from "@/components/shared/FormFieldError";
 import { infrastructureService } from "@/core/services/infrastructure.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Site } from "@/types/models";
+import { clearFieldError, FieldErrors, validateFields } from "@/utils/helpers/formFieldErrors";
 
 type SiteFormValues = {
   name: string;
   address: string;
   description: string;
 };
+
+type SiteFormField = "name";
 
 interface SiteFormModalProps {
   site: Site | null;
@@ -50,6 +54,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
   const queryClient = useQueryClient();
   const [values, setValues] = useState<SiteFormValues>(emptyValues);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<SiteFormField> | null>(null);
 
   const isEditing = Boolean(site);
 
@@ -104,6 +109,7 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
   useEffect(() => {
     if (open) {
       setValues(normalizeValues(site));
+      setFieldErrors(null);
       createMutation.reset();
       updateMutation.reset();
     }
@@ -117,12 +123,23 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const handleSubmit = () => {
-    if (!values.name.trim()) {
-      toast.error("Falta el nombre de la sede", {
-        description: "Escriba un nombre corto y descriptivo para continuar.",
+    const errors = validateFields<SiteFormField>([
+      {
+        field: "name",
+        valid: !!values.name.trim(),
+        message: "Escriba un nombre corto y descriptivo para la sede.",
+      },
+    ]);
+
+    if (errors) {
+      setFieldErrors(errors);
+      toast.error("Revise el formulario", {
+        description: "Complete los campos obligatorios marcados.",
       });
       return;
     }
+
+    setFieldErrors(null);
 
     if (isEditing) {
       updateMutation.mutate();
@@ -153,10 +170,16 @@ export function SiteFormModal({ site, open, onClose }: SiteFormModalProps) {
             <label className="block text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-wider mb-1.5 ml-1">Nombre oficial de la sede</label>
             <Input
               value={values.name}
-              onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+              onChange={(event) => {
+                const name = event.target.value;
+                setValues((current) => ({ ...current, name }));
+                setFieldErrors((current) => clearFieldError(current, "name"));
+              }}
               placeholder="Ej. Sede Central"
+              aria-invalid={Boolean(fieldErrors?.name)}
               className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)]"
             />
+            <FormFieldError message={fieldErrors?.name} />
           </div>
 
           <div className="space-y-1">

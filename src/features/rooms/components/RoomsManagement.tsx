@@ -9,6 +9,7 @@ import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { SearchField } from "@/components/shared/SearchField";
+import { DashboardFilterSelectSkeleton } from "@/components/shared/DashboardSkeletons";
 import { usePermissions } from "@/hooks/usePermissions";
 import { parseOptionalUrlId } from "@/utils/helpers/parseUrlId";
 import { accommodationService } from "@/core/services/accommodation.service";
@@ -405,27 +406,36 @@ export function RoomsManagement() {
       <DashboardFiltersBar
         left={
           <div className="flex flex-wrap items-center gap-3">
-            <DashboardFilterSelect
-              className="w-full sm:min-w-[140px] sm:w-auto"
-              value={siteFilter === "all" ? "all" : String(siteFilter)}
-              onValueChange={handleSiteFilterChange}
-              placeholder="Sede: Todas"
-              options={[
-                { value: "all", label: "Sede: Todas" },
-                ...catalog.sites.map((site) => ({ value: String(site.id), label: site.name })),
-              ]}
-            />
-            <DashboardFilterSelect
-              className="w-full sm:min-w-[140px] sm:w-auto"
-              value={buildingFilter === "all" ? "all" : String(buildingFilter)}
-              onValueChange={handleBuildingFilterChange}
-              placeholder="Edificio: Todos"
-              disabled={siteFilter === "all"}
-              options={[
-                { value: "all", label: "Edificio: Todos" },
-                ...filteredBuildings.map((b) => ({ value: String(b.id), label: b.name })),
-              ]}
-            />
+            {catalog.isLoading ? (
+              <>
+                <DashboardFilterSelectSkeleton className="sm:min-w-[140px] sm:w-auto" />
+                <DashboardFilterSelectSkeleton className="sm:min-w-[140px] sm:w-auto" />
+              </>
+            ) : (
+              <>
+                <DashboardFilterSelect
+                  className="w-full sm:min-w-[140px] sm:w-auto"
+                  value={siteFilter === "all" ? "all" : String(siteFilter)}
+                  onValueChange={handleSiteFilterChange}
+                  placeholder="Sede: Todas"
+                  options={[
+                    { value: "all", label: "Sede: Todas" },
+                    ...catalog.sites.map((site) => ({ value: String(site.id), label: site.name })),
+                  ]}
+                />
+                <DashboardFilterSelect
+                  className="w-full sm:min-w-[140px] sm:w-auto"
+                  value={buildingFilter === "all" ? "all" : String(buildingFilter)}
+                  onValueChange={handleBuildingFilterChange}
+                  placeholder="Edificio: Todos"
+                  disabled={siteFilter === "all"}
+                  options={[
+                    { value: "all", label: "Edificio: Todos" },
+                    ...filteredBuildings.map((b) => ({ value: String(b.id), label: b.name })),
+                  ]}
+                />
+              </>
+            )}
           </div>
         }
         right={
@@ -458,16 +468,18 @@ export function RoomsManagement() {
         onDelete={handleDelete}
       />
 
-      <DashboardPagination
-        page={safePage}
-        totalPages={totalPages}
-        totalItems={totalCount}
-        itemLabel="cuartos"
-        pageSize={pageSize}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-        onPageChange={setPage}
-        onPageSizeChange={handlePageSizeChange}
-      />
+      {!roomsQuery.isLoading && !errorMessage && totalCount > 0 ? (
+        <DashboardPagination
+          page={safePage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          itemLabel="cuartos"
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      ) : null}
 
       <RoomFormModal
         room={selectedRoom}

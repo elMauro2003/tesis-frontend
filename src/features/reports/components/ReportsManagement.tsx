@@ -1,5 +1,6 @@
 "use client";
 
+import { DashboardMetricGridSkeleton } from "@/components/shared/DashboardSkeletons";
 import { DashboardPageHeader } from "@/components/shared/DashboardPageHeader";
 import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
 import { ComplaintsStatusPanel } from "@/features/reports/components/ComplaintsStatusPanel";
@@ -71,39 +72,43 @@ export function ReportsManagement() {
         </div>
       ) : null}
 
-      <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <ReportMetricCard
-          title="Estudiantes alojados"
-          value={isLoading ? "…" : metrics.housedStudents}
-          badge="Asignaciones activas"
-          icon="group"
-          filledIcon
-        />
-        <ReportMetricCard
-          title="Capacidad disponible"
-          value={isLoading ? "…" : metrics.availableSpots}
-          suffix="plazas"
-          badge="Cuartos activos"
-          icon="bed"
-          tone="success"
-          filledIcon
-        />
-        <ReportMetricCard
-          title="Quejas pendientes"
-          value={isLoading ? "…" : metrics.pendingComplaints}
-          badge={urgentComplaints ? "Revisar" : "Al día"}
-          icon="warning"
-          tone="warning"
-          filledIcon
-        />
-        <ReportMetricCard
-          title="Cuartos clausurados"
-          value={isLoading ? "…" : metrics.closedRooms}
-          badge="Inactivos"
-          icon="block"
-          tone="danger"
-        />
-      </section>
+      {isLoading ? (
+        <DashboardMetricGridSkeleton className="mb-12" />
+      ) : (
+        <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <ReportMetricCard
+            title="Estudiantes alojados"
+            value={metrics.housedStudents}
+            badge="Asignaciones activas"
+            icon="group"
+            filledIcon
+          />
+          <ReportMetricCard
+            title="Capacidad disponible"
+            value={metrics.availableSpots}
+            suffix="plazas"
+            badge="Cuartos activos"
+            icon="bed"
+            tone="success"
+            filledIcon
+          />
+          <ReportMetricCard
+            title="Quejas pendientes"
+            value={metrics.pendingComplaints}
+            badge={urgentComplaints ? "Revisar" : "Al día"}
+            icon="warning"
+            tone="warning"
+            filledIcon
+          />
+          <ReportMetricCard
+            title="Cuartos clausurados"
+            value={metrics.closedRooms}
+            badge="Inactivos"
+            icon="block"
+            tone="danger"
+          />
+        </section>
+      )}
 
       <ReportsGeneratorPanel
         draftFilters={draftFilters}

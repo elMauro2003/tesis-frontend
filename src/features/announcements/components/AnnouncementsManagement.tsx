@@ -10,6 +10,7 @@ import { DashboardFiltersBar } from "@/components/shared/DashboardFiltersBar";
 import { DashboardFilterSelect } from "@/components/shared/DashboardFilterSelect";
 import { DashboardSegmentedFilter } from "@/components/shared/DashboardSegmentedFilter";
 import { DashboardEmptyState } from "@/components/shared/DashboardEmptyState";
+import { DashboardAnnouncementListSkeleton } from "@/components/shared/DashboardSkeletons";
 import { DashboardPagination } from "@/components/shared/DashboardPagination";
 import { AnnouncementCard } from "@/features/announcements/components/AnnouncementCard";
 import { AnnouncementFormModal } from "@/features/announcements/components/AnnouncementFormModal";
@@ -317,24 +318,7 @@ export function AnnouncementsManagement() {
               No fue posible cargar los anuncios en este momento. Intente nuevamente.
             </div>
           ) : isLoading ? (
-            <div className="mx-auto max-w-3xl space-y-8">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse rounded-2xl bg-[var(--color-surface-container-low)] p-8"
-                >
-                  <div className="mb-6 flex justify-between">
-                    <div className="h-6 w-24 rounded-full bg-[var(--color-surface-container-high)]" />
-                    <div className="h-4 w-28 rounded bg-[var(--color-surface-container-high)]" />
-                  </div>
-                  <div className="mb-4 h-8 w-2/3 rounded bg-[var(--color-surface-container-high)]" />
-                  <div className="space-y-2">
-                    <div className="h-4 w-full rounded bg-[var(--color-surface-container-high)]" />
-                    <div className="h-4 w-5/6 rounded bg-[var(--color-surface-container-high)]" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DashboardAnnouncementListSkeleton />
           ) : filteredAnnouncements.length === 0 ? (
             <DashboardEmptyState
               title={
