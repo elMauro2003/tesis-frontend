@@ -16,7 +16,7 @@ export const authService = {
         method: "POST",
       });
     } catch (e) {
-      // Ignore errors on logout (e.g. token already expired)
+      
     } finally {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
