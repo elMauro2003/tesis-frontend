@@ -169,8 +169,26 @@ export interface Student {
 
 export interface Teacher {
   id: number;
-  first_name: string;
-  last_name: string;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  employee_id?: string;
+  department?: string | null;
+  is_dean?: boolean;
+  is_group_advisor?: boolean;
+  is_year_lead_professor?: boolean;
+  is_wing_supervisor?: boolean;
+}
+
+export interface WingSupervisor {
+  professor: number;
+  professor_name: string;
+  wing: number;
+  wing_name: string;
+}
+
+export interface WingSupervisorRequest {
+  wing: number;
 }
 
 // Operaciones Continuas

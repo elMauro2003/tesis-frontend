@@ -18,6 +18,7 @@ import { BuildingFormModal } from "@/features/buildings/components/BuildingFormM
 import { DeleteBuildingModal } from "@/features/buildings/components/DeleteBuildingModal";
 import { DeleteWingModal } from "@/features/buildings/components/DeleteWingModal";
 import { WingFormModal } from "@/features/buildings/components/WingFormModal";
+import { AssignInstructorModal } from "@/features/buildings/components/AssignInstructorModal";
 import { ViewBuildingPanel } from "@/features/buildings/components/ViewBuildingPanel";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -99,6 +100,7 @@ export default function EdificiosPage() {
   const [wingFormOpen, setWingFormOpen] = useState(false);
   const [wingDeleteOpen, setWingDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  const [assignInstructorOpen, setAssignInstructorOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [selectedWing, setSelectedWing] = useState<Wing | null>(null);
   const [viewBuilding, setViewBuilding] = useState<Building | null>(null);
@@ -346,10 +348,28 @@ export default function EdificiosPage() {
     setViewBuilding(null);
     setFormOpen(false);
     setDeleteOpen(false);
+    setAssignInstructorOpen(false);
     setWingDeleteOpen(false);
     setSelectedWing(null);
     setSelectedBuilding(building);
     setWingFormOpen(true);
+  };
+
+  const handleAssignInstructor = (building: Building) => {
+    setViewOpen(false);
+    setViewBuilding(null);
+    setFormOpen(false);
+    setDeleteOpen(false);
+    setWingFormOpen(false);
+    setWingDeleteOpen(false);
+    setSelectedWing(null);
+    setSelectedBuilding(building);
+    setAssignInstructorOpen(true);
+  };
+
+  const handleCloseAssignInstructor = () => {
+    setAssignInstructorOpen(false);
+    setSelectedBuilding(null);
   };
 
   const handleDeleteWing = (wing: Wing) => {
@@ -556,6 +576,10 @@ export default function EdificiosPage() {
                                     <span className="material-symbols-outlined text-base">apartment</span>
                                     Registrar ala
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => handleAssignInstructor(building)}>
+                                    <span className="material-symbols-outlined text-base">person_add</span>
+                                    Asignar instructor
+                                  </DropdownMenuItem>
                                 </>
                               ) : null}
                               {canDeleteBuilding ? (
@@ -615,6 +639,16 @@ export default function EdificiosPage() {
         open={wingFormOpen}
         onClose={handleCloseWingForm}
         onSaved={() => loadData()}
+      />
+
+      <AssignInstructorModal
+        building={selectedBuilding}
+        wings={wings}
+        sites={sites}
+        open={assignInstructorOpen}
+        onClose={handleCloseAssignInstructor}
+        onAssigned={() => loadData()}
+        onRequestRegisterWing={handleRegisterWing}
       />
 
       <DeleteWingModal
