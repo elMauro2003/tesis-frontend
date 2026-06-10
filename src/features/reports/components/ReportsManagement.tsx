@@ -116,8 +116,8 @@ export function ReportsManagement() {
         sites={catalog.sites}
         buildingOptions={draftBuildingOptions}
         faculties={faculties}
-        careers={draftAnalytics.careers}
-        careersLoading={draftAnalytics.careersLoading}
+        careers={draftAnalytics?.careers ?? []}
+        careersLoading={draftAnalytics?.careersLoading ?? false}
         draftAnalytics={draftAnalytics}
         resultsCount={resultsTotalItems}
         onApply={applyFilters}
