@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
-import { infrastructureService } from "@/core/services/infrastructure.service";
+import { infrastructureCascadeService } from "@/core/services/infrastructureCascade.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Site } from "@/types/models";
 
@@ -30,18 +30,35 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
   const queryClient = useQueryClient();
 
+  const summaryQuery = useQuery({
+    queryKey: ["site-deletion-summary", site?.id],
+    queryFn: () => infrastructureCascadeService.getSiteDeletionSummary(site!.id),
+    enabled: open && !!site,
+    staleTime: 15 * 1000,
+  });
+
+  const summary = summaryQuery.data;
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!site) {
         return;
       }
 
-      await infrastructureService.deleteSite(site.id);
+      await infrastructureCascadeService.deleteSiteWithDependents(site.id);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["sites"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sites"] }),
+        queryClient.invalidateQueries({ queryKey: ["buildings-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["wings-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["rooms-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["active-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["wing-supervisors"] }),
+        queryClient.invalidateQueries({ queryKey: ["site-deletion-summary"] }),
+      ]);
       toast.success("Sede eliminada", {
-        description: "La sede fue removida del sistema correctamente.",
+        description: "La sede y sus recursos dependientes fueron removidos correctamente.",
       });
       onClose();
     },
@@ -60,8 +77,9 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
 
   const siteName = useMemo(() => site?.name ?? "Sede", [site]);
   const siteAddress = useMemo(() => site?.address ?? "Dirección no registrada", [site]);
-  const buildingCount = useMemo(() => site?.building_count ?? 0, [site]);
-  const wingCountLabel = buildingCount > 0 ? "alas y cuartos" : "alas y cuartos";
+  const buildingCount = summary?.buildingCount ?? site?.building_count ?? 0;
+  const wingCount = summary?.wingCount ?? 0;
+  const roomCount = summary?.roomCount ?? 0;
 
   return (
     <BottomSheet open={open && !!site} onClose={onClose} maxWidthClassName="max-w-md">
@@ -93,12 +111,32 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Edificios asociados</p>
               <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{buildingCount} edificio{buildingCount === 1 ? "" : "s"}</p>
             </div>
+            {summaryQuery.isLoading ? (
+              <p className="text-sm text-[var(--color-on-surface-variant)]">Calculando dependencias...</p>
+            ) : summaryQuery.isError ? (
+              <p className="text-sm text-[var(--color-error)]">No se pudieron consultar las dependencias de la sede.</p>
+            ) : summary ? (
+              <>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Alas y cuartos</p>
+                  <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                    {wingCount} ala{wingCount === 1 ? "" : "s"} · {roomCount} cuarto{roomCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                {summary.activeAssignmentCount > 0 ? (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Asignaciones activas</p>
+                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{summary.activeAssignmentCount}</p>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
 
           <div className="rounded-xl bg-red-50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
             <p className="mt-2 text-sm text-red-900 leading-relaxed">
-              Si elimina esta sede, también se perderán sus {buildingCount} edificio{buildingCount === 1 ? "" : "s"}, junto con sus {wingCountLabel} vinculadas. Confirme antes de continuar.
+              Se eliminarán en orden edificios, alas, cuartos, asignaciones activas, cuartelerías y responsables de ala antes de quitar la sede.
             </p>
           </div>
 
@@ -115,7 +153,7 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
             type="button"
             variant="danger"
             onClick={() => deleteMutation.mutate()}
-            disabled={!site || deleteMutation.isPending}
+            disabled={!site || deleteMutation.isPending || summaryQuery.isLoading}
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar sede"}
           </Button>

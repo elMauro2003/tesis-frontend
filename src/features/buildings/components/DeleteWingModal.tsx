@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
-import { infrastructureService } from "@/core/services/infrastructure.service";
+import {
+  infrastructureCascadeService,
+  WingDeletionSummary,
+} from "@/core/services/infrastructureCascade.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Wing } from "@/types/models";
 
 interface DeleteWingModalProps {
   wing: Wing | null;
   buildingName?: string;
-  roomCount: number;
   open: boolean;
   onClose: () => void;
   onDeleted?: () => void;
@@ -30,8 +32,48 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export function DeleteWingModal({ wing, buildingName, roomCount, open, onClose, onDeleted }: DeleteWingModalProps) {
+const emptySummary: WingDeletionSummary = {
+  roomCount: 0,
+  activeAssignmentCount: 0,
+  roomDutyCount: 0,
+  hasSupervisor: false,
+};
+
+const formatCascadeDetails = (summary: WingDeletionSummary) => {
+  const parts: string[] = [];
+
+  if (summary.roomCount > 0) {
+    parts.push(`${summary.roomCount} cuarto${summary.roomCount === 1 ? "" : "s"}`);
+  }
+
+  if (summary.activeAssignmentCount > 0) {
+    parts.push(`${summary.activeAssignmentCount} asignación${summary.activeAssignmentCount === 1 ? "" : "es"} activa${summary.activeAssignmentCount === 1 ? "" : "s"}`);
+  }
+
+  if (summary.roomDutyCount > 0) {
+    parts.push(`${summary.roomDutyCount} cuartelería${summary.roomDutyCount === 1 ? "" : "s"}`);
+  }
+
+  if (summary.hasSupervisor) {
+    parts.push("1 responsable de ala");
+  }
+
+  return parts;
+};
+
+export function DeleteWingModal({ wing, buildingName, open, onClose, onDeleted }: DeleteWingModalProps) {
   const queryClient = useQueryClient();
+
+  const summaryQuery = useQuery({
+    queryKey: ["wing-deletion-summary", wing?.id],
+    queryFn: () => infrastructureCascadeService.getWingDeletionSummary(wing!.id),
+    enabled: open && !!wing,
+    staleTime: 15 * 1000,
+  });
+
+  const summary = summaryQuery.data ?? emptySummary;
+  const cascadeDetails = useMemo(() => formatCascadeDetails(summary), [summary]);
+  const hasDependents = cascadeDetails.length > 0;
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -39,22 +81,27 @@ export function DeleteWingModal({ wing, buildingName, roomCount, open, onClose, 
         return;
       }
 
-      await infrastructureService.deleteWing(wing.id);
+      await infrastructureCascadeService.deleteWingWithDependents(wing.id);
     },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["wings-all"] }),
         queryClient.invalidateQueries({ queryKey: ["rooms-all-active"] }),
+        queryClient.invalidateQueries({ queryKey: ["rooms-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["rooms"] }),
         queryClient.invalidateQueries({ queryKey: ["buildings-all"] }),
+        queryClient.invalidateQueries({ queryKey: ["active-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["wing-supervisors"] }),
+        queryClient.invalidateQueries({ queryKey: ["wing-deletion-summary"] }),
       ]);
       toast.success("Ala eliminada", {
-        description: "La ala fue removida del sistema correctamente.",
+        description: "La ala y sus recursos dependientes fueron removidos correctamente.",
       });
       onDeleted?.();
       onClose();
     },
     onError: (error) => {
-      toast.error("No se pudo eliminar la ala", {
+      toast.error("No se pudo eliminar el ala", {
         description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
       });
     },
@@ -79,7 +126,7 @@ export function DeleteWingModal({ wing, buildingName, roomCount, open, onClose, 
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-extrabold text-red-900 leading-tight font-headline">Eliminar ala</h3>
             <p className="mt-1 text-xs text-[var(--color-on-surface-variant)] leading-relaxed">
-              Esta acción eliminará el ala y todo su contenido relacionado.
+              Esta acción eliminará el ala y limpiará automáticamente sus dependencias.
             </p>
           </div>
         </div>
@@ -94,16 +141,34 @@ export function DeleteWingModal({ wing, buildingName, roomCount, open, onClose, 
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Edificio</p>
               <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{resolvedBuildingName}</p>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Cuartos asociados</p>
-              <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{roomCount} cuarto{roomCount === 1 ? "" : "s"}</p>
-            </div>
+            {summaryQuery.isLoading ? (
+              <p className="text-sm text-[var(--color-on-surface-variant)]">Calculando dependencias...</p>
+            ) : summaryQuery.isError ? (
+              <p className="text-sm text-[var(--color-error)]">No se pudieron consultar las dependencias del ala.</p>
+            ) : (
+              <>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Recursos vinculados</p>
+                  <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                    {hasDependents ? cascadeDetails.join(" · ") : "Sin dependencias registradas"}
+                  </p>
+                </div>
+                {summary.hasSupervisor && summary.supervisorName ? (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-outline)]">Responsable actual</p>
+                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{summary.supervisorName}</p>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
 
           <div className="rounded-xl bg-red-50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
             <p className="mt-2 text-sm text-red-900 leading-relaxed">
-              Si elimina esta ala, también se perderán sus {roomCount} cuarto{roomCount === 1 ? "" : "s"} vinculados. Confirme antes de continuar.
+              {hasDependents
+                ? `Se liberarán plazas activas, eliminarán cuartelerías, cuartos y la asignación de instructor antes de quitar el ala: ${cascadeDetails.join(", ")}.`
+                : "No hay dependencias activas. El ala se eliminará directamente."}
             </p>
           </div>
 
@@ -120,7 +185,7 @@ export function DeleteWingModal({ wing, buildingName, roomCount, open, onClose, 
             type="button"
             variant="danger"
             onClick={() => deleteMutation.mutate()}
-            disabled={!wing || deleteMutation.isPending}
+            disabled={!wing || deleteMutation.isPending || summaryQuery.isLoading}
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar ala"}
           </Button>

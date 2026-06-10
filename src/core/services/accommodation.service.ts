@@ -14,7 +14,15 @@ export interface RoomAssignmentCreatePayload {
 
 export const accommodationService = {
   // --- Asignaciones de Cuartos ---
-  getAssignments: (filters?: { student?: number; room?: number; is_active?: boolean; page?: number }): Promise<PaginatedResponse<RoomAssignment>> => {
+  getAssignments: (filters?: {
+    student?: number;
+    room?: number;
+    room__wing?: number;
+    room__wing__building?: number;
+    is_active?: boolean;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<RoomAssignment>> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([k, v]) => {
@@ -23,6 +31,37 @@ export const accommodationService = {
     }
     const qs = params.toString();
     return fetchClient(`/api/v1/asignaciones/${qs ? `?${qs}` : ""}`);
+  },
+
+  getAllAssignments: async (filters: {
+    student?: number;
+    room?: number;
+    room__wing?: number;
+    room__wing__building?: number;
+    is_active?: boolean;
+    page_size?: number;
+  } = {}): Promise<PaginatedResponse<RoomAssignment>> => {
+    const pageSize = filters.page_size ?? 100;
+    const firstPage = await accommodationService.getAssignments({ ...filters, page: 1, page_size: pageSize });
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        accommodationService.getAssignments({ ...filters, page, page_size: pageSize })
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
   },
 
   getAssignmentById: (id: number): Promise<RoomAssignment> => fetchClient(`/api/v1/asignaciones/${id}/`),
@@ -109,7 +148,14 @@ export const accommodationService = {
   },
 
   // --- Cuartelerías (Room Duties) ---
-  getRoomDuties: (filters?: { room?: number; student?: number; completed?: boolean; page?: number }): Promise<PaginatedResponse<RoomDuty>> => {
+  getRoomDuties: (filters?: {
+    room?: number;
+    room__wing?: number;
+    student?: number;
+    completed?: boolean;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<RoomDuty>> => {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([k, v]) => {
@@ -120,11 +166,43 @@ export const accommodationService = {
     return fetchClient(`/api/v1/cuartelerias/${qs ? `?${qs}` : ""}`);
   },
 
+  getAllRoomDuties: async (filters: {
+    room?: number;
+    room__wing?: number;
+    student?: number;
+    completed?: boolean;
+    page_size?: number;
+  } = {}): Promise<PaginatedResponse<RoomDuty>> => {
+    const pageSize = filters.page_size ?? 100;
+    const firstPage = await accommodationService.getRoomDuties({ ...filters, page: 1, page_size: pageSize });
+
+    if (!firstPage.next) {
+      return firstPage;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(firstPage.count / pageSize));
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => index + 2).map((page) =>
+        accommodationService.getRoomDuties({ ...filters, page, page_size: pageSize })
+      )
+    );
+
+    return {
+      ...firstPage,
+      results: [
+        ...firstPage.results,
+        ...remainingPages.flatMap((page) => page.results),
+      ],
+    };
+  },
+
   getRoomDutyById: (id: number): Promise<RoomDuty> => fetchClient(`/api/v1/cuartelerias/${id}/`),
   
   getMyRoomDuties: (): Promise<PaginatedResponse<RoomDuty>> => fetchClient("/api/v1/cuartelerias/mis-cuartelerias/"),
   
   createRoomDuty: (data: Omit<RoomDuty, "id" | "completed">): Promise<RoomDuty> => fetchClient("/api/v1/cuartelerias/", { method: "POST", body: JSON.stringify(data) }),
-  
+
+  deleteRoomDuty: (id: number): Promise<void> => fetchClient(`/api/v1/cuartelerias/${id}/`, { method: "DELETE" }),
+
   completeRoomDuty: (id: number, notes?: string): Promise<RoomDuty> => fetchClient(`/api/v1/cuartelerias/${id}/completar/`, { method: "PATCH", body: JSON.stringify({ notes }) }),
 };

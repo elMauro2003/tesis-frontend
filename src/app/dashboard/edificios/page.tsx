@@ -199,26 +199,6 @@ export default function EdificiosPage() {
     return map;
   }, [rooms]);
 
-  const buildingCascadeById = useMemo(() => {
-    const map = new Map<number, { wingCount: number; roomCount: number }>();
-
-    for (const building of allBuildings) {
-      const buildingWings = wingsByBuilding.get(building.id) ?? [];
-      let roomCount = 0;
-
-      for (const wing of buildingWings) {
-        roomCount += (roomsByWing.get(wing.id) ?? []).length;
-      }
-
-      map.set(building.id, {
-        wingCount: buildingWings.length,
-        roomCount,
-      });
-    }
-
-    return map;
-  }, [allBuildings, wingsByBuilding, roomsByWing]);
-
   const metricsByBuilding = useMemo(() => {
     const map = new Map<number, BuildingMetrics>();
 
@@ -626,8 +606,6 @@ export default function EdificiosPage() {
 
       <DeleteBuildingModal
         building={selectedBuilding}
-        wingCount={selectedBuilding ? (buildingCascadeById.get(selectedBuilding.id)?.wingCount ?? 0) : 0}
-        roomCount={selectedBuilding ? (buildingCascadeById.get(selectedBuilding.id)?.roomCount ?? 0) : 0}
         open={deleteOpen}
         onClose={handleCloseDeleteBuilding}
         onDeleted={() => loadData()}
@@ -659,7 +637,6 @@ export default function EdificiosPage() {
 
           return buildingsById.get(wingBuildingId)?.name;
         })() : undefined}
-        roomCount={selectedWing ? (roomsByWing.get(selectedWing.id)?.length ?? 0) : 0}
         open={wingDeleteOpen}
         onClose={handleCloseDeleteWing}
         onDeleted={() => loadData()}

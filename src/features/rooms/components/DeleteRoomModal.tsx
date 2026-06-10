@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ModalCloseButton } from "@/components/shared/ModalCloseButton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
-import { infrastructureService } from "@/core/services/infrastructure.service";
+import { infrastructureCascadeService } from "@/core/services/infrastructureCascade.service";
 import { FetchError } from "@/lib/fetchClient";
 import { Room } from "@/types/models";
 
@@ -38,7 +38,7 @@ export function DeleteRoomModal({
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!room) return;
-      await infrastructureService.deleteRoom(room.id);
+      await infrastructureCascadeService.deleteRoomWithDependents(room.id);
     },
     onSuccess: async () => {
       if (room) {
@@ -46,8 +46,9 @@ export function DeleteRoomModal({
       }
       await queryClient.invalidateQueries({ queryKey: ["rooms"] });
       await queryClient.invalidateQueries({ queryKey: ["rooms-all"] });
+      await queryClient.invalidateQueries({ queryKey: ["active-assignments"] });
       toast.success("Cuarto eliminado", {
-        description: "El cuarto fue removido del sistema correctamente.",
+        description: "El cuarto y sus dependencias activas fueron removidos correctamente.",
       });
       onDeleted?.();
       onClose();
@@ -90,7 +91,7 @@ export function DeleteRoomModal({
             {assignmentCount > 0 ? (
               <p className="text-sm text-[var(--color-on-surface-variant)]">
                 Tiene {assignmentCount} asignación{assignmentCount === 1 ? "" : "es"} activa
-                {assignmentCount === 1 ? "" : "s"}. Libere las plazas antes de eliminar si el sistema lo requiere.
+                {assignmentCount === 1 ? "" : "s"}. Se liberarán automáticamente antes de eliminar el cuarto.
               </p>
             ) : null}
           </div>
