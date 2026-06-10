@@ -68,13 +68,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         <div className="pt-4 mt-4 border-t border-outline-variant/15 space-y-1">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all group">
-            <span className="material-symbols-outlined text-outline group-hover:text-primary">settings</span>
-            <span className="font-medium text-sm">Settings</span>
-          </button>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-error-container/50 transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-error-container/50 transition-all group cursor-pointer"
           >
             <span className="material-symbols-outlined text-outline group-hover:text-error">logout</span>
             <span className="font-medium text-sm group-hover:text-error">Logout</span>

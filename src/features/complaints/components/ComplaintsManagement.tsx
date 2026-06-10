@@ -309,7 +309,6 @@ function ManagerComplaintsView() {
         onClose={() => setViewComplaint(null)}
         canManage={canManage}
         onRespond={openRespondModal}
-        onUpdateStatus={openStatusModal}
       />
 
       {canManage ? (

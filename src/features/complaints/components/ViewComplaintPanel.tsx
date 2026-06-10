@@ -17,7 +17,6 @@ interface ViewComplaintPanelProps {
   complaint: Complaint | null;
   onClose: () => void;
   onRespond?: (complaint: Complaint) => void;
-  onUpdateStatus?: (complaint: Complaint) => void;
   canManage?: boolean;
 }
 
@@ -25,7 +24,6 @@ export function ViewComplaintPanel({
   complaint,
   onClose,
   onRespond,
-  onUpdateStatus,
   canManage = false,
 }: ViewComplaintPanelProps) {
   const responseDateLabel = formatComplaintDateTime(complaint?.response_date);
@@ -41,10 +39,6 @@ export function ViewComplaintPanel({
           <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/40 p-6 sm:flex-row sm:justify-end">
             <Button type="button" variant="neutral" onClick={onClose}>
               Cerrar
-            </Button>
-            <Button type="button" variant="neutral" onClick={() => onUpdateStatus?.(complaint)}>
-              <span className="material-symbols-outlined text-lg">published_with_changes</span>
-              Cambiar estado
             </Button>
             <Button type="button" variant="default" onClick={() => onRespond?.(complaint)}>
               <span className="material-symbols-outlined text-lg">reply</span>
