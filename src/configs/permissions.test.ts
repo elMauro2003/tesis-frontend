@@ -3,8 +3,10 @@ import {
   canAccessRoute,
   getNavItemsForRoles,
   getDefaultRouteForRoles,
+  getPortalNavItemsForRoles,
 } from "@/configs/permissions";
 import { DASHBOARD_ROUTES } from "@/configs/dashboardRoutes";
+import { PORTAL_ROUTES } from "@/configs/portalRoutes";
 
 describe("permissions", () => {
   it("expone todas las pestañas del dashboard para directivo", () => {
@@ -33,5 +35,19 @@ describe("permissions", () => {
 
   it("redirige subdirector a quejas por defecto", () => {
     expect(getDefaultRouteForRoles(["subdirector"])).toBe(DASHBOARD_ROUTES.quejas);
+  });
+
+  it("expone las pestañas del portal para estudiante", () => {
+    const items = getPortalNavItemsForRoles(["estudiante"]);
+    const hrefs = items.map((item) => item.href);
+
+    expect(hrefs).toContain(PORTAL_ROUTES.evaluaciones);
+    expect(hrefs).toContain(PORTAL_ROUTES.quejas);
+    expect(hrefs).toContain(PORTAL_ROUTES.anuncios);
+  });
+
+  it("bloquea el dashboard a estudiantes", () => {
+    expect(canAccessRoute(DASHBOARD_ROUTES.reportes, ["estudiante"])).toBe(false);
+    expect(canAccessRoute(PORTAL_ROUTES.evaluaciones, ["estudiante"])).toBe(true);
   });
 });

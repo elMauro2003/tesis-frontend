@@ -1,6 +1,13 @@
 import type { Page, Route } from "@playwright/test";
 import { mockDirectivoUser } from "./auth";
 
+type MockUser = {
+  id: number;
+  username: string;
+  email: string;
+  roles: string[];
+};
+
 const emptyPaginated = () => ({
   count: 0,
   next: null,
@@ -16,13 +23,13 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
-export async function setupDashboardApiMocks(page: Page) {
-  await page.route("**/api/v1/**", async (route) => {
+export async function setupApiMocks(page: Page, user: MockUser = mockDirectivoUser) {
+  await page.route(/\/api\/v1\//, async (route) => {
     const url = route.request().url();
     const method = route.request().method();
 
     if (url.includes("/auth/me")) {
-      return fulfillJson(route, mockDirectivoUser);
+      return fulfillJson(route, user);
     }
 
     if (url.includes("/auth/logout") && method === "POST") {
@@ -39,4 +46,19 @@ export async function setupDashboardApiMocks(page: Page) {
 
     return fulfillJson(route, {});
   });
+}
+
+export async function setupDashboardApiMocks(page: Page) {
+  return setupApiMocks(page, mockDirectivoUser);
+}
+
+export const mockEstudianteUser = {
+  id: 10,
+  username: "estudiante.test",
+  email: "estudiante@uclv.cu",
+  roles: ["estudiante"],
+};
+
+export async function setupPortalApiMocks(page: Page) {
+  return setupApiMocks(page, mockEstudianteUser);
 }

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, type RenderOptions } from "@testing-library/react";
 import { ReactElement, ReactNode } from "react";
+import { vi } from "vitest";
 import { Role, User } from "@/types/auth";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -23,6 +24,13 @@ export const mockInstructorUser: User = {
   username: "instructor.test",
   email: "instructor@uclv.cu",
   roles: ["instructor"],
+};
+
+export const mockEstudianteUser: User = {
+  id: 10,
+  username: "estudiante.test",
+  email: "estudiante@uclv.cu",
+  roles: ["estudiante"],
 };
 
 export function setMockAuthUser(user: User | null) {
@@ -76,4 +84,29 @@ export function emptyPaginated<T>() {
 
 export function withRole(user: User, role: Role): User {
   return { ...user, roles: [role] };
+}
+
+export function renderWithPortalProviders(
+  ui: ReactElement,
+  options?: RenderOptions & { queryClient?: QueryClient; user?: User | null }
+) {
+  return renderWithProviders(ui, {
+    user: mockEstudianteUser,
+    ...options,
+  });
+}
+
+export function mockInfiniteQueryResult<T>(results: T[] = []) {
+  return {
+    data: {
+      pages: [{ ...emptyPaginated<T>(), count: results.length, results }],
+      pageParams: [1],
+    },
+    isLoading: false,
+    isError: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+    refetch: vi.fn(),
+  };
 }

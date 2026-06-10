@@ -11,6 +11,8 @@ type Role =
   | "pg"
   | "admin";
 
+const APP_ORIGIN = "http://localhost:3000";
+
 function encodeBase64Url(value: string) {
   return Buffer.from(value)
     .toString("base64")
@@ -32,17 +34,28 @@ export const mockDirectivoUser = {
   roles: ["directivo"] as Role[],
 };
 
+export const mockEstudianteUser = {
+  id: 10,
+  username: "estudiante.test",
+  email: "estudiante@uclv.cu",
+  roles: ["estudiante"] as Role[],
+};
+
 export async function authenticateAs(page: Page, roles: Role[] = ["directivo"]) {
   const accessToken = createMockAccessToken(roles);
 
   await page.context().addCookies([
-    { name: "auth_session", value: "1", url: "http://127.0.0.1:3000/" },
-    { name: "user_roles", value: roles.join(","), url: "http://127.0.0.1:3000/" },
-    { name: "access_token", value: accessToken, url: "http://127.0.0.1:3000/" },
+    { name: "auth_session", value: "1", url: `${APP_ORIGIN}/` },
+    { name: "user_roles", value: roles.join(","), url: `${APP_ORIGIN}/` },
+    { name: "access_token", value: accessToken, url: `${APP_ORIGIN}/` },
   ]);
 
   await page.addInitScript((token) => {
     localStorage.setItem("access_token", token);
     localStorage.setItem("refresh_token", "refresh-test-token");
   }, accessToken);
+}
+
+export async function authenticateAsStudent(page: Page) {
+  return authenticateAs(page, ["estudiante"]);
 }
