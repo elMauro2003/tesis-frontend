@@ -9,7 +9,7 @@ import {
   BuildingDeletionSummary,
   infrastructureCascadeService,
 } from "@/core/services/infrastructureCascade.service";
-import { FetchError } from "@/lib/fetchClient";
+import { getCascadeErrorMessage } from "@/core/services/infrastructureCascade.errors";
 import { Building } from "@/types/models";
 
 interface DeleteBuildingModalProps {
@@ -19,24 +19,15 @@ interface DeleteBuildingModalProps {
   onDeleted?: () => void;
 }
 
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof FetchError) {
-    return error.message;
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return fallback;
-};
-
 const emptySummary: BuildingDeletionSummary = {
   wingCount: 0,
   roomCount: 0,
   activeAssignmentCount: 0,
+  assignmentRecordCount: 0,
   roomDutyCount: 0,
   supervisorCount: 0,
+  canDelete: true,
+  blockedRoomNumbers: [],
 };
 
 export function DeleteBuildingModal({ building, open, onClose, onDeleted }: DeleteBuildingModalProps) {
@@ -78,7 +69,7 @@ export function DeleteBuildingModal({ building, open, onClose, onDeleted }: Dele
     },
     onError: (error) => {
       toast.error("No se pudo eliminar el edificio", {
-        description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
+        description: getCascadeErrorMessage(error, "Intente nuevamente en unos segundos."),
       });
     },
   });
@@ -102,7 +93,7 @@ export function DeleteBuildingModal({ building, open, onClose, onDeleted }: Dele
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-extrabold text-red-900 leading-tight font-headline">Eliminar Edificio</h3>
             <p className="mt-1 text-xs text-[var(--color-on-surface-variant)] leading-relaxed">
-              Esta acción eliminará el edificio y limpiará automáticamente sus dependencias.
+              Se eliminarán las dependencias permitidas por la API antes de quitar el edificio.
             </p>
           </div>
           <button type="button" className="text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors cursor-pointer" onClick={onClose} aria-label="Cerrar modal">
@@ -150,12 +141,21 @@ export function DeleteBuildingModal({ building, open, onClose, onDeleted }: Dele
             )}
           </div>
 
-          <div className="rounded-xl bg-red-50 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
-            <p className="mt-2 text-sm text-red-900 leading-relaxed">
-              Se eliminarán en orden las asignaciones activas, cuartelerías, cuartos, responsables de ala y alas antes de quitar el edificio.
-            </p>
-          </div>
+          {!summaryQuery.isLoading && !summary.canDelete ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <span className="material-symbols-outlined text-amber-600">block</span>
+              <p className="text-sm text-amber-900">
+                Hay cuartos con asignaciones registradas ({summary.blockedRoomNumbers.join(", ")}). La API no permite borrarlos, por lo que el edificio no puede eliminarse.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-red-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
+              <p className="mt-2 text-sm text-red-900 leading-relaxed">
+                Se eliminarán alas, cuartelerías, cuartos sin historial y responsables de ala antes de quitar el edificio.
+              </p>
+            </div>
+          )}
 
           <p className="text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
             Esta operación no se puede deshacer desde la interfaz.
@@ -170,7 +170,7 @@ export function DeleteBuildingModal({ building, open, onClose, onDeleted }: Dele
             type="button"
             variant="danger"
             onClick={() => deleteMutation.mutate()}
-            disabled={!building || deleteMutation.isPending || summaryQuery.isLoading}
+            disabled={!building || !summary.canDelete || deleteMutation.isPending || summaryQuery.isLoading}
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar edificio"}
           </Button>

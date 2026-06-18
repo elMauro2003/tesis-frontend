@@ -26,6 +26,8 @@
 
 # docs
 /docs
+!/docs/capturas/
+!/docs/capturas/**
 
 # debug
 npm-debug.log*

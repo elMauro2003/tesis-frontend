@@ -11,6 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "test:e2e:ui": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test --ui",
+    "test:capturas": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/capturas --workers=1",
+    "test:capturas:ui": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test e2e/capturas --ui",
     "test:e2e:install": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium"
   },
   "dependencies": {

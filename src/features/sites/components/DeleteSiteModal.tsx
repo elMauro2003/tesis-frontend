@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/button";
 import { infrastructureCascadeService } from "@/core/services/infrastructureCascade.service";
-import { FetchError } from "@/lib/fetchClient";
+import { getCascadeErrorMessage } from "@/core/services/infrastructureCascade.errors";
 import { Site } from "@/types/models";
 
 interface DeleteSiteModalProps {
@@ -15,17 +15,7 @@ interface DeleteSiteModalProps {
   onClose: () => void;
 }
 
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof FetchError) {
-    return error.message;
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return fallback;
-};
+const getErrorMessage = getCascadeErrorMessage;
 
 export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
   const queryClient = useQueryClient();
@@ -133,12 +123,21 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
             ) : null}
           </div>
 
-          <div className="rounded-xl bg-red-50 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
-            <p className="mt-2 text-sm text-red-900 leading-relaxed">
-              Se eliminarán en orden edificios, alas, cuartos, asignaciones activas, cuartelerías y responsables de ala antes de quitar la sede.
-            </p>
-          </div>
+          {!summaryQuery.isLoading && summary && !summary.canDelete ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <span className="material-symbols-outlined text-amber-600">block</span>
+              <p className="text-sm text-amber-900">
+                Hay cuartos con asignaciones registradas ({summary.blockedRoomNumbers.join(", ")}). La sede no puede eliminarse mientras existan esas dependencias.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-red-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-red-700">Efecto en cascada</p>
+              <p className="mt-2 text-sm text-red-900 leading-relaxed">
+                Se eliminarán edificios, alas, cuartelerías y cuartos sin historial antes de quitar la sede.
+              </p>
+            </div>
+          )}
 
           <p className="text-sm text-[var(--color-on-surface-variant)] leading-relaxed">
             Esta operación no se puede deshacer desde la interfaz. Si necesita conservar información, realice una revisión previa de la estructura territorial.
@@ -153,7 +152,7 @@ export function DeleteSiteModal({ site, open, onClose }: DeleteSiteModalProps) {
             type="button"
             variant="danger"
             onClick={() => deleteMutation.mutate()}
-            disabled={!site || deleteMutation.isPending || summaryQuery.isLoading}
+            disabled={!site || !summary?.canDelete || deleteMutation.isPending || summaryQuery.isLoading}
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar sede"}
           </Button>

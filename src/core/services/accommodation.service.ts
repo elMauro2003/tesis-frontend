@@ -101,9 +101,10 @@ export const accommodationService = {
       ],
     };
   },
-  
-  createAssignment: (data: RoomAssignmentCreatePayload): Promise<RoomAssignment> => fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
-  
+
+  createAssignment: (data: RoomAssignmentCreatePayload): Promise<RoomAssignment> =>
+    fetchClient("/api/v1/asignaciones/", { method: "POST", body: JSON.stringify(data) }),
+
   releaseAssignment: async (id: number, releasedDate?: string): Promise<void> => {
     const payload = { released_date: releasedDate ?? todayIsoDate() };
 
