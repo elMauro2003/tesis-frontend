@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormField } from "@/components/shared/FormField";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ function LoginFormContent() {
   return (
     <main className="flex min-h-[100dvh] w-full flex-col bg-surface text-on-surface md:h-[100dvh] md:max-h-[100dvh] md:flex-row md:overflow-hidden">
       {/* Brand panel */}
-      <section className="relative flex shrink-0 flex-col bg-primary-gradient md:h-full md:w-1/2 md:overflow-hidden md:p-10 lg:p-14">
+      <section className="relative flex shrink-0 flex-col login-brand-panel md:h-full md:w-1/2 md:overflow-hidden md:p-10 lg:p-14">
         <LoginBrandDecorations />
 
         {/* Mobile: compact hero */}
@@ -110,12 +111,19 @@ function LoginFormContent() {
           </div>
 
           <div className="group relative min-h-0 max-h-44 flex-1 overflow-hidden rounded-2xl lg:max-h-52 xl:max-h-60">
-            <img
-              alt="Campus universitario"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-xn_e2FN_422IOWmt7Rkrttm0o0JPr_RZc-venmHvTv6HudKTK7z5WYQKq2eP8TLVPDRXv0E-FlXSS2iNQ_0um1Mjx59Kyg2BGIzSM8Pl8axTqbwF7MPfBmiozB_RqWcPI5z75UDsXt2qoG4lSkgkfLYDTF8cdW1ynKhN3M9gk0UIWetl0_MQTEDtphyjAFNiza6TVVqRj2-slot30psEv50oye2PwA9bwALCcROzWtyY_Ad_rFuOvomgr8NIcRYWQPkIKnl8wg"
+            <Image
+              alt="Biblioteca central de la Universidad Central Marta Abreu de Las Villas"
+              src="/images/login/uclv-campus.jpg"
+              fill
+              priority
+              sizes="(min-width: 768px) 50vw, 0px"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-primary-dark)]/75 to-transparent" />
+            <p className="absolute bottom-2 right-3 z-10 max-w-[70%] text-right text-[9px] font-medium leading-snug text-white/55">
+              Biblioteca central UCLV
+              <span className="block text-white/40">Foto: Mikecrespo / Wikimedia</span>
+            </p>
           </div>
 
           <p className="shrink-0 text-sm font-medium tracking-wide text-white/60">
