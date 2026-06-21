@@ -17,6 +17,7 @@ interface ViewComplaintPanelProps {
   complaint: Complaint | null;
   onClose: () => void;
   onRespond?: (complaint: Complaint) => void;
+  onDelete?: (complaint: Complaint) => void;
   canManage?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function ViewComplaintPanel({
   complaint,
   onClose,
   onRespond,
+  onDelete,
   canManage = false,
 }: ViewComplaintPanelProps) {
   const responseDateLabel = formatComplaintDateTime(complaint?.response_date);
@@ -36,14 +38,20 @@ export function ViewComplaintPanel({
       description={complaint?.description}
       footer={
         canManage && complaint ? (
-          <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/40 p-6 sm:flex-row sm:justify-end">
-            <Button type="button" variant="neutral" onClick={onClose}>
-              Cerrar
+          <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--color-outline-variant)]/15 bg-[var(--color-surface-container-low)]/40 p-6 sm:flex-row sm:justify-between">
+            <Button type="button" variant="destructive" onClick={() => onDelete?.(complaint)}>
+              <span className="material-symbols-outlined text-lg">delete</span>
+              Eliminar
             </Button>
-            <Button type="button" variant="default" onClick={() => onRespond?.(complaint)}>
-              <span className="material-symbols-outlined text-lg">reply</span>
-              Responder
-            </Button>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="neutral" onClick={onClose}>
+                Cerrar
+              </Button>
+              <Button type="button" variant="default" onClick={() => onRespond?.(complaint)}>
+                <span className="material-symbols-outlined text-lg">reply</span>
+                Responder
+              </Button>
+            </div>
           </footer>
         ) : undefined
       }

@@ -23,6 +23,7 @@ interface ComplaintTableRowProps {
   onAssign: (complaint: Complaint) => void;
   onUpdateStatus: (complaint: Complaint) => void;
   onRespond: (complaint: Complaint) => void;
+  onDelete: (complaint: Complaint) => void;
 }
 
 export function ComplaintTableRow({
@@ -33,6 +34,7 @@ export function ComplaintTableRow({
   onAssign,
   onUpdateStatus,
   onRespond,
+  onDelete,
 }: ComplaintTableRowProps) {
   const isPublic = Boolean(complaint.visibility ?? complaint.is_public);
 
@@ -115,6 +117,17 @@ export function ComplaintTableRow({
                 onClick={() => onRespond(complaint)}
               >
                 <span className="material-symbols-outlined text-[20px]">reply</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(actionButtonClass, "hover:bg-red-50 hover:text-[var(--color-error)]")}
+                title="Eliminar queja"
+                aria-label="Eliminar queja"
+                onClick={() => onDelete(complaint)}
+              >
+                <span className="material-symbols-outlined text-[20px]">delete</span>
               </Button>
             </div>
           ) : null}

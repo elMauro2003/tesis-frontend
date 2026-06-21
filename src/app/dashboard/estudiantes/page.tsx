@@ -774,7 +774,9 @@ export default function DashboardPage() {
       {/* Slide-over panel */}
       <ViewStudentPanel 
         studentId={selectedStudentId} 
-        onClose={() => setSelectedStudentId(null)} 
+        onClose={() => setSelectedStudentId(null)}
+        onEvaluate={(id) => setSelectedStudentToEvaluateId(id)}
+        canEvaluate={canUpdateStudent}
       />
 
       <DeleteStudentModal

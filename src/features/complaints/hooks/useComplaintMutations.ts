@@ -93,10 +93,31 @@ export function useComplaintMutations() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await complaintService.deleteComplaint(id);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        invalidateComplaints(),
+        queryClient.invalidateQueries({ queryKey: ["portal", "complaints"] }),
+      ]);
+      toast.success("Queja eliminada", {
+        description: "La queja fue retirada del historial correctamente.",
+      });
+    },
+    onError: (error) => {
+      toast.error("No se pudo eliminar la queja", {
+        description: getErrorMessage(error, "Intente nuevamente en unos segundos."),
+      });
+    },
+  });
+
   return {
     respondMutation,
     statusMutation,
     visibilityMutation,
+    deleteMutation,
     invalidateComplaints,
   };
 }

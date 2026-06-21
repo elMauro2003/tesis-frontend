@@ -103,6 +103,20 @@ function gradeToScore(grade: string) {
   return 2;
 }
 
+export function getDashboardGradeBadgeClass(grade: GradeCode) {
+  const tone = getGradeTone(grade);
+  switch (tone) {
+    case "success":
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    case "warning":
+      return "bg-amber-50 text-amber-700 border-amber-100";
+    case "error":
+      return "bg-red-50 text-red-700 border-red-100";
+    default:
+      return "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)] border-[var(--color-outline-variant)]/30";
+  }
+}
+
 export function getEvaluationTitle(evaluation: PortalEvaluation) {
   if (evaluation.evaluator_name?.trim()) {
     return `Evaluación — ${evaluation.evaluator_name}`;

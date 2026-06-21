@@ -29,7 +29,7 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
   const [comments, setComments] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<EvaluateFormField> | null>(null);
 
-  const evaluateMutation = useMutation({
+  const { mutate, reset, isPending } = useMutation({
     mutationFn: async () => {
       if (!student) return;
       // API expects: { student: int, date: string (YYYY-MM-DD), grade: 'B'|'R'|'M', comment?: string }
@@ -45,6 +45,8 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
         queryClient.invalidateQueries({ queryKey: ["students-all"] }),
         queryClient.invalidateQueries({ queryKey: ["students-visible-details"] }),
         queryClient.invalidateQueries({ queryKey: ["student-suggestions"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-evaluations"] }),
+        queryClient.invalidateQueries({ queryKey: ["student", student?.id] }),
       ]);
       toast.success("Evaluación registrada", {
         description: "La evaluación quedó guardada correctamente.",
@@ -63,14 +65,13 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
   });
 
   useEffect(() => {
-    if (open) {
-      setGrade("B");
-      setDate(new Date().toISOString().split("T")[0]);
-      setComments("");
-      setFieldErrors(null);
-      evaluateMutation.reset();
-    }
-  }, [open, evaluateMutation]);
+    if (!open) return;
+    setGrade("B");
+    setDate(new Date().toISOString().split("T")[0]);
+    setComments("");
+    setFieldErrors(null);
+    reset();
+  }, [open, reset]);
 
   const handleSubmit = () => {
     const errors = validateFields<EvaluateFormField>([
@@ -95,7 +96,7 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
     }
 
     setFieldErrors(null);
-    evaluateMutation.mutate();
+    mutate();
   };
 
   const fullName = useMemo(() => {
@@ -204,10 +205,10 @@ export function EvaluateStudentModal({ student, open, onClose }: EvaluateStudent
             type="button"
             variant="confirm"
             onClick={handleSubmit}
-            disabled={evaluateMutation.isPending}
+            disabled={isPending}
           >
             <span className="material-symbols-outlined text-lg">save</span>
-            {evaluateMutation.isPending ? "Guardando..." : "Guardar Evaluación"}
+            {isPending ? "Guardando..." : "Guardar Evaluación"}
           </Button>
         </footer>
       </div>

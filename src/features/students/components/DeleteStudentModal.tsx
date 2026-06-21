@@ -20,7 +20,7 @@ interface DeleteStudentModalProps {
 export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModalProps) {
   const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
+  const { mutate, reset, isPending } = useMutation({
     mutationFn: async () => {
       if (!student) return;
       await studentService.deleteStudent(student.id);
@@ -48,8 +48,8 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
   });
 
   useEffect(() => {
-    if (!open) deleteMutation.reset();
-  }, [open, deleteMutation]);
+    if (!open) reset();
+  }, [open, reset]);
 
   const title = "Dar de Baja de la Residencia";
 
@@ -125,16 +125,16 @@ export function DeleteStudentModal({ student, open, onClose }: DeleteStudentModa
         </div>
 
         <footer className="border-t border-[var(--color-outline-variant)]/15 p-6 flex justify-end gap-3 bg-[var(--color-surface-container-low)]/50">
-          <Button type="button" variant="cancel" onClick={onClose} disabled={deleteMutation.isPending}>
+          <Button type="button" variant="cancel" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
           <Button
             type="button"
             variant="danger"
-            onClick={() => deleteMutation.mutate()}
-            disabled={!student || deleteMutation.isPending}
+            onClick={() => mutate()}
+            disabled={!student || isPending}
           >
-            {deleteMutation.isPending ? 'Eliminando...' : 'Confirmar Baja'}
+            {isPending ? 'Eliminando...' : 'Confirmar Baja'}
           </Button>
         </footer>
       </div>

@@ -7,6 +7,7 @@ import { Student } from '@/types/models';
 import { studentService } from '@/core/services/student.service';
 import { academicService } from '@/core/services/academic.service';
 import { useQuery } from '@tanstack/react-query';
+import { StudentEvaluationsSection } from '@/features/students/components/StudentEvaluationsSection';
 
 type StudentCurrentRoom = {
   number?: string;
@@ -17,9 +18,11 @@ type StudentCurrentRoom = {
 interface ViewStudentPanelProps {
   studentId: number | null;
   onClose: () => void;
+  onEvaluate?: (studentId: number) => void;
+  canEvaluate?: boolean;
 }
 
-export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) {
+export function ViewStudentPanel({ studentId, onClose, onEvaluate, canEvaluate = false }: ViewStudentPanelProps) {
   const [student, setStudent] = useState<Student | null>(null);
   const [currentRoom, setCurrentRoom] = useState<StudentCurrentRoom>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -217,10 +220,14 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
                 <p className="text-sm text-[var(--color-on-surface)] font-semibold">{careerName}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Rendimiento</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No disponible</p>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Grupo</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{groupName}</p>
               </div>
               <div>
+                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Año académico</p>
+                <p className="text-sm text-[var(--color-on-surface)] font-semibold">{yearNumber}</p>
+              </div>
+              <div className="col-span-2">
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Cuarto</p>
                 <p className="text-sm text-[var(--color-on-surface)] font-semibold">
                   {currentRoom ? (
@@ -235,6 +242,24 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
             </div>
           </section>
 
+          {/* Evaluaciones */}
+          <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest">Evaluaciones</h4>
+              {canEvaluate && student ? (
+                <button
+                  type="button"
+                  onClick={() => onEvaluate?.(student.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  Añadir
+                </button>
+              ) : null}
+            </div>
+            <StudentEvaluationsSection studentId={studentId} />
+          </section>
+
           {/* Salud y Perfil */}
           <section className="p-5 rounded-2xl bg-[var(--color-surface-container-lowest)] shadow-[0_8px_30px_rgba(15,23,77,0.06)]">
             <h4 className="text-[10px] uppercase text-[var(--color-outline)] font-extrabold tracking-widest mb-4">Salud y Perfil</h4>
@@ -246,10 +271,6 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
               <div>
                 <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Medicamentos</p>
                 <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrado</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[10px] uppercase text-[var(--color-outline)] font-bold">Trayectoria Disciplinaria</p>
-                <p className="text-sm text-[var(--color-on-surface)] font-semibold">No registrada</p>
               </div>
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -266,6 +287,16 @@ export function ViewStudentPanel({ studentId, onClose }: ViewStudentPanelProps) 
 
         {/* Footer */}
         <footer className="border-t border-[var(--color-outline-variant)]/20 p-4 bg-[var(--color-surface-container-lowest)] flex justify-end gap-3 shrink-0">
+          {canEvaluate && student ? (
+            <button
+              type="button"
+              onClick={() => onEvaluate?.(student.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-amber-700 font-bold text-sm hover:bg-amber-50 transition-colors border border-amber-100 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              Añadir Evaluación
+            </button>
+          ) : null}
           {student ? (
             <Can feature="students" action="update">
               <Link href={DASHBOARD_ROUTES.estudianteEditar(student.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-700 font-bold text-sm hover:bg-[var(--color-surface-container-low)] transition-colors border border-ghost cursor-pointer">

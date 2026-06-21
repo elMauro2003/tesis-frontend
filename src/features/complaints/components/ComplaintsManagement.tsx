@@ -15,6 +15,7 @@ import { AssignComplaintModal } from "@/features/complaints/components/AssignCom
 import { RespondComplaintModal } from "@/features/complaints/components/RespondComplaintModal";
 import { ToggleComplaintVisibilityModal } from "@/features/complaints/components/ToggleComplaintVisibilityModal";
 import { UpdateComplaintStatusModal } from "@/features/complaints/components/UpdateComplaintStatusModal";
+import { DeleteComplaintModal } from "@/features/complaints/components/DeleteComplaintModal";
 import { ViewComplaintPanel } from "@/features/complaints/components/ViewComplaintPanel";
 import { useComplaintsForRole } from "@/features/complaints/hooks/useComplaintsForRole";
 import { useDashboardComplaintBuildings } from "@/features/complaints/hooks/useDashboardComplaintBuildings";
@@ -63,6 +64,7 @@ function ManagerComplaintsView() {
   const [statusComplaint, setStatusComplaint] = useState<Complaint | null>(null);
   const [visibilityComplaint, setVisibilityComplaint] = useState<Complaint | null>(null);
   const [assignComplaint, setAssignComplaint] = useState<Complaint | null>(null);
+  const [deleteComplaint, setDeleteComplaint] = useState<Complaint | null>(null);
 
   const buildingsQuery = useDashboardComplaintBuildings(canView);
 
@@ -150,6 +152,16 @@ function ManagerComplaintsView() {
   const openAssignModal = (complaint: Complaint) => {
     if (!canManage) return;
     setAssignComplaint(complaint);
+  };
+
+  const openDeleteModal = (complaint: Complaint) => {
+    if (!canManage) return;
+    setViewComplaint(null);
+    setDeleteComplaint(complaint);
+  };
+
+  const handleComplaintDeleted = (complaintId: number) => {
+    setViewComplaint((current) => (current?.id === complaintId ? null : current));
   };
 
   return (
@@ -280,6 +292,7 @@ function ManagerComplaintsView() {
                     onAssign={openAssignModal}
                     onUpdateStatus={openStatusModal}
                     onRespond={openRespondModal}
+                    onDelete={openDeleteModal}
                   />
                 ))
               )}
@@ -309,6 +322,7 @@ function ManagerComplaintsView() {
         onClose={() => setViewComplaint(null)}
         canManage={canManage}
         onRespond={openRespondModal}
+        onDelete={openDeleteModal}
       />
 
       {canManage ? (
@@ -335,6 +349,13 @@ function ManagerComplaintsView() {
             complaint={assignComplaint}
             open={Boolean(assignComplaint)}
             onClose={() => setAssignComplaint(null)}
+          />
+
+          <DeleteComplaintModal
+            complaint={deleteComplaint}
+            open={Boolean(deleteComplaint)}
+            onClose={() => setDeleteComplaint(null)}
+            onDeleted={handleComplaintDeleted}
           />
         </>
       ) : null}
